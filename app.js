@@ -150,7 +150,7 @@ app.get("/bms-admin*", (req, res) => {
 //     res.json({message:"deploy api"});
 // });
 
-// error handler
+
 app.use((error, req, res, next) => {
     // console.log("Error " ,error);
     let { statusCode, msg } = error;
