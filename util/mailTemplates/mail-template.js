@@ -2,7 +2,7 @@
 
 const WELCOME_TEMPLATE = (text) => {
 
-    return `
+  return `
       <!DOCTYPE html>
       <html>
         <head>
@@ -56,12 +56,12 @@ const WELCOME_TEMPLATE = (text) => {
       </html>
     `;
 
-  }
-  
+}
+
 
 const BOOKING_CREATE_TEMPLATE = (text) => {
 
-    return `
+  return `
       <!DOCTYPE html>
       <html>
         <head>
@@ -115,13 +115,13 @@ const BOOKING_CREATE_TEMPLATE = (text) => {
       </html>
     `;
 
-  }
+}
 
-const BOOKING_SUCCESS_ADMIN = ( userName, userNumber, bookingDateTime, studioName, studioLocation, paymentStatus ) => {
+const BOOKING_SUCCESS_ADMIN = (bookingDetails) => {
 
-    return `
-    <!doctype html>
-    <html>
+  const { userName, userNumber, bookingDateTime, studioName, studioLocation, ownerName, ownerEmail } = bookingDetails;
+
+  return `<html>
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
@@ -472,14 +472,14 @@ const BOOKING_SUCCESS_ADMIN = ( userName, userNumber, bookingDateTime, studioNam
                         <tr>
                         <td>
                             <p>Hi Choira Team,</p>
-                            <p>Here are Booking details</br></br>
-                            Username: ${userName}</br>
-                            User PhoneNumber: ${userNumber}</br>
-                            Booking DateTime: ${bookingDateTime}</br></br>
-                            Studio Name: ${studioName}</br>
-                            Studio Location: ${studioLocation}</br>
-                            Payment Status: ${paymentStatus}</br>
-                            
+                            <p>Here are Booking details<br/>
+                            ${userName && userName !== "Admin" ? `Username:${userName}<br/>
+                              User PhoneNumber: ${userNumber}<br/>` : (ownerName?`Owner:${ownerName}<br/>
+                              Email : ${ownerEmail}<br/>`:`Username:${userName}<br/>`)
+                            }
+                            Booking DateTime: ${bookingDateTime}<br/>
+                            Studio Name: ${studioName}<br/><br/>
+                            Studio Location: ${studioLocation}<br/>                            
                             
                             </p>
                             <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="btn btn-primary">
@@ -489,7 +489,7 @@ const BOOKING_SUCCESS_ADMIN = ( userName, userNumber, bookingDateTime, studioNam
                                     <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                                     <tbody>
                                         <tr>
-                                        <td> <a href="http://choira.io" target="_blank">Go to Admin Panel</a> </td>
+                                        <td> <a href="http://sadmin.choira.io/bms-admin" target="_blank">Go to Admin Panel</a> </td>
                                         </tr>
                                     </tbody>
                                     </table>
@@ -536,6 +536,6 @@ const BOOKING_SUCCESS_ADMIN = ( userName, userNumber, bookingDateTime, studioNam
     </html>
     `;
 
-  }
+}
 
-module.exports = {WELCOME_TEMPLATE, BOOKING_SUCCESS_ADMIN, BOOKING_CREATE_TEMPLATE};
+module.exports = { WELCOME_TEMPLATE, BOOKING_SUCCESS_ADMIN, BOOKING_CREATE_TEMPLATE };

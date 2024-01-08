@@ -251,6 +251,65 @@ exports.loginUserOTP = async (req, res, next) => {
       return res.status(200).json({ message: 'Please try after some Time' });
     }
   }
+
+
+exports.TestloginUserOTP = async (req, res, next) => {
+    try {
+      const { phoneNumber, deviceId, userType } = req.body;  
+      const fullName = "";
+      const dateOfBirth = "";
+      const email = "";
+      const password = "";
+      const latitude = "";
+      const longitude = "";
+      const city = "";
+      const state = "";
+      const profileUrl = "";
+      const gender = "";
+      const favourites = [];
+  
+      const statusInfo = { status: false, message: 'something went wrong, try again' };
+  
+      const userData = await User.findUserByPhone(phoneNumber);
+
+      console.log("userdata ==========>",userData);
+  
+      if (userType === "NUMBER") {
+        const token = generateRandomCode(4);
+        console.log("test mobile otp:",token);
+        statusInfo.message = 'Test OTP sent successfully';
+        statusInfo.otp = token;
+        statusInfo.status = true;
+      }
+  
+      if (userData) {
+        const db = getDb();
+        userData.deviceId = deviceId;
+        await db.collection('users').updateOne({ phone: phoneNumber }, { $set: userData });
+        const token = await jwt.sign({ user: userData }, 'myAppSecretKey');
+        statusInfo.status = true;
+        statusInfo.newUser = false;
+        statusInfo.user = userData;
+        statusInfo.token = token;
+      }
+  
+      if (!userData && userType==="NUMBER") {
+        statusInfo.newUser = true;
+        const userObj = new User(fullName, dateOfBirth, email, phoneNumber, password, latitude, longitude, city, state, profileUrl, gender, userType, favourites, deviceId);
+        const resultData = await userObj.save();
+        statusInfo.status = true;
+        statusInfo.user = resultData["ops"][0];
+
+
+
+      }
+  
+      return res.json(statusInfo);
+    } catch (err) {
+      console.log("===>",err.message);
+      return res.status(200).json({ message: 'Please try after some Time' });
+    }
+  }
   
 // -----------------------------------------------
 

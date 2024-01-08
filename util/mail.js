@@ -9,7 +9,6 @@ OAuth2_client.setCredentials({ refresh_token: process.env.refreshToken })
 
 exports.send_mail = function (bookingDetails) {
   
-    const userName = bookingDetails.userName;
     const accessToken = OAuth2_client.getAccessToken()
 
     const transport = nodemailer.createTransport({
@@ -26,9 +25,9 @@ exports.send_mail = function (bookingDetails) {
 
     const mail_options = {
         from: `Choira <${process.env.user}>`,
-        to: ["nitin.goswami@choira.io","ketan.salvi@choira.io"],
+        to: ["nitin.goswami@choira.io","ketan.salvi@choira.io","support@choira.io"],
         subject: 'New Booking Arrived!',
-        html: BOOKING_SUCCESS_ADMIN("userName", "userNumber", "bookingDateTime", "studioName", "studioLocation", "paymentStatus")
+        html: BOOKING_SUCCESS_ADMIN(bookingDetails)
     }
 
 

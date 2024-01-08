@@ -11,8 +11,7 @@ const multer = require('multer');
 
 var store = multer.diskStorage({
     destination:function(req,file,cb){
-        const uploadDir = path.join(__dirname,'..', 'newFileUploads');
-        cb(null,uploadDir);
+        cb(null,'../newFileUploads');
     },
     filename:function(req,file,cb){
         var dt = new Date().getTime();
