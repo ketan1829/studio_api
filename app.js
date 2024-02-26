@@ -1,4 +1,5 @@
 const express = require('express');
+const { logger, contextMiddleware } = require('./util/logger.js');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 
@@ -10,9 +11,12 @@ const mongoConnect = require('./util/database').mongoConnect;
 
 const app = express();
 
+const configRoutes = require('./routes/config');
 const adminRoutes = require('./routes/admin');
 const userRoutes = require('./routes/user');
 const studioRoutes = require('./routes/studio');
+const serviceRoutes = require('./routes/service');
+const settingRoutes = require('./routes/setting');
 const bookingRoutes = require('./routes/booking');
 const ratingRoutes = require('./routes/rating');
 const transactionRoutes = require('./routes/transaction');
@@ -33,18 +37,18 @@ const options = {
     swaggerDefinition: {
       openapi: "3.0.1",
       info: {
-        title: "BookMyStudioApp - API",
-        version: "1.0.0",
+        title: "Choira Studio - API",
+        version: "2.2.0",
       },
       servers: [
         {
-          url: "https://bookmystudioapp.herokuapp.com/api/",
+          url: "https://adminstudio.serveo.net/api/",
         },
         {
-          url:"http://ec2-3-109-47-228.ap-south-1.compute.amazonaws.com/api/"
+          url:"http://localhost:3000"
         },
         {
-          url: "http://localhost:8080/api/",
+          url: "http://localhost:4200/api/",
         },
         {
           url: "http://sadmin.choira.io:4000/api/",
@@ -71,6 +75,9 @@ const options = {
     apis: ["./routes/*.js"],
 };
 
+// Attach a unique request ID to every log line
+app.use(contextMiddleware);
+
 const specs = swaggerJsdoc(options);
 app.use(
     "/api-docs",
@@ -94,9 +101,10 @@ app.use(express.json());
 //enabling CORS package
 app.use((req,res,next)=>{
     //setting header to all responses
-    res.setHeader('Access-Control-Allow-Origin','*');
-                                           
-                        //specifying which methods are allowed
+    res.setHeader('Access-Control-Allow-Origin','*'); //specifying which methods are allowed
+
+    res.setHeader('Access-Control-Allow-Origin','http://localhost:3000'); //specifying which methods are allowed
+    
     res.setHeader('Access-Control-Allow-Methods','GET,POST,PUT,PATCH,DELETE');
 
     res.setHeader('Access-Control-Allow-Headers','Content-Type,Authorization');
@@ -108,9 +116,13 @@ app.use((req,res,next)=>{
 app.get('/api', (req, res) => {
   res.send('Studio Test Api is live !!')
 })
+
+app.use('/api',configRoutes);
 app.use('/api',adminRoutes);
 app.use('/api',userRoutes);
 app.use('/api',studioRoutes);
+app.use('/api',serviceRoutes);
+app.use('/api',settingRoutes);
 app.use('/api',bookingRoutes);
 app.use('/api',ratingRoutes);
 app.use('/api',transactionRoutes);
@@ -146,9 +158,10 @@ app.get("/bms-admin*", (req, res) => {
 //     res.sendFile(path.resolve(__dirname, "dist-owner", "BookMyStudioAppOwner", "index.html"));
 // });
 
-// app.get('/',(req,res)=>{
-//     res.json({message:"deploy api"});
-// });
+app.get('/',(req,res)=>{
+    logger.info('Test API check ---');
+    res.json({message:"Test api"});
+});
 
 
 app.use((error, req, res, next) => {
