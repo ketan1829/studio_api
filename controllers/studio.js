@@ -6,6 +6,7 @@ const axios = require('axios');
 
 const mongodb = require('mongodb');
 const getDb = require('../util/database').getDB; 
+const pick = require('../util/pick')
 const ObjectId = mongodb.ObjectId;
 
 let Country = require('country-state-city').Country;
@@ -15,6 +16,216 @@ const jwt = require('jsonwebtoken');
 
 var GeoPoint = require('geopoint');
 const mapQuestKey = process.env.MAP_QUEST_KEY;
+
+
+
+function getReviewersName(ratingList,_callback)
+{
+    let mappedRatings = [];
+    ratingList.forEach(async singleRating=>{
+        singleRating.reviewerName = "";
+        let userData = await User.findUserByUserId(singleRating.userId);
+        if(userData!=null)
+        {
+            singleRating.reviewerName = userData.fullName;
+        }
+        mappedRatings.push(singleRating);
+        if(mappedRatings.length==ratingList.length)
+        {
+            return _callback(mappedRatings);
+        }
+    })
+}
+
+function offersMapping(allStudios,_callback)
+{
+    let mappedStudios = [];
+    if(allStudios.length==0)
+    {
+        return _callback([]);
+    }
+    else{
+        let studiosData = allStudios.map(i=>{
+            //**For now, map to dummy values**
+            // console.log(i.roomsDetails);
+            i.discountValue = (i.roomsDetails.length!=0)? parseFloat(i.roomsDetails[0].discountPercentage):0;
+            i.offerPercentage = 0;
+            mappedStudios.push(i);
+            if(mappedStudios.length==allStudios.length)
+            {
+                return _callback(mappedStudios);
+            }
+        })
+    }
+}
+
+function filterNearbySudios(studioData, latitude, longitude, page, limit, range) {
+    try {
+        // console.log("studioData::::", studioData);
+        const point1 = new GeoPoint(+latitude, +longitude);
+        const availableStudios = [];
+        for (let i = 0; i < studioData.length; i++) {
+            const point2 = new GeoPoint(+studioData[i].latitude, +studioData[i].longitude);
+            const distance = point1.distanceTo(point2, true);
+            if (distance <= range) {
+                availableStudios.push({ ...studioData[i], distance: distance.toFixed(2) });
+            }
+        }
+        
+        const startIndex = (page - 1) * limit;
+        const endIndex = page * limit;
+        const paginatedStudios = availableStudios.slice(startIndex, endIndex);
+
+        paginatedStudios.sort((a, b) => a.distance - b.distance);
+
+        const totalPages = Math.ceil(availableStudios.length / limit);
+
+        console.log(`Page ${page} of ${totalPages} - ${paginatedStudios.length} studios returned`);
+        return {
+            message: `Page ${page} of ${totalPages} - ${paginatedStudios.length} studios returned`,
+            paginate: {
+                page: page,
+                limit: parseInt(limit),
+                totalResults: availableStudios.length,
+                totalPages: totalPages,
+            },
+            studios: paginatedStudios
+            // {
+            //     nearYou: paginatedStudios,
+            //     page: page,
+            //     limit: limit,
+            //     totalResults: availableStudios.length,
+            //     totalPages: totalPages,
+            //     topRated: [],
+            //     forYou: []
+            // }
+        };
+    } catch (exception) {
+        console.log("Exception Occurred:", exception);
+        return { status: false, message: "Invalid Latitude" };
+    }
+}
+
+// ----------------- v2.2.3 ---------------------------
+
+exports.getStudios = (req,res,next)=>{
+
+    console.log("body---", req.body);
+    const { city, state, minArea, minPricePerHour, amenity, availabilityDay, latitude, longitude, range, active, studioId } = req.body;
+    const filter = pick(req.query, ['name', 'role']) || { isActive: 1 }
+    const options = pick(req.query, ['sortBy', 'limit', 'page']);
+    
+    // const filter = { isActive: 1 };
+
+    if (active) filter.isActive = active;
+    if (studioId) {
+        var o_id = new ObjectId(studioId);
+        filter._id =o_id
+    }
+    if (city) filter.city = city;
+    if (state) filter.state = state;
+    if (minArea) filter['area'] = { $gte: parseInt(minArea) };
+    if (minPricePerHour) filter['roomsDetails.basePrice'] = { $gte: parseInt(minPricePerHour) };
+    if (amenity) filter['amenities.name'] = amenity;
+    if (availabilityDay) {
+        filter['roomsDetails.generalStartTime'] = availabilityDay.startTime; 
+        filter['roomsDetails.generalEndTime'] = availabilityDay.endTime;
+    }
+    // const options = {
+    //     sortBy, // Sort criteria
+    //     limit, // Limit per page
+    //     page, // Page number
+    //     populate, // Fields to populate
+    // };
+
+    if (latitude && longitude) {
+
+        Studio.fetchAllStudios(0,0)
+        .then(studioData=>{
+            const paginatedStudios = filterNearbySudios(studioData, latitude, longitude, options.page || 1, options.limit  || 10, range ? range : 10);
+            return res.json({status:true, message:paginatedStudios.message,nearYou:paginatedStudios.studios, paginate:paginatedStudios.paginate});
+        })
+        
+    }else {
+
+    Studio.paginate(filter, options).then(studioData=>{
+
+        return res.json({status:true, message:"All studios returned",studios:studioData});
+    })
+}
+    
+}
+
+// ----------------- END v2.2.3 ---------------------------
+
+exports.getAllNearStudios = (req,res,next)=>{
+
+    const latitude = req.body.latitude;
+    const longitude = req.body.longitude;
+    const range = 100;
+
+    Studio.fetchAllActiveStudios(0,0).then(studiosData=>{
+        //get offers mapping
+        offersMapping(studiosData,(resData)=>{
+            // console.log(resData);
+            studiosData = resData;
+            if(studiosData.length==0)
+            {
+                return res.status(404).json({status:false, message:"No studio exist",nearYou:[]});
+            }
+            else{
+                if(latitude==undefined || latitude.length==0)
+                {
+                    return res.status(400).json({status:false, message:"Enter valid latitude and longitude",nearYou:[],topRated:[],forYou:[]});  
+                }
+                else{
+                    // console.log("Non-default filter");
+                    try{
+                        var point1 = new GeoPoint(+latitude,+longitude);
+                        var availableStudios = [];
+                        for(var i = 0;i<studiosData.length;i++)
+                        {
+                            // console.log(studiosData[i].latitude,studiosData[i].longitude);
+                            var point2 = new GeoPoint(+studiosData[i].latitude,+studiosData[i].longitude);
+                            var distance = point1.distanceTo(point2, true)  //output in kilometers
+                            // console.log("Distance:",distance.toFixed(2));
+                            
+                            if(distance<=range)
+                            {
+                                availableStudios.push({...studiosData[i],distance:distance.toFixed(2)});
+                            }
+                            //Remove duplicates
+                            availableStudios = availableStudios.filter((value, index) => {
+                                const _value = JSON.stringify(value);
+                                return index === availableStudios.findIndex(obj => {
+                                  return JSON.stringify(obj) === _value;
+                                });
+                            });
+    
+                            if(i == studiosData.length-1)
+                            {
+                                // Sort Based on distance
+                                availableStudios.sort((a,b)=> a.distance - b.distance);
+                                // let allNearStudios = availableStudios.slice(0, 4);//Note that the slice function on arrays returns a shallow copy of the array, and does not modify the original array
+                                return res.json({
+                                    status:true,
+                                    message:"All "+availableStudios.length+" studios returned",nearYou:availableStudios,
+                                    topRated:[],forYou:[]
+                                });
+                            }
+                        };
+                    }
+                    catch(exception)
+                    {
+                        // return;  //Return statement is used for BREAKING the for loop
+                        console.log("Exception Occured : ",exception);
+                        return res.json({status:false, message:"Geopoint Exception Occured....Invalid Latitude", error:exception});                
+                    }
+                }
+            }
+        })
+    })
+}
 
 
 exports.createNewStudio = async(req,res,next)=>{
@@ -64,23 +275,6 @@ exports.createNewStudio = async(req,res,next)=>{
 
 }
 
-function getReviewersName(ratingList,_callback)
-{
-    let mappedRatings = [];
-    ratingList.forEach(async singleRating=>{
-        singleRating.reviewerName = "";
-        let userData = await User.findUserByUserId(singleRating.userId);
-        if(userData!=null)
-        {
-            singleRating.reviewerName = userData.fullName;
-        }
-        mappedRatings.push(singleRating);
-        if(mappedRatings.length==ratingList.length)
-        {
-            return _callback(mappedRatings);
-        }
-    })
-}
 
 exports.getParticularStudioDetails = (req,res,next)=>{
 
@@ -174,28 +368,6 @@ exports.toggleStudioActiveStatus = (req,res,next)=>{
     })
 }
 
-
-function offersMapping(allStudios,_callback)
-{
-    let mappedStudios = [];
-    if(allStudios.length==0)
-    {
-        return _callback([]);
-    }
-    else{
-        let studiosData = allStudios.map(i=>{
-            //**For now, map to dummy values**
-            // console.log(i.roomsDetails);
-            i.discountValue = (i.roomsDetails.length!=0)? parseFloat(i.roomsDetails[0].discountPercentage):0;
-            i.offerPercentage = 0;
-            mappedStudios.push(i);
-            if(mappedStudios.length==allStudios.length)
-            {
-                return _callback(mappedStudios);
-            }
-        })
-    }
-}
 
 exports.getDashboardStudios = (req,res,next)=>{
 
@@ -554,74 +726,6 @@ exports.getDashboardStudios = (req,res,next)=>{
 }
 
 
-exports.getAllNearStudios = (req,res,next)=>{
-
-    const latitude = req.body.latitude;
-    const longitude = req.body.longitude;
-    const range = 100;
-
-    Studio.fetchAllActiveStudios(0,0).then(studiosData=>{
-        //get offers mapping
-        offersMapping(studiosData,(resData)=>{
-            // console.log(resData);
-            studiosData = resData;
-            if(studiosData.length==0)
-            {
-                return res.status(404).json({status:false, message:"No studio exist",nearYou:[]});
-            }
-            else{
-                if(latitude==undefined || latitude.length==0)
-                {
-                    return res.status(400).json({status:false, message:"Enter valid latitude and longitude",nearYou:[],topRated:[],forYou:[]});  
-                }
-                else{
-                    console.log("Non-default filter");
-                    try{
-                        var point1 = new GeoPoint(+latitude,+longitude);
-                        var availableStudios = [];
-                        for(var i = 0;i<studiosData.length;i++)
-                        {
-                            // console.log(studiosData[i].latitude,studiosData[i].longitude);
-                            var point2 = new GeoPoint(+studiosData[i].latitude,+studiosData[i].longitude);
-                            var distance = point1.distanceTo(point2, true)  //output in kilometers
-                            console.log("Distance:",distance.toFixed(2));
-                            
-                            if(distance<=range)
-                            {
-                                availableStudios.push({...studiosData[i],distance:distance.toFixed(2)});
-                            }
-                            //Remove duplicates
-                            availableStudios = availableStudios.filter((value, index) => {
-                                const _value = JSON.stringify(value);
-                                return index === availableStudios.findIndex(obj => {
-                                  return JSON.stringify(obj) === _value;
-                                });
-                            });
-    
-                            if(i == studiosData.length-1)
-                            {
-                                // Sort Based on distance
-                                availableStudios.sort((a,b)=> a.distance - b.distance);
-                                // let allNearStudios = availableStudios.slice(0, 4);//Note that the slice function on arrays returns a shallow copy of the array, and does not modify the original array
-                                return res.json({
-                                    status:true,
-                                    message:"All "+availableStudios.length+" studios returned",nearYou:availableStudios,
-                                    topRated:[],forYou:[]
-                                });
-                            }
-                        };
-                    }
-                    catch(exception)
-                    {
-                        // return;  //Return statement is used for BREAKING the for loop
-                        console.log("Exception Occured : ",exception);
-                        return res.json({status:false, message:"Geopoint Exception Occured....Invalid Latitude", error:exception});                
-                    }
-                }
-            }
-        })
-    })
-}
 
 
 exports.getAllStudios = (req,res,next)=>{
@@ -639,16 +743,6 @@ exports.getAllStudios = (req,res,next)=>{
     .then(studioData=>{
         return res.json({status:true, message:"All studios returned",studios:studioData});
     })
-
-}
-
-
-exports.getAllStates = (req,res,next)=>{
-    
-    // console.log(Country.getAllCountries())
-    // console.log(State.getAllStates())
-    // console.log(State.getStatesOfCountry('IN'))
-    // return res.json({status:true, message:"State(s) returned", states : State.getStatesOfCountry('IN')});
 
 }
 

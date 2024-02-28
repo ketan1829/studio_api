@@ -33,6 +33,17 @@ class Admin
                 .catch(err=>console.log(err));
     }
 
+    static findAdminByNumber(phone)
+    {
+        const db = getDb();
+                            
+        return db.collection('admins').findOne({ phone:phone })
+                .then(adminData=>{
+                    return adminData;
+                })
+                .catch(err=>console.log(err));
+    }
+
     static findAdminById(adminId)
     {
         const db = getDb();

@@ -5,16 +5,17 @@ const ObjectId = mongodb.ObjectId;
 
 class Booking
 {
-    constructor(userId,studioId,roomId,bookingDate,bookingTime,totalPrice,bookingStatus)
+    constructor(userId,studioId,roomId,bookingDate,bookingTime,totalPrice,bookingStatus, serviceType)
     {
         this.userId = userId;
         this.studioId = studioId;
-        this.roomId = roomId;
+        this.roomId = parseInt(roomId);
         this.bookingDate = bookingDate;
         this.bookingTime = bookingTime;
         this.totalPrice = totalPrice;
-        this.bookingStatus = bookingStatus;   // 0-> Active, 1-> Completed, 2-> Cancelled
+        this.bookingStatus = parseInt(bookingStatus);   // 0-> Active, 1-> Completed, 2-> Cancelled
         this.creationTimeStamp = new Date();
+        this.type = serviceType || "c1";
     }
 
     save()
@@ -82,6 +83,7 @@ class Booking
         const db = getDb();
         return db.collection('bookings').find({bookingStatus:bType}).sort({creationTimeStamp:-1}).skip(skipCount).limit(limitCount).toArray()
             .then(bookingData=>{
+                // console.log("------bookingsData:::", bookingData[0]);
                 return bookingData;
             })
             .catch(err=>console.log(err));
@@ -95,6 +97,31 @@ class Booking
                 return bookingData;
             })
             .catch(err=>console.log(err));
+    }
+
+    static async fetchAllBookingsCount(bType) {
+        try {
+            const db = getDb();
+            const bookingCount = await db.collection('bookings').countDocuments({ bookingStatus: parseInt(bType) });
+            return bookingCount;
+        } catch (err) {
+            throw new Error(`Error fetching bookings count: ${err}`);
+        }
+    }
+
+    static fetchFilteredAndSortedBookings(filters, sort, skipCount, limitCount) {
+        const db = getDb();
+        return db.collection('bookings')
+            .find(filters)
+            .sort(sort)
+            .skip(skipCount)
+            .limit(limitCount)
+            .toArray()
+            .then(bookingData => {
+                console.log("fetchFilteredAndSortedBookings---", bookingData[0])
+                return bookingData;
+            })
+            .catch(err => console.error(err));
     }
 
 }

@@ -1,5 +1,6 @@
 const Booking = require('../models/booking');
 const Studio = require('../models/studio');
+const Service = require('../models/service');
 const User = require('../models/user');
 const Rating = require('../models/rating');
 const Notifications = require('../models/notifications');
@@ -36,132 +37,81 @@ function convertTo24HourFormat(time12h) {
     return `${hours}:${minutes}`;
 }
 
-exports.createNewBooking = async (req, res, next) => {
+// get bookings function --------------------
+async function mapBooking(booking) {
+    const mappedBooking = { ...booking._doc };
+    mappedBooking.studioName = "";
+    const studioInfo = await Studio.findStudioById(booking.studioId);
+    if (studioInfo) {
+        mappedBooking.studioName = studioInfo.fullName;
+    }
+    mappedBooking.userType = "";
 
-    const userId = req.body.userId;
-    const studioId = req.body.studioId;
-    const roomId = req.body.roomId;
-    const bookingDate = req.body.bookingDate;
-    const bookingTime = req.body.bookingTime;
-    const totalPrice = parseFloat(req.body.totalPrice);
-    const bookingStatus = 0;    //Initially active
-
-    // if(bookingTime.endTime.split(' ')[1]=='PM')
-    // {
-    //     bookingTime.startTime = bookingTime.startTime + ' PM'
-    // }
-    // else{
-    //     bookingTime.startTime = bookingTime.startTime + ' AM'
-    // }
-    // console.log(bookingTime);
-    bookingTime.startTime = convertTo24HourFormat(bookingTime.startTime);
-    bookingTime.endTime = convertTo24HourFormat(bookingTime.endTime);
-    console.log(bookingTime);
-    
-    let userDeviceId = "";
-
-    User.findUserByUserId(userId)
-    .then(async userData=>{
-        if (!userData) {
-            // return res.status(404).json({ status: false, message: "No User with this ID exists" });
-            let adminData = await Admin.findAdminById(userId);
-            if(!adminData)
-            {
-                let subAdminData = await SubAdmin.findSubAdminById(userId);
-                if(!subAdminData)
-                {
-                    let ownerData = await Owner.findOwnerByOwnerId(userId);
-                    if(!ownerData)
-                    {
-                        return res.status(404).json({ status: false, message: "Enter valid ID" });
-                    }
-                    else{
-                        userData = ownerData;
-                    }
-                }
-                else{
-                    userData = subAdminData;
+    let userData = await User.findUserByUserId(booking.userId);
+    if (userData) {
+        mappedBooking.userName = userData.fullName;
+        mappedBooking.userEmail = userData.email;
+        mappedBooking.userPhone = userData.phone;
+        mappedBooking.userType = "USER";
+    } else {
+        let adminData = await Admin.findAdminById(booking.userId);
+        if (adminData) {
+            mappedBooking.userName = adminData.firstName + " " + adminData.lastName;
+            mappedBooking.userEmail = adminData.email;
+            mappedBooking.userType = "ADMIN";
+        } else {
+            let subAdminData = await SubAdmin.findSubAdminById(booking.userId);
+            if (subAdminData) {
+                mappedBooking.userName = subAdminData.firstName + " " + subAdminData.lastName;
+                mappedBooking.userEmail = subAdminData.email;
+                mappedBooking.userType = "SUBADMIN";
+            } else {
+                let testerData = await Tester.findTesterById(booking.userId);
+                if (testerData) {
+                    mappedBooking.userName = testerData.fullName;
+                    mappedBooking.userEmail = testerData.email;
+                    mappedBooking.userType = "TESTER";
+                } else {
+                    // Handle other user types here
                 }
             }
-            else{
-                userData = adminData;
-            }
-            userDeviceId = "";
         }
-        if(userData.deviceId==null || userData.deviceId==undefined)
-        {
-            userDeviceId = "";
-        }
-        Studio.findStudioById(studioId)
-        .then(studioData => {
-            if (!studioData) {
-                return res.status(404).json({ status: false, message: "No studio with this ID exists" });
-            }
-    
-            const bookingObj = new Booking(userId,studioId, roomId, bookingDate, bookingTime, totalPrice,bookingStatus);
-    
-            //saving new booking in database
-            return bookingObj.save()
-            .then(resultData => {
-                let bookingData = resultData["ops"][0];
-                console.log(bookingData);
-                bookingData.totalPrice = bookingData.totalPrice.toString();
-                if(bookingData.totalPrice.split('.')[1]==undefined)
-                {
-                    bookingData.totalPrice = bookingData.totalPrice+".0"
-                }
-                const title = "Congratulations!!";
-                const message = "Your booking with '"+studioData.fullName+"' is confirmed";
-                var myJSONObject = {
-                    "app_id": process.env.ONE_SIGNAL_APP_ID,
-                    "include_player_ids": [userData.deviceId],
-                    "data": {},
-                    "contents": {"en": title+"\n"+message}
-                };
-        
-                axios({
-                    method: 'post',
-                    url: "https://onesignal.com/api/v1/notifications",
-                    data: myJSONObject,
-                    headers:{
-                        'Content-Type': 'application/json',
-                        'Authorization': process.env.ONE_SIGNAL_AUTH
-                    }
-                })
-                .then(async result => {
-                    console.log("Success : ",result.data);
-                    if(result.data.recipients == 1)
-                    {
-                        const notification = new Notifications(userId,title,message);
-        
-                        //saving in database
-                        return notification.save()
-                        .then(resultData => {
-                            // return res.json({ status: true, message: "Booking created successfully", booking: bookingData });
-                            const adminNotificationObj = new AdminNotifications(userId,studioId,bookingData._id.toString(),"Booking created",userData.fullName+" created new booking with Studio : "+studioData.fullName);
-                            //saving in database
-                            return adminNotificationObj.save()
-                            .then(resultData1 => {
-                                return res.json({ status: true, message: "Booking created successfully", booking: bookingData });
-                            })
-                        })
-                    }
-                    else{
-                        console.log(result.data);
-                        return res.json({ status: true, message: "Booking created successfully(Notification not sent)", booking: bookingData });
-                    }
-                })
-                .catch(err => {
-                    console.log(err);
-                    return res.json({ status: true, message: "Booking created successfully(Notification not sent)", booking: bookingData });
-                })
-            
-            })
-            .catch(err => console.log(err));
-        })
-    })
-
+    }
+    return mappedBooking;
 }
+
+function buildFilters(queryParams) {
+    const filters = {};
+    if (queryParams.userId) {
+        filters.userId = queryParams.userId;
+    }
+    if (queryParams.date) {
+        filters.date = queryParams.date;
+    }
+    if (queryParams.studioId) {
+        filters.studioId = queryParams.studioId;
+    }
+    if (queryParams.bookingType && !isNaN(queryParams.bookingType)) {
+        filters.bookingStatus = +queryParams.bookingType;
+    }
+    if (queryParams.category) {
+        filters.type = queryParams.category
+    }
+    
+    return filters;
+}
+
+function buildSort(queryParams) {
+    const sort = {};
+    if (queryParams.sortBy && queryParams.sortOrder) {
+        sort[queryParams.sortBy] = queryParams.sortOrder === 'desc' ? -1 : 1;
+    }
+    return sort;
+}
+
+// ----------------------------------------
+
+// ---------------- UTILS ------------------------
 
 
 function parseTime(s) {
@@ -331,6 +281,284 @@ function convertTo12HourFormatWithoutAMPM(time)
   }
   return time.join (''); // return adjusted time or original string
 }
+
+// ----------------------------------------
+
+// ------------------ misc. --------------------------------------------
+
+async function findUserById(userId) {
+    let userData = await Admin.findAdminById(userId);
+    if (!userData) {
+        userData = await SubAdmin.findSubAdminById(userId);
+        if (!userData) {
+            userData = await Owner.findOwnerByOwnerId(userId);
+            if (!userData) {
+                userData = await User.findUserByUserId(userId);
+            }
+        }
+    }
+    return userData;
+}
+
+// ----------------------------------------------------------------------
+
+
+exports.createNewBooking2 = async (req, res, next) => {
+
+    const userId = req.body.userId;
+    const studioId = req.body.studioId;
+    const roomId = req.body.roomId;
+    const bookingDate = req.body.bookingDate;
+    const bookingTime = req.body.bookingTime;
+    const totalPrice = parseFloat(req.body.totalPrice);
+    const bookingStatus = 0;    //Initially active
+
+    // if(bookingTime.endTime.split(' ')[1]=='PM')
+    // {
+    //     bookingTime.startTime = bookingTime.startTime + ' PM'
+    // }
+    // else{
+    //     bookingTime.startTime = bookingTime.startTime + ' AM'
+    // }
+    // console.log(bookingTime);
+    bookingTime.startTime = convertTo24HourFormat(bookingTime.startTime);
+    bookingTime.endTime = convertTo24HourFormat(bookingTime.endTime);
+    console.log(bookingTime);
+    
+    let userDeviceId = "";
+
+    User.findUserByUserId(userId)
+    .then(async userData=>{
+        if (!userData) {
+            // return res.status(404).json({ status: false, message: "No User with this ID exists" });
+            let adminData = await Admin.findAdminById(userId);
+            if(!adminData)
+            {
+                let subAdminData = await SubAdmin.findSubAdminById(userId);
+                if(!subAdminData)
+                {
+                    let ownerData = await Owner.findOwnerByOwnerId(userId);
+                    if(!ownerData)
+                    {
+                        return res.status(404).json({ status: false, message: "Enter valid ID" });
+                    }
+                    else{
+                        userData = ownerData;
+                    }
+                }
+                else{
+                    userData = subAdminData;
+                }
+            }
+            else{
+                userData = adminData;
+            }
+            userDeviceId = "";
+        }
+        if(userData.deviceId==null || userData.deviceId==undefined)
+        {
+            userDeviceId = "";
+        }
+        Studio.findStudioById(studioId)
+        .then(studioData => {
+            if (!studioData) {
+                return res.status(404).json({ status: false, message: "No studio with this ID exists" });
+            }
+    
+            const bookingObj = new Booking(userId,studioId, roomId, bookingDate, bookingTime, totalPrice,bookingStatus, "c1");
+    
+            //saving new booking in database
+            return bookingObj.save()
+            .then(resultData => {
+                let bookingData = resultData["ops"][0];
+                console.log(bookingData);
+                bookingData.totalPrice = bookingData.totalPrice.toString();
+                if(bookingData.totalPrice.split('.')[1]==undefined)
+                {
+                    bookingData.totalPrice = bookingData.totalPrice+".0"
+                }
+                const title = "Congratulations!!";
+                const message = "Your booking with '"+studioData.fullName+"' is confirmed";
+                var myJSONObject = {
+                    "app_id": process.env.ONE_SIGNAL_APP_ID,
+                    "include_player_ids": [userData.deviceId],
+                    "data": {},
+                    "contents": {"en": title+"\n"+message}
+                };
+        
+                axios({
+                    method: 'post',
+                    url: "https://onesignal.com/api/v1/notifications",
+                    data: myJSONObject,
+                    headers:{
+                        'Content-Type': 'application/json',
+                        'Authorization': process.env.ONE_SIGNAL_AUTH
+                    }
+                })
+                .then(async result => {
+                    console.log("Success : ",result.data);
+                    if(result.data.recipients == 1)
+                    {
+                        const notification = new Notifications(userId,title,message);
+        
+                        //saving in database
+                        return notification.save()
+                        .then(resultData => {
+                            // return res.json({ status: true, message: "Booking created successfully", booking: bookingData });
+                            const adminNotificationObj = new AdminNotifications(userId,studioId,bookingData._id.toString(),"Booking created",userData.fullName+" created new booking with Studio : "+studioData.fullName);
+                            //saving in database
+                            return adminNotificationObj.save()
+                            .then(resultData1 => {
+                                return res.json({ status: true, message: "Booking created successfully", booking: bookingData });
+                            })
+                        })
+                    }
+                    else{
+                        console.log(result.data);
+                        return res.json({ status: true, message: "Booking created successfully(Notification not sent)", booking: bookingData });
+                    }
+                })
+                .catch(err => {
+                    console.log(err);
+                    return res.json({ status: true, message: "Booking created successfully(Notification not sent)", booking: bookingData });
+                })
+            
+            })
+            .catch(err => console.log(err));
+        })
+    })
+
+}
+
+exports.createNewBooking = async (req, res, next) => {
+    try {
+        // Validate input
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        const { userId, studioId, roomId, bookingDate, bookingTime, totalPrice } = req.body;
+
+        const bookingStatus = 0; // Initially active
+
+        // Convert time to 24-hour format
+        bookingTime.startTime = convertTo24HourFormat(bookingTime.startTime);
+        bookingTime.endTime = convertTo24HourFormat(bookingTime.endTime);
+
+        let userData = await findUserById(userId);
+        if (!userData) {
+            return res.status(404).json({ status: false, message: "Enter valid ID" });
+        }
+
+        let userDeviceId = userData.deviceId || '';
+
+        const studioData = await Studio.findStudioById(studioId);
+        if (!studioData) {
+            return res.status(404).json({ status: false, message: "No studio with this ID exists" });
+        }
+
+        const bookingObj = new Booking(userId, studioId, roomId, bookingDate, bookingTime, totalPrice, bookingStatus, "c1");
+        const resultData = await bookingObj.save();
+        const bookingData = resultData.ops[0];
+        bookingData.totalPrice = bookingData.totalPrice.toFixed(2);
+
+        const title = "Congratulations!!";
+        const message = `Your booking with '${studioData.fullName}' is confirmed`;
+        const myJSONObject = {
+            "app_id": process.env.ONE_SIGNAL_APP_ID,
+            "include_player_ids": [userDeviceId],
+            "data": {},
+            "contents": { "en": `${title}\n${message}` }
+        };
+
+        const result = await axios.post("https://onesignal.com/api/v1/notifications", myJSONObject, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': process.env.ONE_SIGNAL_AUTH
+            }
+        });
+
+        if (result.data.recipients === 1) {
+            const notification = new Notifications(userId, title, message);
+            await notification.save();
+
+            const adminNotificationObj = new AdminNotifications(userId, studioId, bookingData._id.toString(), "Booking created", `${userData.fullName} created new booking with Studio: ${studioData.fullName}`);
+            await adminNotificationObj.save();
+
+            return res.json({ status: true, message: "Booking created successfully", booking: bookingData });
+        } else {
+            return res.json({ status: true, message: "Booking created successfully(Notification not sent)", booking: bookingData });
+        }
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: false, message: "Internal Server Error" });
+    }
+};
+
+exports.createServiceBooking = async (req, res, next) => {
+    try {
+        // const errors = validationResult(req);
+        // if (!errors.isEmpty()) {
+        //     return res.status(400).json({ errors: errors.array() });
+        // }
+
+        const { userId, serviceId, planId, bookingDate, bookingTime, totalPrice, serviceType } = req.body;
+        const bookingStatus = 0;
+
+        bookingTime.startTime = convertTo24HourFormat(bookingTime.startTime);
+        bookingTime.endTime = convertTo24HourFormat(bookingTime.endTime);
+
+        let userData = await findUserById(userId);
+        if (!userData) {
+            return res.status(404).json({ status: false, message: "Enter valid user ID" });
+        }
+
+        let userDeviceId = userData.deviceId || '';
+
+        const serviceData = await Service.findServiceById(serviceId);
+
+        if (!serviceData) {
+            return res.status(404).json({ status: false, message: "No Service with this ID exists" });
+        }
+
+        const bookingObj = new Booking(userId, serviceId, parseInt(planId), bookingDate, bookingTime, parseFloat(totalPrice), parseInt(bookingStatus), serviceType);
+        const resultData = await bookingObj.save();
+        const bookingData = resultData.ops[0];
+        bookingData.totalPrice = bookingData.totalPrice.toFixed(2);
+
+        const title = "Congratulations!!";
+        const message = `Your booking with '${serviceData.fullName}' is confirmed`;
+        const myJSONObject = {
+            "app_id": process.env.ONE_SIGNAL_APP_ID,
+            "include_player_ids": [userDeviceId],
+            "data": {},
+            "contents": { "en": `${title}\n${message}` }
+        };
+
+        const result = await axios.post("https://onesignal.com/api/v1/notifications", myJSONObject, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': process.env.ONE_SIGNAL_AUTH
+            }
+        });
+
+        if (result.data.recipients === 1) {
+            const notification = new Notifications(userId, title, message);
+            await notification.save();
+
+            const adminNotificationObj = new AdminNotifications(userId, serviceId, bookingData._id.toString(), "Booking created", `${userData.fullName} created new booking with Studio: ${serviceData.fullName}`);
+            await adminNotificationObj.save();
+
+            return res.json({ status: true, message: "Booking created successfully", booking: bookingData });
+        } else {
+            return res.json({ status: true, message: "Booking created successfully (Notification not sent)", booking: bookingData });
+        }
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ status: false, message: "Internal Server Error" });
+    }
+};
 
 exports.getStudioAvailabilities = (req, res, next) => {
 
@@ -1595,7 +1823,7 @@ exports.cancelParticularBooking = (req,res,next)=>{
 }
 
 
-exports.getAllBookings = (req,res,next)=>{
+exports.getAllBookings2 = (req,res,next)=>{
 
     let skip = +req.query.skip;
     let limit = +req.query.limit;
@@ -1866,6 +2094,108 @@ exports.getAllBookings = (req,res,next)=>{
     }
 
 }
+
+exports.getAllBookings = async (req, res, next) => {
+    try {
+        let skipValue = parseInt(req.query.skip) || 0;
+        let limitValue = parseInt(req.query.limit) || 10;
+        let bookingTypeValue = parseInt(req.query.bookingType) // || -1;
+        let bookingCategory = req.query.category
+        // console.log("Parsed bookingType value:", bookingTypeValue);
+
+        const filters = buildFilters(req.query)
+        const sort = buildSort(req.query)
+
+        console.log("oprions----", filters, sort)
+
+        let bookingsData;
+
+        switch (bookingTypeValue) {
+            case -1:
+                bookingsData = await Booking.fetchAllBookings(skipValue, limitValue);
+                break;
+            case 0:
+            case 1:
+            case 2:
+                bookingsData = await Booking.fetchFilteredAndSortedBookings(filters, sort, skipValue, limitValue);
+                break;
+            default:
+                bookingsData = await Booking.fetchAllBookings(skipValue, limitValue);
+                break;
+                // return res.status(400).json({ status: false, message: "Invalid booking type" });
+        }
+
+        if (!bookingsData || bookingsData.length === 0) {
+            return res.json({ status: true, message: "No bookings found", data: [] });
+        }
+
+        console.log("bookingsData---", bookingsData);
+
+        const totalBookings = await Booking.fetchAllBookingsCount(bookingTypeValue);
+        // console.log("totalBookings------", totalBookings);
+        const totalPages = Math.ceil((totalBookings + limitValue - 1) / limitValue);
+
+        const mappedBookings = await Promise.all(bookingsData.map(async (booking) => {
+            
+            try {
+                const [studioInfo, userData] = await Promise.all([
+                    Studio.findStudioById(booking.studioId),
+                    User.findUserByUserId(booking.userId) || Admin.findAdminById(booking.userId) || SubAdmin.findSubAdminById(booking.userId) || Owner.findOwnerByOwnerId(booking.userId)
+                ]);
+
+                booking.studioName = studioInfo?.fullName || "";
+                booking.userName = userData ? userData.fullName || `${userData.firstName} ${userData.lastName}` : "";
+                booking.userEmail = userData?.email || "NA";
+                booking.userPhone = userData?.phone || "NA";
+                booking.userType = userData ? (userData.type === 'user' ? 'USER' : 'ADMIN') : "";
+
+                return booking;
+            } catch (error) {
+                console.error("Error while processing booking:", error);
+                throw error; // Rethrow the error to be caught by the outer try-catch
+            }
+        }));
+
+        // console.log("mappedBookings---", mappedBookings[0]);
+        
+
+        const groupedBookings = {
+            activeBookings: [],
+            completedBookings: [],
+            cancelledBookings: []
+        };
+
+        mappedBookings.forEach(booking => {
+            if (booking.bookingStatus === 0) {
+                groupedBookings.activeBookings.push(booking);
+            } else if (booking.bookingStatus === 1) {
+                groupedBookings.completedBookings.push(booking);
+            } else if (booking.bookingStatus === 2) {
+                groupedBookings.cancelledBookings.push(booking);
+            }
+        });
+
+        // console.log("Mapped bookings:", mappedBookings[0]);
+        // console.log("Grouped bookings:", groupedBookings);
+
+        return res.json({
+            status: true,
+            message: "All booking(s) returned",
+            data: groupedBookings,
+            paginate: {
+                page: Math.floor(skipValue / limitValue) + 1,
+                limit: limitValue,
+                totalResults: totalBookings,
+                totalPages: totalPages
+            }
+        });
+    } catch (error) {
+        console.error("Internal server error:", error);
+        return res.status(500).json({ status: false, message: "Internal server error" });
+    }
+};
+
+
 
 
 exports.getAllBookingsForParticularStudio = (req,res,next)=>{
@@ -2258,7 +2588,7 @@ cron.schedule("*/10 * * * * *", function() {
     // console.log("running a task every 10 second");
     Booking.fetchAllBookingsByType(0,0,0)
     .then(bookingsData=>{
-        console.log(bookingsData.length);
+        // console.log(bookingsData.length);
  
         var currDate = new Date();
         var mth = currDate.getMonth() + 1;
@@ -2312,7 +2642,7 @@ cron.schedule("*/10 * * * * *", function() {
 
                     if(count==bookingsData.length)
                     {
-                        console.log(activeBookings.length,completedBookings.length);
+                        // console.log(activeBookings.length,completedBookings.length);
                         completedBookings.forEach(singleBooking=>{
                             // console.log(singleBooking._id.toString());
                             singleBooking.bookingStatus = 1;

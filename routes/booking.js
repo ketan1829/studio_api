@@ -45,7 +45,50 @@ const auth = require("../util/authCheck");
  *       500:
  *         description: Internal server error
  */
-router.post('/bookings/create',auth.isAdminOrOwnerOrUser,controller.createNewBooking);
+router.post('/bookings/create',auth.isAdminOrOwnerOrUser,controller.createNewBooking); 
+
+/**
+ * @swagger
+ * /bookings/service/create:
+ *   post:
+ *     summary: Create new Service Booking
+ *     tags: [Booking]
+ *     requestBody:
+ *       description: | 
+ *          #
+ *          Token is required
+ *          #
+ *          bookingDate should be a timestamp value as mentioned below
+ *       content:
+ *         application/json:
+ *           schema:
+ *             id: string
+ *           example : 
+ *             userId: "62c7bf9832688b6c4442ee7b"
+ *             serviceId: "62c4e8805f9d4e0023327640"
+ *             planId: "1"
+ *             bookingDate: "2022-07-06T00:00:00.000+00:00"
+ *             bookingTime: {"startTime":"16:00","endTime":"17:00"}
+ *             totalPrice: "100"
+ *     responses:
+ *       200:
+ *         description: Booking created successfully
+ *         content:
+ *           application/json:
+ *               example : 
+ *                 status : true
+ *                 message : "Booking created successfully"
+ *                 booking : {}
+ *       400:
+ *         description: Bad Request, check request body
+ *       401:
+ *         description: Unauthorized, enter valid token
+ *       404:
+ *         description: Studio or user does not exists
+ *       500:
+ *         description: Internal server error
+ */
+ router.post('/bookings/service/create',auth.isAdminOrOwnerOrUser,controller.createServiceBooking);
 
 /**
  * @swagger

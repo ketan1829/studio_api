@@ -20,5 +20,11 @@ router.patch('/admins/:adminId',adminController.editAdminDetails);
 //Edit admin image
 router.patch('/admins/:adminId/image',adminController.editAdminImage);
 
+//Upload Banner1 Image
+router.patch('/admins/:adminId/Banner1image',adminController.addBanner1Image);
+
+//Upload Banner2 (Exclusive) Image
+router.patch('/admins/:adminId/Banner2image',adminController.addBanner2Image);
+
 
 module.exports = router;

@@ -233,12 +233,12 @@ router.post('/studios/dashboard-filter',controller.getDashboardStudios);
  * @swagger
  * /studios:
  *   get:
- *     summary: Get all studios
+ *     summary: Get All/ NearBy studios based on various parameters
  *     tags: [Studios]
  *     parameters:
  *       - in : query
  *         name: skip
- *         description: skipCount
+ *         description: paginated page
  *         required: false
  *       - in : query
  *         name: limit
@@ -247,7 +247,7 @@ router.post('/studios/dashboard-filter',controller.getDashboardStudios);
  *     requestBody:
  *       description: | 
  *          #
- *          Skip and Limit are optional Query Params
+ *          skip and Limit are optional Query Params
  *          #
  *          (First admin login is needed to generate token, then use "AUTHORIZE" button above to validate)
  *     responses:
@@ -268,6 +268,55 @@ router.post('/studios/dashboard-filter',controller.getDashboardStudios);
 // api/studios                       --  Get all studios
 // api/studios?skip=0&limit=50       --  Get particular range of studios based on skip and limit
 router.get('/studios',auth.isBoth,controller.getAllStudios);
+
+/**
+ * @swagger
+ * /studios:
+ *   post:
+ *     summary: Get All/ NearBy studios based on various parameters
+ *     tags: [Studios]
+ *     parameters:
+ *       - in : query
+ *         name: sortBy
+ *         description: sort By
+ *         required: false
+ *       - in : query
+ *         name: page
+ *         description: paginated page
+ *         required: false
+ *       - in : query
+ *         name: limit
+ *         description: limitCount
+ *         required: false
+ *     requestBody:
+ *       description: | 
+ *          #
+ *          Token is required or Admin token is required
+ *       content:
+ *         application/json:
+ *           schema:
+ *             city: string
+ *           example : 
+ *             creationDate: "Andheri"
+ *             city: state
+ *           example1 : 
+ *             creationDate: "Maharashtra"
+ *     responses:
+ *       200:
+ *         description: The post was successfully created
+ *         content:
+ *           application/json:
+ *               example : 
+ *                 status : true
+ *                 message : "All studios returned"
+ *                 studios : []
+ *       401:
+ *         description: Unauthorized, token required
+ *       500:
+ *         description: Some server error, enter valid mongo object ID
+ */
+
+router.get('/studios-all',auth.isBoth,controller.getStudios);
 
 // router.get('/all-states',controller.getAllStates);
 

@@ -3,49 +3,23 @@ const getDb = require('../util/database').getDB;
 
 const ObjectId = mongodb.ObjectId;
 
-class User
+const collectionName = 'tempUsers'
+
+class TempUser
 {
-    constructor({
-        fullName,
-        dateOfBirth,
-        email,
-        phone,
-        password = "",
-        latitude = "",
-        longitude = "",
-        city = "",
-        state = "",
-        profileUrl = "",
-        role = "user",
-        gender = "",
-        userType = "NUMBER",
-        favourites = [],
-        deviceId,
-    }) 
-    
+    constructor(phone,userType,deviceId,role)
     {
-        this.fullName = fullName;
-        this.dateOfBirth = dateOfBirth;
-        this.email = email;
         this.phone = phone;
-        this.password = password;
-        this.latitude = latitude;
-        this.longitude = longitude;
-        this.city = city;
-        this.state = state;
-        this.profileUrl = profileUrl;
-        this.role = role;
-        this.gender = gender;
         this.userType = userType;
-        this.favourites = favourites;
         this.deviceId = deviceId;
+        this.role = role;
         this.creationTimeStamp = new Date();
     }
 
     save()
     {
         const db = getDb();
-        return db.collection('users').insertOne(this);
+        return db.collection(collectionName).insertOne(this);
     }
 
     static update(phoneNumber, newData) {
@@ -59,24 +33,23 @@ class User
 
     static findUserByUserId(uId)
     {
-
-        // console.log("uID-------->",uId);
+        console.log("uID-------->",uId);
 
         var o_id = new ObjectId(uId);
         const db = getDb();
 
-        return db.collection('users').findOne({_id:o_id})
+        return db.collection(collectionName).findOne({_id:o_id})
             .then(userData=>{
                 return userData;  
             })
             .catch(err=>console.log(err));
     }
   
-    static findUserByEmail(email)
+    static findUserByDeviceId(deviceId)
     {
         const db = getDb();
                             
-        return db.collection('users').findOne({ email:email })
+        return db.collection(collectionName).findOne({ deviceId:deviceId })
             .then(userData=>{
                 return userData;  
             })
@@ -87,7 +60,7 @@ class User
     {
         const db = getDb();
                             
-        return db.collection('users').findOne({ phone:phone })
+        return db.collection(collectionName).findOne({ phone:phone })
             .then(userData=>{
                 return userData;  
             })
@@ -97,14 +70,25 @@ class User
     static fetchAllUsers(skipCount,limitCount)
     {
         const db = getDb();
-        return db.collection('users').find().sort({creationTimeStamp:-1}).skip(skipCount).limit(limitCount).toArray()
+        return db.collection(collectionName).find().sort({creationTimeStamp:-1}).skip(skipCount).limit(limitCount).toArray()
             .then(userData=>{
                 return userData;
             })
             .catch(err=>console.log(err));
     }
 
+    static update(phoneNumber, tempData) {
+        const db = getDb();
+        const userToUpdate = { phone: phoneNumber };
+        const updateData = {
+            $set: {
+                deviceId: tempData.deviceId,
+            }
+        };
+        return db.collection(collectionName).updateOne(userToUpdate, updateData);
+    }
+
 }
 
 
-module.exports = User;
+module.exports = TempUser;

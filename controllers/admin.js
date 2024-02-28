@@ -268,3 +268,95 @@ exports.editAdminImage = (req,res,next)=>{
     })
 
 }
+
+exports.addBanner1Image = (req,res,next)=>{
+    
+    const adminId = +req.params.adminId;
+    const Banner1Image = req.body.Banner1Image;    //URL
+    
+    Admin.findAdminByAdminId(+adminId)
+    .then(adminDoc=>{
+        if(!adminDoc)
+        {
+            return res.json({status:false,message:'Admin does not exist'});
+        }
+
+        adminDoc.Banner1Image = Banner1Image;
+
+        const db = getDb();
+        db.collection('admins').updateOne({adminId:adminId},{$set:adminDoc})
+        .then(resultData=>{
+            return res.json({status:true,message:'Banner Img updated successfully',admin:adminDoc});
+        })
+        .catch(err=>console.log(err));
+    })
+
+}
+
+exports.addBanner2Image = (req,res,next)=>{
+    
+    const adminId = +req.params.adminId;
+    const Banner2Image = req.body.Banner2Image;    //URL
+    
+    Admin.findAdminByAdminId(+adminId)
+    .then(adminDoc=>{
+        if(!adminDoc)
+        {
+            return res.json({status:false,message:'Admin does not exist'});
+        }
+
+        adminDoc.Banner2Image = Banner2Image;
+
+        const db = getDb();
+        db.collection('admins').updateOne({adminId:adminId},{$set:adminDoc})
+        .then(resultData=>{
+            return res.json({status:true,message:'Exclusive Banner Img updated successfully',admin:adminDoc});
+        })
+        .catch(err=>console.log(err));
+    })
+
+}
+
+exports.removeBanner1Image = (req, res, next) => {
+    const adminId = +req.params.adminId;
+
+    Admin.findAdminByAdminId(+adminId)
+        .then(adminDoc => {
+            if (!adminDoc) {
+                return res.json({ status: false, message: 'Admin does not exist' });
+            }
+
+            // Set Banner1Image to null or any initial state
+            adminDoc.Banner1Image = null;
+
+            const db = getDb();
+            db.collection('admins').updateOne({ adminId: adminId }, { $set: adminDoc })
+                .then(resultData => {
+                    return res.json({ status: true, message: 'Banner Img removed successfully', admin: adminDoc });
+                })
+                .catch(err => console.log(err));
+        })
+        .catch(err => console.log(err));
+};
+
+exports.removeBanner2Image = (req, res, next) => {
+    const adminId = +req.params.adminId;
+
+    Admin.findAdminByAdminId(+adminId)
+        .then(adminDoc => {
+            if (!adminDoc) {
+                return res.json({ status: false, message: 'Admin does not exist' });
+            }
+
+            // Set Banner1Image to null or any initial state
+            adminDoc.Banner2Image = null;
+
+            const db = getDb();
+            db.collection('admins').updateOne({ adminId: adminId }, { $set: adminDoc })
+                .then(resultData => {
+                    return res.json({ status: true, message: 'Exclusive Banner Img removed successfully', admin: adminDoc });
+                })
+                .catch(err => console.log(err));
+        })
+        .catch(err => console.log(err));
+};

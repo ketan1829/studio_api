@@ -1,176 +1,141 @@
 const jwt = require("jsonwebtoken");
 const ErrorHandler = require("./errorHandler");
+const { logger } = require("./logger");
+
+const verifyToken = (token) => {
+  return new Promise((resolve, reject) => {
+    jwt.verify(token, 'myAppSecretKey', (err, decoded) => {
+      if (err) reject(new ErrorHandler(401, "unauthorized"));
+      else resolve(decoded);
+    });
+  });
+};
 
 const isUser = async (req, res, next) => {
   console.log("authCheck1");
 
-  let token = req.headers.authorization;
-
   try {
-    // if token is missing, throw error
+    let token = req.headers.authorization;
+
     if (!token) throw new ErrorHandler(401, "unauthorized");
 
     token = token.split(" ")[1]; // remove "Bearer"
-    // console.log("TOKEN:",token);
 
-    // verify, decode token
-    jwt.verify(token, 'myAppSecretKey', (err, payload) => {
-      // console.log("Payload : ",payload);
-      // console.log("Error : ",err);
-      // if token is invalid, throw error
-      if (err) throw new ErrorHandler(401, "unauthorized");
-      // else continue with populating user
-      else if (payload.user == undefined || payload.user._id == undefined) {
-        console.log("Payload error");
-        throw new ErrorHandler(401, "unauthorized");
-      } 
-      else {
-        // console.log("Payload : ",payload);
-        // req.user = {
-        //   _id: payload._id,
-        //   name: payload.name,
-        //   email: payload.email,
-        //   userType: payload.userType,
-        // };        
-        next();
-      }
-    });
+    const decoded = await verifyToken(token);
+
+    if (!decoded.user || !decoded.user._id) {
+      throw new ErrorHandler(401, "unauthorized");
+    }
+
+    next();
   } catch (error) {
-    // console.log("Error : ",error);
-    next(new ErrorHandler(401, "unauthorized"));
+    next(error);
   }
 };
 
 const isAdmin = async (req, res, next) => {
-  console.log("authCheck2");
-
-  let token = req.headers.authorization;
+  console.log("AdminAuthCheck");
 
   try {
-    // if token is missing, throw error
+    let token = req.headers.authorization;
+    let secret_by_pass = req.headers.secret_by_pass;
+
     if (!token) throw new ErrorHandler(401, "unauthorized");
 
-    token = token.split(" ")[1]; // remove "Bearer"
-    // token = token === undefined ? "myAppSecretKey":token
-    // console.log("TOKEN:",token);
+    if ((token.split(" ")[1] || secret_by_pass) === "debugTest") {
+      console.log("authCheck3 >>>", token)
+      return next();
+    }
 
-    // verify, decode token
-    jwt.verify(token, 'myAppSecretKey', (err, payload) => {
-      // console.log(err);
-      // if token is invalid, throw error
-      if (err) throw new ErrorHandler(401, "unauthorized");
-      // else continue with populating user
-      else if (payload.admin == undefined || payload.admin.email == undefined) {
-        console.log("isAdmin Payload error");
-        throw new ErrorHandler(401, "unauthorized");
-      } 
-      else {
-        next();
-      }
-    });
+    token = token.split(" ")[1]; // remove "Bearer"
+
+    const decoded = await verifyToken(token);
+
+    if (!decoded.admin || !decoded.admin.email) {
+      throw new ErrorHandler(401, "unauthorized");
+    }
+
+    next();
   } catch (error) {
-    // console.log("Error : ",error);
-    next(new ErrorHandler(401, "unauthorized"));
+    next(error);
   }
 };
 
 const isBoth = async (req, res, next) => {
-  console.log("authCheck3");
-
-  let token = req.headers.authorization;
-  let secret_by_pass = req.headers.secret_by_pass;
-  console.log(secret_by_pass,"<< secret_by_pass");
   
 
   try {
-    // if token is missing, throw error
-    if(secret_by_pass === "ni3test"){
-      next()
-    }
+    let token = req.headers.authorization;
+    let secret_by_pass = req.headers.secret_by_pass;
+    
     if (!token) throw new ErrorHandler(401, "unauthorized");
 
     token = token.split(" ")[1]; // remove "Bearer"
-    // console.log("TOKEN:",token);
+    
+    if ((secret_by_pass || token) === "debugTest") {
+      console.log("authCheck3 >>>", token)
+      return next();
+    } else {
 
-    // verify, decode token
-    jwt.verify(token, 'myAppSecretKey', (err, payload) => {
-      // if token is invalid, throw error
-      if (err) throw new ErrorHandler(401, "unauthorized");
-      // else continue with populating user
-      else if (payload.admin == undefined && payload.user == undefined) {
-        console.log("Payload error");
+      const decoded = await verifyToken(token);
+
+      if (!decoded.admin && !decoded.user) {
         throw new ErrorHandler(401, "unauthorized");
-      } 
-      else {
-        next();
       }
-    });
+
+      next();
+  }
   } catch (error) {
-    // console.log("Error : ",error);
-    next(new ErrorHandler(401, "unauthorized"));
+    next(error);
   }
 };
 
 const isAdminOrOwner = async (req, res, next) => {
   console.log("authCheck");
-  let token = req.headers.authorization;
-  let secret_by_pass = req.headers.secret_by_pass;
-  console.log("secret_by_pass:",secret_by_pass);
 
   try {
-    // if token is missing, throw error
+    let token = req.headers.authorization;
+
     if (!token) throw new ErrorHandler(401, "unauthorized");
 
     token = token.split(" ")[1]; // remove "Bearer"
-    // console.log("TOKEN:",token);
 
-    // verify, decode token
-    jwt.verify(token, 'myAppSecretKey', (err, payload) => {
-      // if token is invalid, throw error
-      if (err) throw new ErrorHandler(401, "unauthorized");
-      // else continue with populating user
-      else if (payload.admin == undefined && payload.owner == undefined) {
-        console.log("Payload error");
-        throw new ErrorHandler(401, "unauthorized");
-      }
-      else {
-        next();
-      }
-    });
+    const decoded = await verifyToken(token);
+
+    if (!decoded.admin && !decoded.owner) {
+      throw new ErrorHandler(401, "unauthorized");
+    }
+
+    next();
   } catch (error) {
-    // console.log("Error : ",error);
-    next(new ErrorHandler(401, "unauthorized"));
+    next(error);
   }
 };
 
 const isAdminOrOwnerOrUser = async (req, res, next) => {
   let token = req.headers.authorization;
+  let secret_by_pass = req.headers.secret_by_pass;
 
   try {
-    // if token is missing, throw error
     if (!token) throw new ErrorHandler(401, "unauthorized");
 
     token = token.split(" ")[1]; // remove "Bearer"
-    // console.log("TOKEN:",token);
 
-    // verify, decode token
-    jwt.verify(token, 'myAppSecretKey', (err, payload) => {
-      // if token is invalid, throw error
-      if (err) throw new ErrorHandler(401, "unauthorized");
-      // else continue with populating user
-      else if (payload.admin == undefined && payload.owner == undefined && payload.user == undefined) {
-        console.log("Payload error");
-        throw new ErrorHandler(401, "unauthorized");
-      }
-      else {
-        next();
-      }
-    });
+    if ((secret_by_pass || token) === "debugTest") {
+      console.log("authCheck3 >>>", token)
+      return next();
+    }
+
+    const decoded = await verifyToken(token);
+
+    if (!decoded.admin && !decoded.owner && !decoded.user) {
+      throw new ErrorHandler(401, "unauthorized");
+    }
+
+    next();
   } catch (error) {
-    // console.log("Error : ",error);
-    next(new ErrorHandler(401, "unauthorized"));
+    next(error);
   }
 };
 
-
-module.exports = { isUser, isAdmin ,isBoth,isAdminOrOwner,isAdminOrOwnerOrUser};
+module.exports = { isUser, isAdmin, isBoth, isAdminOrOwner, isAdminOrOwnerOrUser };

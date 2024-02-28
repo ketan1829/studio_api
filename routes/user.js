@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/user');
 
-const serverName = "http://sadmin.choira.io:4000/api/download/";
+const serverName = process.env.SERVER_NAME || "https://test.api.choira.io/api/download/";
 
 const auth = require("../util/authCheck");
 const path = require('path');
@@ -131,19 +131,15 @@ router.post('/users/signup',controller.signupUser);
  * @swagger
  * /users/login-otp:
  *   post:
- *     summary: Get User number / Create new user
+ *     summary: Login to account using phoneNumber & OTP verification
  *     tags: [Users]
  *     requestBody:
  *       description: | 
  *          #
- *          Possible values for UserType => EMAIL, FACEBOOK, GOOGLE
+ *          Possible values for UserType => PhoneNumber
  *          #
- *          NOTE : "password" field value must be empty string in case of FACEBOOK or GOOGLE
- *       fullName: string
+ *       phoneNumber: string
  *       dateOfBirth: string
- *       email: string
- *       phone: string
- *       password: string
  *       userType: string
  *       deviceId: string
  *       content:
@@ -151,13 +147,9 @@ router.post('/users/signup',controller.signupUser);
  *           schema:
  *             id: string
  *           example : 
- *             fullName: "samarth"
- *             dateOfBirth: "1997-07-23"
- *             email: "samarthchadda@gmail.com"
- *             phone: "9351999562"
- *             password: "sam123"
+ *             phoneNumber: "917021908949"
  *             userType: "EMAIL"
- *             deviceId: "1234"
+ *             deviceId: "df4bbe08-c80b-4fb1-b46c-5739ebe5f716"
  *     responses:
  *       200:
  *         description: The post was successfully created
@@ -961,6 +953,7 @@ router.post('/upload-single-image',(req,res,next)=>{
             return res.status(500).json({status:false,message:"Error Occured",error:err})
         }
         let newImage = serverName+req.file.filename;
+        // console.log("new IMG:", newImage);
         return res.json({status:true,message:"Image Uploaded Successfully",imageUrl:newImage});
     })
 });
