@@ -36,12 +36,18 @@ class Studio {
         return db.collection('studios').insertOne(this);
     }
 
+    aggregate(Data) {
+        const db = getDb();
+        return db.collection('studios').aggregate(Data);
+    }
+
     static findStudioById(sId) {
         var o_id = new ObjectId(sId);
         const db = getDb();
 
         return db.collection('studios').findOne({ _id: o_id })
             .then(studioData => {
+                console.log("ID---studioData---", studioData);
                 return studioData;
             })
             .catch(err => console.log(err));

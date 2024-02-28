@@ -22,7 +22,6 @@ const collectionName = {
     "services": "services",
     "studios": "studios",
     "service_bookings" : "serviceBookings"
-
 }
 
 

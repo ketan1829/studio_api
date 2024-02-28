@@ -9,7 +9,7 @@ const Service = require('../models/service');
 const { homeScreen, collectionName } = require('../config/settings')
 const { validateService, validateFilterSchema, validateServiceFilterSchema } = require('../util/validations');
 const pick = require('../util/pick')
-const {paginate} = require('../util/plugins/paginate.plugin');
+const { paginate } = require('../util/plugins/paginate.plugin');
 const { getDB } = require('../util/database');
 
 const ObjectId = mongodb.ObjectId;
@@ -18,9 +18,9 @@ const ObjectId = mongodb.ObjectId;
 
 
 
-exports.createNewService = async(req,res,next)=>{
-    
-    
+exports.createNewService = async (req, res, next) => {
+
+
     const fullName = req.body.serviceName.trim();
     const price = parseFloat(req.body.startingPrice);
     const amenities = req.body.offerings;
@@ -41,23 +41,23 @@ exports.createNewService = async(req,res,next)=>{
     // If validation passes, proceed to the next middleware or controller function
     // next();
 
-    const serviceObj = new Service(fullName,price,amenities,totalPlans,serviceDetails,
-        servicePhotos,aboutUs,workDetails, discographyDetails,clientPhotos,reviews,featuredReviews);
-   
-   // saving in database
+    const serviceObj = new Service(fullName, price, amenities, totalPlans, serviceDetails,
+        servicePhotos, aboutUs, workDetails, discographyDetails, clientPhotos, reviews, featuredReviews);
+
+    // saving in database
     return serviceObj.save()
-    .then(resultData=>{
-        return res.json({status:true,message:"Service added successfully",data:resultData["ops"][0]});
-    })
-    .catch(err=>console.log(err));
+        .then(resultData => {
+            return res.json({ status: true, message: "Service added successfully", data: resultData["ops"][0] });
+        })
+        .catch(err => console.log(err));
 
 }
 
-exports.getServices = (req,res,next)=>{
+exports.getServices = (req, res, next) => {
 
     console.log("body---", req.query);
     // const { serviceName, startingPrice, offerings, TotalServices, avgReview, serviceId } = req.query;
-    const filter = pick(req.query, ['serviceType' ,'active', 'serviceName', 'startingPrice','planId'])
+    const filter = pick(req.query, ['serviceType', 'active', 'serviceName', 'startingPrice', 'planId'])
     const options = pick(req.query, ['sortBy', 'limit', 'page']);
 
     let mappedFilter = {}
@@ -65,11 +65,11 @@ exports.getServices = (req,res,next)=>{
     const collectionName = homeScreen.category?.[filter.serviceType]?.coll
 
     if (filter.serviceType) mappedFilter.type = filter.serviceType //: filter.catId = 1;
-    filter.active ? mappedFilter.isActive = parseInt(filter.active): mappedFilter.isActive = 1;
+    filter.active ? mappedFilter.isActive = parseInt(filter.active) : mappedFilter.isActive = 1;
 
     if (filter.planId) {
         var o_id = new ObjectId(filter.planId);
-        filter._id =o_id
+        filter._id = o_id
     }
     if (filter.serviceName) mappedFilter.fullName = serviceName;
     if (filter.startingPrice) mappedFilter.price = startingPrice;
@@ -83,13 +83,13 @@ exports.getServices = (req,res,next)=>{
         return res.status(400).json({ status: false, message: error.details[0].message });
     }
 
-    paginate(collectionName, mappedFilter, options).then((ServiceData)=>{
-        return res.json({status:true, message:`Page ${ServiceData.page} of ${ServiceData.totalPages} - ${ServiceData.totalResults} services returned`,services:ServiceData});
+    paginate(collectionName, mappedFilter, options).then((ServiceData) => {
+        return res.json({ status: true, message: `Page ${ServiceData.page} of ${ServiceData.totalPages} - ${ServiceData.totalResults} services returned`, services: ServiceData });
     })
-    
+
 }
 
-exports.getServiceBookings = (req,res,next)=>{
+exports.getServiceBookings = (req, res, next) => {
 
     console.log("body---", req.query);
 
@@ -124,35 +124,71 @@ exports.getServiceBookings = (req,res,next)=>{
         return res.status(400).json({ status: false, message: error.details[0].message });
     }
 
-    paginate(_collectionName, filter, options).then((ServiceData)=>{
-        return res.json({status:true, message:`Page ${ServiceData.page} of ${ServiceData.totalPages} - ${ServiceData.totalResults} service booking returned`,services:ServiceData});
+    paginate(_collectionName, filter, options).then((ServiceData) => {
+        return res.json({ status: true, message: `Page ${ServiceData.page} of ${ServiceData.totalPages} - ${ServiceData.totalResults} service booking returned`, services: ServiceData });
     })
-    
+
 }
 
 
-exports.getServiceBookingsDetails = (req,res)=>{
+exports.getServiceBookingsDetails = async (req, res) => {
+
+    let {last_id}  = req.query || 0
+
+    console.log("last_id:",last_id);
+    last_id = last_id === "0"?0:last_id;
+    console.log("last_id:",typeof(last_id));
+
 
     const db = getDB();
+    const pipeline = [
+        {
+            $match: {
+                _id: { $gt: ObjectId(last_id) } // Filter documents with _id greater than or equal to the starting ID
+            }
+        },
+        {
+            $lookup: {
+                from: "services",
+                let: { serviceIdStr: "$serviceId" }, 
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: { $eq: [ "$_id", { $toObjectId: "$$serviceIdStr" } ] } // convert string serviceId to ObjectId and match with _id
+                        }
+                    }
+                ],
+                as: "service"
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                let: { userIdStr: "$userId" }, // dfine a variable to hold the string serviceId
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: { $eq: [ "$_id", { $toObjectId: "$$userIdStr" } ] }
+                        }
+                    }
+                ],
+                as: "user"
+            }
+        },
+        {
+            $project: {
+                serviceFullName: { $arrayElemAt: ["$service.fullName", 0] },
+                userFullName: { $arrayElemAt: ["$user.fullName", 0] },
+                userPhone: { $arrayElemAt: ["$user.phone", 0] },
+                userEmail: { $arrayElemAt: ["$user.email", 0] },
+                totalPrice: "$totalPrice",                
+            }
+        }
+    ];
+    
 
-    db.createView( "detailed", "services", [
-        {
-           $lookup:
-              {
-                 from: "serviceBookings",
-                 localField: "serviceId",
-                 foreignField: "_id",
-                 as: "detailed"
-              }
-        },
-        {
-           $project:
-              {
-                _id: 0,
-                fullName: 1,
-              }
-        },
-           { $unwind: "$price" }
-     ] )
+    const data = await db.collection("serviceBookings").aggregate(pipeline).toArray();
+
+    return res.json({ status: true,data})
 
 }

@@ -24,6 +24,12 @@ class Booking
         return db.collection('bookings').insertOne(this);
     }
 
+    static aggregate(aggregatePipeline)
+    {
+        const db = getDb();
+        return db.collection('bookings').aggregate(aggregatePipeline).toArray();
+    }
+
     static findBookingById(bId)
     {
         var o_id = new ObjectId(bId);

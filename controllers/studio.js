@@ -156,6 +156,49 @@ exports.getStudios = (req,res,next)=>{
     
 }
 
+exports.getStudiosOptimized = (req, res, next) => {
+    console.log("body---", req.body);
+    const { city, state, minArea, minPricePerHour, amenity, availabilityDay, latitude, longitude, range, active, studioId } = req.body;
+    const filter = pick(req.query, ['name', 'role']) || { isActive: 1 }
+    const options = pick(req.query, ['sort', 'limit', 'page']);
+    
+    // const filter = { isActive: 1 };
+
+    if (active) filter.isActive = active;
+    if (studioId) {
+        var o_id = new ObjectId(studioId);
+        filter._id =o_id
+    }
+    if (city) filter.city = city;
+    if (state) filter.state = state;
+    if (minArea) filter['area'] = { $gte: parseInt(minArea) };
+    if (minPricePerHour) filter['roomsDetails.basePrice'] = { $gte: parseInt(minPricePerHour) };
+    if (amenity) filter['amenities.name'] = amenity;
+    if (availabilityDay) {
+        filter['roomsDetails.generalStartTime'] = availabilityDay.startTime; 
+        filter['roomsDetails.generalEndTime'] = availabilityDay.endTime;
+    }
+    if (latitude && longitude){
+        filter.latitude = latitude;
+        filter.longitude = longitude;
+    }
+
+    const StudPipeline = []
+
+    StudPipeline.push({ $skip: options.page });
+    StudPipeline.push({ $limit: options.limit });
+    StudPipeline.push({
+        $match: { filter }
+    });
+    StudPipeline.push({
+        $sort:  options.sort
+    });
+    StudPipeline.push({
+        $sort:  options.sort
+    });
+
+}
+
 // ----------------- END v2.2.3 ---------------------------
 
 exports.getAllNearStudios = (req,res,next)=>{

@@ -312,7 +312,11 @@ router.get('/bookings/:bookingId/cancel',auth.isUser,controller.cancelParticular
 
 // api/bookings                       --  Get all bookings
 // api/bookings?skip=0&limit=50       --  Get particular range of bookings based on skip and limit
-router.get('/bookings',auth.isAdmin,controller.getAllBookings);
+router.get('/bookings',auth.isAdmin,controller.getAllBookings); 
+
+router.get('/bookings/services',auth.isAdmin,controller.getAllServiceBookings);
+
+router.get('/bookings-v2',auth.isAdmin,controller.getAllBookingsOptimized);
 
 /**
 * @swagger

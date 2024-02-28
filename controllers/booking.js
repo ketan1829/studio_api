@@ -19,6 +19,7 @@ const ObjectId = mongodb.ObjectId;
 const jwt = require('jsonwebtoken');
 
 const send_mail = require("../util/mail.js");
+const { getLogger } = require('nodemailer/lib/shared');
 
 
 function convertTo24HourFormat(time12h) {
@@ -2095,7 +2096,7 @@ exports.getAllBookings2 = (req,res,next)=>{
 
 }
 
-exports.getAllBookings = async (req, res, next) => {
+exports.getAllBookings3 = async (req, res, next) => {
     try {
         let skipValue = parseInt(req.query.skip) || 0;
         let limitValue = parseInt(req.query.limit) || 10;
@@ -2139,15 +2140,16 @@ exports.getAllBookings = async (req, res, next) => {
             
             try {
                 const [studioInfo, userData] = await Promise.all([
-                    Studio.findStudioById(booking.studioId),
+                    Service.findServiceById(booking.studioId) ,
                     User.findUserByUserId(booking.userId) || Admin.findAdminById(booking.userId) || SubAdmin.findSubAdminById(booking.userId) || Owner.findOwnerByOwnerId(booking.userId)
                 ]);
-
+                console.log("studioInfo-------", studioInfo);
                 booking.studioName = studioInfo?.fullName || "";
                 booking.userName = userData ? userData.fullName || `${userData.firstName} ${userData.lastName}` : "";
                 booking.userEmail = userData?.email || "NA";
                 booking.userPhone = userData?.phone || "NA";
-                booking.userType = userData ? (userData.type === 'user' ? 'USER' : 'ADMIN') : "";
+                booking.userType = userData ? (userData.role === 'user' ? 'USER' : 'ADMIN') : "";
+                booking.type = studioInfo?.type || "NA";;
 
                 return booking;
             } catch (error) {
@@ -2195,8 +2197,294 @@ exports.getAllBookings = async (req, res, next) => {
     }
 };
 
+exports.getAllBookings = async (req, res, next) => {
+    try {
+        let skip = +req.query.skip || 0;
+        let limit = +req.query.limit || 0;
+        let bookingType = +req.query.bookingType || -1;
+
+        if (isNaN(skip)) {
+            skip = 0;
+            limit = 0;
+        }
+
+        const pipeline = [];
+
+        if (bookingType === -1) {
+            pipeline.push({ $skip: skip });
+            pipeline.push({ $limit: limit });
+            pipeline.push({
+                $lookup: {
+                    from: "studios",
+                    localField: "studioId",
+                    foreignField: "_id",
+                    as: "studioInfo"
+                }
+            });
+            pipeline.push({
+                $lookup: {
+                    from: "users",
+                    localField: "userId",
+                    foreignField: "_id",
+                    as: "userInfo"
+                }
+            });
+            pipeline.push({
+                $addFields: {
+                    studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
+                    userName: { $arrayElemAt: ["$userInfo.fullName", 0] },
+                    userEmail: { $arrayElemAt: ["$userInfo.email", 0] },
+                    userPhone: { $arrayElemAt: ["$userInfo.phone", 0] },
+                    userType: { $cond: [{ $eq: ["$userInfo", []] }, "", "USER"] }
+                }
+            });
+            pipeline.push({
+                $project: {
+                    studioInfo: 0,
+                    userInfo: 0
+                }
+            });
+        } else {
+            pipeline.push({ $match: { bookingStatus: bookingType } });
+            pipeline.push({
+                $lookup: {
+                    from: "studios",
+                    localField: "studioId",
+                    foreignField: "_id",
+                    as: "studioInfo"
+                }
+            });
+            pipeline.push({
+                $lookup: {
+                    from: "users",
+                    localField: "userId",
+                    foreignField: "_id",
+                    as: "userInfo"
+                }
+            });
+            pipeline.push({
+                $addFields: {
+                    studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
+                    userName: { $arrayElemAt: ["$userInfo.fullName", 0] },
+                    userEmail: { $arrayElemAt: ["$userInfo.email", 0] },
+                    userPhone: { $arrayElemAt: ["$userInfo.phone", 0] },
+                    userType: { $cond: [{ $eq: ["$userInfo", []] }, "", "USER"] }
+                }
+            });
+            pipeline.push({
+                $project: {
+                    studioInfo: 0,
+                    userInfo: 0
+                }
+            });
+        }
+
+        const bookingsData = await Booking.aggregate(pipeline);
+
+        const activeBookings = bookingsData.filter(booking => booking.bookingStatus === 0);
+        const completedBookings = bookingsData.filter(booking => booking.bookingStatus === 1);
+        const cancelledBookings = bookingsData.filter(booking => booking.bookingStatus === 2);
+
+        return res.json({ status: true, message: "All booking(s) returned", data: { activeBookings, completedBookings, cancelledBookings } });
+    } catch (error) {
+        console.error("Internal server error:", error);
+        return res.status(500).json({ status: false, message: "Internal server error" });
+    }
+};
+
+exports.getAllServiceBookings = async (req, res, next) => {
+    try {
+        let skip = +req.query.skip || 0;
+        let limit = +req.query.limit || 0;
+        let bookingType = +req.query.bookingType || -1;
+
+        if (isNaN(skip)) {
+            skip = 0;
+            limit = 0;
+        }
+
+        const pipeline = [];
+
+        if (bookingType === -1) {
+            pipeline.push({ $skip: skip });
+            pipeline.push({ $limit: limit });
+            pipeline.push({
+                $lookup: {
+                    from: "services",
+                    localField: "studioId",
+                    foreignField: "_id",
+                    as: "studioInfo"
+                }
+            });
+            pipeline.push({
+                $lookup: {
+                    from: "users",
+                    localField: "userId",
+                    foreignField: "_id",
+                    as: "userInfo"
+                }
+            });
+            pipeline.push({
+                $addFields: {
+                    studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
+                    userName: { $arrayElemAt: ["$userInfo.fullName", 0] },
+                    userEmail: { $arrayElemAt: ["$userInfo.email", 0] },
+                    userPhone: { $arrayElemAt: ["$userInfo.phone", 0] },
+                    userType: { $cond: [{ $eq: ["$userInfo", []] }, "", "USER"] }
+                }
+            });
+            pipeline.push({
+                $project: {
+                    studioInfo: 0,
+                    userInfo: 0
+                }
+            });
+        } else {
+            pipeline.push({ $match: { bookingStatus: bookingType } });
+            pipeline.push({
+                $lookup: {
+                    from: "studios",
+                    localField: "studioId",
+                    foreignField: "_id",
+                    as: "studioInfo"
+                }
+            });
+            pipeline.push({
+                $lookup: {
+                    from: "users",
+                    localField: "userId",
+                    foreignField: "_id",
+                    as: "userInfo"
+                }
+            });
+            pipeline.push({
+                $addFields: {
+                    studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
+                    userName: { $arrayElemAt: ["$userInfo.fullName", 0] },
+                    userEmail: { $arrayElemAt: ["$userInfo.email", 0] },
+                    userPhone: { $arrayElemAt: ["$userInfo.phone", 0] },
+                    userType: { $cond: [{ $eq: ["$userInfo", []] }, "", "USER"] }
+                }
+            });
+            pipeline.push({
+                $project: {
+                    studioInfo: 0,
+                    userInfo: 0
+                }
+            });
+        }
+
+        const bookingsData = await Booking.aggregate(pipeline);
+
+        const activeBookings = bookingsData.filter(booking => booking.bookingStatus === 0);
+        const completedBookings = bookingsData.filter(booking => booking.bookingStatus === 1);
+        const cancelledBookings = bookingsData.filter(booking => booking.bookingStatus === 2);
+
+        return res.json({ status: true, message: "All booking(s) returned", data: { activeBookings, completedBookings, cancelledBookings } });
+    } catch (error) {
+        console.error("Internal server error:", error);
+        return res.status(500).json({ status: false, message: "Internal server error" });
+    }
+};
+
+exports.getAllBookingsOptimized = async (req, res, next) => {
+    try {
+        let skipValue = parseInt(req.query.skip) || 0;
+        let limitValue = parseInt(req.query.limit) || 10;
+        let bookingTypeValue = parseInt(req.query.bookingType) // || -1;
+        let bookingCategory = req.query.category
+        // console.log("Parsed bookingType value:", bookingTypeValue);
+
+        const filters = buildFilters(req.query)
+        const sort = buildSort(req.query)
+
+        console.log("oprions----", filters, sort)
+
+        const aggregationPipeline = [];
+
+        if (bookingTypeValue !== -1) {
+            aggregationPipeline.push({ $match: { bookingType: bookingTypeValue } });
+        }
+        if (filters.length > 0) {
+            aggregationPipeline.push({ $match: { $and: filters } });
+        }
+
+        if (sort.length > 0) {
+            aggregationPipeline.push({ $match: { $sort: sort } });
+        }
+
+        aggregationPipeline.push({ $skip: skipValue });
+        aggregationPipeline.push({ $limit: limitValue });
+
+        aggregationPipeline.push({
+            $lookup: {
+                from: "studios",
+                localField: "studioId",
+                foreignField: "_id",
+                as: "studioInfo"
+            }
+        });
+
+        aggregationPipeline.push({
+            $lookup: {
+                from: "services",
+                localField: "studioId",
+                foreignField: "_id",
+                as: "studioInfo"
+            }
+        });
 
 
+        aggregationPipeline.push({
+            $lookup: {
+                from: "users",
+                localField: "userId",
+                foreignField: "_id",
+                as: "userInfo"
+            }
+        });
+
+        aggregationPipeline.push({
+            $project: {
+                _id: 1,
+                bookingStatus: { $arrayElemAt: ["$studioInfo.isActive", 0] },
+                studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
+                userName: { $cond: [{ $eq: [{ $size: "$userInfo" }, 0] }, "", { $arrayElemAt: ["$userInfo.fullName", 0] }] },
+                userEmail: { $cond: [{ $eq: [{ $size: "$userInfo" }, 0] }, "NA", { $arrayElemAt: ["$userInfo.email", 0] }] },
+                userPhone: { $cond: [{ $eq: [{ $size: "$userInfo" }, 0] }, "NA", { $arrayElemAt: ["$userInfo.phone", 0] }] },
+                userType: { $cond: [{ $eq: [{ $size: "$userInfo" }, 0] }, "", { $cond: [{ $eq: [{ $arrayElemAt: ["$userInfo.role", 0] }, "user"] }, "USER", "ADMIN"] }] },
+                type: { $cond: [{ $eq: [{ $size: "$studioInfo" }, 0] }, "NA", { $arrayElemAt: ["$studioInfo.type", 0] }] },
+                // Add more fields as needed
+            }
+        });
+
+
+        
+        // console.log("aggregationPipeline---", aggregationPipeline);
+
+        
+        const bookingData = await Booking.aggregate(aggregationPipeline);
+        console.log("bookingData bookings:", bookingData);
+
+        // console.log("Mapped bookings:", mappedBookings[0]);
+        // console.log("Grouped bookings:", groupedBookings);
+
+        return res.json({
+            status: true,
+            message: "All booking(s) returned",
+            data: [],
+            // paginate: {
+            //     page: Math.floor(skipValue / limitValue) + 1,
+            //     limit: limitValue,
+            //     totalResults: totalBookings,
+            //     totalPages: totalPages
+            // }
+        });
+    } catch (error) {
+        console.error("Internal server error:", error);
+        return res.status(500).json({ status: false, message: "Internal server error" });
+    }
+};
 
 exports.getAllBookingsForParticularStudio = (req,res,next)=>{
 
