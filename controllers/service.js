@@ -144,13 +144,18 @@ exports.getServiceBookingsDetails = async (req, res) => {
     const pipeline = [
         {
             $match: {
-                _id: { $gt: ObjectId(last_id) } // Filter documents with _id greater than or equal to the starting ID
-            }
+                _id: { $gt: ObjectId(last_id) },
+                $or: [
+                    { type: { $eq: "c2" } },
+                    { type: { $eq: "c3" } }
+                ]
+            },
+            
         },
         {
             $lookup: {
                 from: "services",
-                let: { serviceIdStr: "$serviceId" }, 
+                let: { serviceIdStr: "$studioId" }, 
                 pipeline: [
                     {
                         $match: {
@@ -181,13 +186,14 @@ exports.getServiceBookingsDetails = async (req, res) => {
                 userFullName: { $arrayElemAt: ["$user.fullName", 0] },
                 userPhone: { $arrayElemAt: ["$user.phone", 0] },
                 userEmail: { $arrayElemAt: ["$user.email", 0] },
-                totalPrice: "$totalPrice",                
+                totalPrice: "$totalPrice",
+                type:"$type"
             }
         }
     ];
     
 
-    const data = await db.collection("serviceBookings").aggregate(pipeline).toArray();
+    const data = await db.collection("bookings").aggregate(pipeline).toArray();
 
     return res.json({ status: true,data})
 

@@ -769,8 +769,6 @@ exports.getDashboardStudios = (req,res,next)=>{
 }
 
 
-
-
 exports.getAllStudios = (req,res,next)=>{
 
     let skip = +req.query.skip;

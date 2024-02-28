@@ -19,6 +19,7 @@ const ObjectId = mongodb.ObjectId;
 const jwt = require('jsonwebtoken');
 
 const send_mail = require("../util/mail.js");
+const pick = require('../util/pick')
 const { getLogger } = require('nodemailer/lib/shared');
 
 
@@ -1823,7 +1824,7 @@ exports.cancelParticularBooking = (req,res,next)=>{
 
 }
 
-
+// get Studio Bookings v2.0.0
 exports.getAllBookings2 = (req,res,next)=>{
 
     let skip = +req.query.skip;
@@ -2197,6 +2198,7 @@ exports.getAllBookings3 = async (req, res, next) => {
     }
 };
 
+// only Studio Bookings
 exports.getAllBookings = async (req, res, next) => {
     try {
         let skip = +req.query.skip || 0;
@@ -2292,100 +2294,74 @@ exports.getAllBookings = async (req, res, next) => {
     }
 };
 
-exports.getAllServiceBookings = async (req, res, next) => {
-    try {
-        let skip = +req.query.skip || 0;
-        let limit = +req.query.limit || 0;
-        let bookingType = +req.query.bookingType || -1;
+// get All Packages/Service Bookings
+exports.getServiceBookings = async (req, res) => {
+    const options = pick(req.query, ['sortBy', 'limit', 'page']);
+    let {last_id}  = 0
 
-        if (isNaN(skip)) {
-            skip = 0;
-            limit = 0;
+    console.log("last_id:",last_id);
+    last_id = last_id === "0"?0:last_id;
+    console.log("last_id:",typeof(last_id));
+
+
+    const db = getDB();
+    const pipeline = [
+        {
+            $match: {
+                _id: { $gt: ObjectId(last_id) },
+                $or: [
+                    { type: { $eq: "c2" } },
+                    { type: { $eq: "c3" } }
+                ]
+            },
+            
+        },
+        {
+            $lookup: {
+                from: "services",
+                let: { serviceIdStr: "$studioId" }, 
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: { $eq: [ "$_id", { $toObjectId: "$$serviceIdStr" } ] } // convert string serviceId to ObjectId and match with _id
+                        }
+                    }
+                ],
+                as: "service"
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                let: { userIdStr: "$userId" }, // dfine a variable to hold the string serviceId
+                pipeline: [
+                    {
+                        $match: {
+                            $expr: { $eq: [ "$_id", { $toObjectId: "$$userIdStr" } ] }
+                        }
+                    }
+                ],
+                as: "user"
+            }
+        },
+        {
+            $project: {
+                serviceFullName: { $arrayElemAt: ["$service.fullName", 0] },
+                userFullName: { $arrayElemAt: ["$user.fullName", 0] },
+                userPhone: { $arrayElemAt: ["$user.phone", 0] },
+                userEmail: { $arrayElemAt: ["$user.email", 0] },
+                totalPrice: "$totalPrice",
+                type:"$type"
+            }
         }
+    ];
+    
 
-        const pipeline = [];
+    const data = await db.collection("bookings").aggregate(pipeline).toArray();
 
-        if (bookingType === -1) {
-            pipeline.push({ $skip: skip });
-            pipeline.push({ $limit: limit });
-            pipeline.push({
-                $lookup: {
-                    from: "services",
-                    localField: "studioId",
-                    foreignField: "_id",
-                    as: "studioInfo"
-                }
-            });
-            pipeline.push({
-                $lookup: {
-                    from: "users",
-                    localField: "userId",
-                    foreignField: "_id",
-                    as: "userInfo"
-                }
-            });
-            pipeline.push({
-                $addFields: {
-                    studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
-                    userName: { $arrayElemAt: ["$userInfo.fullName", 0] },
-                    userEmail: { $arrayElemAt: ["$userInfo.email", 0] },
-                    userPhone: { $arrayElemAt: ["$userInfo.phone", 0] },
-                    userType: { $cond: [{ $eq: ["$userInfo", []] }, "", "USER"] }
-                }
-            });
-            pipeline.push({
-                $project: {
-                    studioInfo: 0,
-                    userInfo: 0
-                }
-            });
-        } else {
-            pipeline.push({ $match: { bookingStatus: bookingType } });
-            pipeline.push({
-                $lookup: {
-                    from: "studios",
-                    localField: "studioId",
-                    foreignField: "_id",
-                    as: "studioInfo"
-                }
-            });
-            pipeline.push({
-                $lookup: {
-                    from: "users",
-                    localField: "userId",
-                    foreignField: "_id",
-                    as: "userInfo"
-                }
-            });
-            pipeline.push({
-                $addFields: {
-                    studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
-                    userName: { $arrayElemAt: ["$userInfo.fullName", 0] },
-                    userEmail: { $arrayElemAt: ["$userInfo.email", 0] },
-                    userPhone: { $arrayElemAt: ["$userInfo.phone", 0] },
-                    userType: { $cond: [{ $eq: ["$userInfo", []] }, "", "USER"] }
-                }
-            });
-            pipeline.push({
-                $project: {
-                    studioInfo: 0,
-                    userInfo: 0
-                }
-            });
-        }
+    return res.json({ status: true,data})
 
-        const bookingsData = await Booking.aggregate(pipeline);
-
-        const activeBookings = bookingsData.filter(booking => booking.bookingStatus === 0);
-        const completedBookings = bookingsData.filter(booking => booking.bookingStatus === 1);
-        const cancelledBookings = bookingsData.filter(booking => booking.bookingStatus === 2);
-
-        return res.json({ status: true, message: "All booking(s) returned", data: { activeBookings, completedBookings, cancelledBookings } });
-    } catch (error) {
-        console.error("Internal server error:", error);
-        return res.status(500).json({ status: false, message: "Internal server error" });
-    }
-};
+}
 
 exports.getAllBookingsOptimized = async (req, res, next) => {
     try {

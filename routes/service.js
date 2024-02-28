@@ -13,6 +13,7 @@ router.get('/services/bookings',auth.isBoth,controller.getServiceBookings);
 
 router.get('/services/bookings/create',auth.isBoth,controller.getServiceBookings);
 
+// GS
 router.get('/services/bookings/detail',auth.isBoth,controller.getServiceBookingsDetails);
 
 /**
