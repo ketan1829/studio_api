@@ -1,0 +1,25 @@
+# dependencies
+/node_modules
+node_modules
+/.pnp
+.pnp.js
+
+# production
+/build
+
+# misc
+.DS_Store
+.env
+/.env
+/newFileUploads1
+/newFileUploads/*
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+.eslintcache
+
+error.log
+logs.log
+malware_remove_check.*
