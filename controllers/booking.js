@@ -435,10 +435,10 @@ exports.createNewBooking2 = async (req, res, next) => {
 exports.createNewBooking = async (req, res, next) => {
     try {
         // Validate input
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }
+        // const errors = validationResult(req);
+        // if (!errors.isEmpty()) {
+        //     return res.status(400).json({ errors: errors.array() });
+        // }
 
         const { userId, studioId, roomId, bookingDate, bookingTime, totalPrice } = req.body;
 
