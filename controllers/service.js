@@ -20,12 +20,71 @@ const ObjectId = mongodb.ObjectId;
 
 exports.createNewService = async (req, res, next) => {
 
+    const { source, service_objs } = req.body;
+
+    console.log("req.body:", req.body);
+
+    if(source === "google-sheet") {
+        const addedData = []
+        Object.keys(service_objs).map(key=>{
+            const serviceData = service_objs[key];
+
+            const service_id = serviceData.service_id;
+            const fullName = serviceData.service_name.trim();
+            const price = parseInt(serviceData.service_lowest_price);
+            const amenitiesData = serviceData.service_amenities;
+            
+            const totalPlans = parseInt(+serviceData.service_package_count);
+            
+            const servicePhotos = [serviceData.service_photo_url] || [];
+            const aboutUs = serviceData.service_about;
+            const workDetails = serviceData.workDetails || [];
+            const discographyDetails = serviceData.discography || [];
+            const clientPhotos = req.body.userPhotos || [];
+            const reviews = req.body.userReviews || [];
+            const featuredReviews = req.body.starredReviews || [];
+            const isActive = req.body.service_status || 1;
+
+            const type = req.body.service_type || "c2"
+
+            const packages = serviceData.packages;
+            
+            packages.map((pack, index)=>{
+                const amenities = []
+                pack.amenites.split(",").map((amm, index)=>{
+                    amenities.push({name:amm, id: index+1})
+                })
+                pack.amenites = amenities
+                pack.photo_url = [pack.photo_url]
+            })
+
+
+            const amenities = []
+            amenitiesData.split(",").map((amm, index)=>{
+                amenities.push({name:amm, id: index+1})
+            })
+        
+            const serviceObj = new Service(service_id, fullName, type, price, amenities, totalPlans, packages, servicePhotos, aboutUs, workDetails, clientPhotos, discographyDetails, reviews, featuredReviews, isActive);
+
+            
+            console.log("serviceObj", serviceObj);
+            serviceObj.save()
+            .then(resultData => {
+                addedData.push(service_id)
+            })
+            .catch(err => console.log(err));
+            
+
+        })
+        return res.status(200).json({ status: true, message: "New services created successfully", data: addedData });
+
+    } else {
 
     const fullName = req.body.serviceName.trim();
     const price = parseFloat(req.body.startingPrice);
     const amenities = req.body.offerings;
     const totalPlans = +req.body.TotalServices;
-    const serviceDetails = req.body.servicePlans;
+    const packages = req.body.packages;
     const servicePhotos = req.body.ServicePhotos;
     const aboutUs = req.body.description;
     const workDetails = req.body.portfolio;
@@ -33,6 +92,7 @@ exports.createNewService = async (req, res, next) => {
     const clientPhotos = req.body.userPhotos;
     const reviews = req.body.userReviews;
     const featuredReviews = req.body.starredReviews;
+    const type = req.body.type || "c2"
 
     const { error } = validateService(req.body);
     if (error) {
@@ -41,7 +101,7 @@ exports.createNewService = async (req, res, next) => {
     // If validation passes, proceed to the next middleware or controller function
     // next();
 
-    const serviceObj = new Service(fullName, price, amenities, totalPlans, serviceDetails,
+    const serviceObj = new Service(fullName, price, amenities, totalPlans, packages,
         servicePhotos, aboutUs, workDetails, discographyDetails, clientPhotos, reviews, featuredReviews);
 
     // saving in database
@@ -50,6 +110,7 @@ exports.createNewService = async (req, res, next) => {
             return res.json({ status: true, message: "Service added successfully", data: resultData["ops"][0] });
         })
         .catch(err => console.log(err));
+    }
 
 }
 
@@ -187,7 +248,6 @@ exports.getServiceBookingsDetails = async (req, res) => {
                 userPhone: { $arrayElemAt: ["$user.phone", 0] },
                 userEmail: { $arrayElemAt: ["$user.email", 0] },
                 totalPrice: "$totalPrice",
-                type:"$type"
             }
         }
     ];

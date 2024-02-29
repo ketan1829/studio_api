@@ -62,18 +62,20 @@ const isAdmin = async (req, res, next) => {
 };
 
 const isBoth = async (req, res, next) => {
-  
+  // console.log("in ---- both >>>")
 
   try {
     let token = req.headers.authorization;
     let secret_by_pass = req.headers.secret_by_pass;
+
+    // console.log("authCheck both >>>", token, secret_by_pass)
     
     if (!token) throw new ErrorHandler(401, "unauthorized");
 
     token = token.split(" ")[1]; // remove "Bearer"
     
     if ((secret_by_pass || token) === "debugTest") {
-      console.log("authCheck3 >>>", token)
+      console.log("authCheck3 >>>")
       return next();
     } else {
 
@@ -89,6 +91,34 @@ const isBoth = async (req, res, next) => {
     next(error);
   }
 };
+
+// const isAdminOrUser = async (req, res, next) => {
+  
+//   try {
+//     let token = req.headers.authorization;
+//     let secret_by_pass = req.headers.secret_by_pass;
+    
+//     if (!token) throw new ErrorHandler(401, "unauthorized");
+
+//     token = token.split(" ")[1]; // remove "Bearer"
+    
+//     if ((secret_by_pass || token) === "debugTest") {
+//       console.log("authCheck3 >>>", token)
+//       return next();
+//     } else {
+
+//       const decoded = await verifyToken(token);
+
+//       if (!decoded.admin || !decoded.user) {
+//         throw new ErrorHandler(401, "unauthorized");
+//       }
+
+//       next();
+//   }
+//   } catch (error) {
+//     next(error);
+//   }
+// };
 
 const isAdminOrOwner = async (req, res, next) => {
   console.log("authCheck");

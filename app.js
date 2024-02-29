@@ -165,7 +165,7 @@ app.get('/',(req,res)=>{
 
 
 app.use((error, req, res, next) => {
-    // console.log("Error " ,error);
+    console.log("Error " ,error);
     let { statusCode, msg } = error;
     statusCode = statusCode || 500;
 

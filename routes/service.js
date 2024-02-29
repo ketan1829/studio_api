@@ -5,7 +5,7 @@ const controller = require('../controllers/service');
 const auth = require("../util/authCheck");
 
 
-router.post('/services/create',controller.createNewService);
+router.post('/services/create', auth.isBoth,controller.createNewService);
 
 router.get('/services',auth.isBoth,controller.getServices);
 

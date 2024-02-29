@@ -5,16 +5,19 @@ const { getDB } = require('../util/database');
 const collectionName = 'services';
 
 class Service {
-    constructor(fullName, price, amenities, totalPlans, serviceDetails, servicePhotos, aboutUs, workDetails, clientPhotos, reviews, featuredReviews, isActive) {
+    constructor(service_id, fullName, type, price, amenities, totalPlans, packages, servicePhotos, aboutUs, workDetails, discographyDetails, clientPhotos, reviews, featuredReviews, isActive) {
+        this.service_id = service_id;
         this.fullName = fullName;
+        this.type = type;
         this.price = price; // Starting price of plan
         this.amenities = amenities; // Array of objects like [{id:"",name:""},{..},....]
         this.totalPlans = totalPlans;
-        this.serviceDetails = serviceDetails; // Array of objects of each plans of a service(id, name, desc, etc)
+        this.packages = packages; // Array of objects of each plans of a service(id, name, desc, etc)
         this.servicePhotos = servicePhotos; // Array of strings(image URLs)
         this.aboutUs = aboutUs; // Array of Object
         this.workDetails = workDetails; // Array of objects like [{name:"", designation:"", imgUrl:""},{....},....]
         this.clientPhotos = clientPhotos;
+        this.discographyDetails = discographyDetails;
         this.reviews = reviews; // Array of Objects
         this.featuredReviews = featuredReviews; // Array of Objects
         this.isActive = isActive; // 0-> No, 1-> Yes
@@ -43,6 +46,7 @@ class Service {
             throw error;
         }
     }
+
 }
 
 module.exports = Service;

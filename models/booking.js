@@ -42,6 +42,21 @@ class Booking
             .catch(err=>console.log(err));
     }
 
+    static async findBooking(serviceDatafilter) {
+
+        const { userId, serviceId, planId } = serviceDatafilter;
+
+        const db = getDB();
+        try {
+            const serviceData = await db.collection(collectionName).find({ serviceDatafilter });
+            console.log("serviceData----", serviceData);
+            return serviceData;
+        } catch (error) {
+            console.error('Error finding service by ID:', error);
+            throw error;
+        }
+    }
+
     static fetchBookingsByStudioIdAndBookingDate(sId,bDate)
     {
         const db = getDb();
