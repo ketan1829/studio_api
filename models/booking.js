@@ -46,7 +46,7 @@ class Booking
 
         const { userId, serviceId, planId } = serviceDatafilter;
 
-        const db = getDB();
+        const db = getDb();
         try {
             const serviceData = await db.collection(collectionName).find({ serviceDatafilter });
             console.log("serviceData----", serviceData);

@@ -49,6 +49,7 @@ exports.createNewService = async (req, res, next) => {
 
             const packages = serviceData.packages;
             
+            console.log("fullName---", fullName);
             packages.map((pack, index)=>{
                 const amenities = []
                 pack.amenites.split(",").map((amm, index)=>{
@@ -56,6 +57,7 @@ exports.createNewService = async (req, res, next) => {
                 })
                 pack.amenites = amenities
                 pack.photo_url = [pack.photo_url]
+                console.log("package amenities ---", amenities);
             })
 
 
@@ -63,16 +65,16 @@ exports.createNewService = async (req, res, next) => {
             amenitiesData.split(",").map((amm, index)=>{
                 amenities.push({name:amm, id: index+1})
             })
-        
+            // console.log("amenities ---", amenities);
             const serviceObj = new Service(service_id, fullName, type, price, amenities, totalPlans, packages, servicePhotos, aboutUs, workDetails, clientPhotos, discographyDetails, reviews, featuredReviews, isActive);
 
             
-            console.log("serviceObj", serviceObj);
-            serviceObj.save()
-            .then(resultData => {
-                addedData.push(service_id)
-            })
-            .catch(err => console.log(err));
+            // console.log("serviceObj", serviceObj);
+            // serviceObj.save()
+            // .then(resultData => {
+            //     addedData.push(service_id)
+            // })
+            // .catch(err => console.log(err));
             
 
         })
@@ -191,6 +193,18 @@ exports.getServiceBookings = (req, res, next) => {
 
 }
 
+exports.updateService = (req, res, next) => {
+    
+    const { bookingId, service_id,  } = req.query;
+    if (bookingId) {
+        var o_id = new ObjectId(bookingId);
+        filter._id = o_id
+    }
+
+    if (service_id) {
+        filter.service_id = service_id
+    }
+}
 
 exports.getServiceBookingsDetails = async (req, res) => {
 
@@ -247,7 +261,7 @@ exports.getServiceBookingsDetails = async (req, res) => {
                 userFullName: { $arrayElemAt: ["$user.fullName", 0] },
                 userPhone: { $arrayElemAt: ["$user.phone", 0] },
                 userEmail: { $arrayElemAt: ["$user.email", 0] },
-                totalPrice: "$totalPrice",
+                totalPrice: { $arrayElemAt: ["$service.price", 0] },
             }
         }
     ];

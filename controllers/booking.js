@@ -523,11 +523,11 @@ exports.createServiceBooking = async (req, res, next) => {
         const ExistingServiceData = await Booking.findBooking({ userId, serviceId, planId });
 
         if (!serviceData) {
-            return res.status(404).json({ status: false, message: "No Service with this ID exists" });
+            return res.status(200).json({ status: false, message: "Something went wrong, Try again later" });
         }
 
         if (!ExistingServiceData) {
-            return res.status(404).json({ status: false, message: "Requested Package booking has been pre-booked already!" });
+            return res.status(200).json({ status: false, message: "Requested Package booking has been pre-booked already!" });
         }
 
         const bookingObj = new Booking(userId, serviceId, parseInt(planId), bookingDate, bookingTime, parseFloat(totalPrice), parseInt(bookingStatus), serviceType);
