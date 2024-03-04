@@ -40,6 +40,7 @@ const serviceSchema = Joi.object({
   serviceName: Joi.string().trim().required(),
   startingPrice: Joi.string().required(),
   offerings: Joi.array().items(offeringSchema).required(),
+  packages: Joi.array(),
   TotalServices: Joi.number().integer().min(0).required(),
   servicePlans: Joi.array().items(planDetailsSchema),
   servicePhotos: Joi.array().items(Joi.string()),
