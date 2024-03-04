@@ -49,6 +49,8 @@ router.post('/bookings/create',auth.isAdminOrOwnerOrUser,controller.createNewBoo
 
 router.post('/bookings/update',auth.isAdminOrOwnerOrUser, controller.updateServiceBooking); 
 
+router.post('/bookings/delete',auth.isAdminOrOwnerOrUser, controller.deleteBooking);
+
 /**
  * @swagger
  * /bookings/service/create:
@@ -314,10 +316,11 @@ router.get('/bookings/:bookingId/cancel',auth.isUser,controller.cancelParticular
 
 // api/bookings                       --  Get all bookings
 // api/bookings?skip=0&limit=50       --  Get particular range of bookings based on skip and limit
+// Get only Studios Booking
 router.get('/bookings',auth.isAdminOrOwnerOrUser, controller.getAllBookings); 
-
+// Get only Services Booking
 router.get('/bookings/services',auth.isAdminOrOwnerOrUser, controller.getServiceBookings);
-
+// Get Studio/Service Bookings dynamically
 router.get('/bookings-v2',auth.isAdminOrOwnerOrUser, controller.getAllBookingsOptimized);
 
 /**

@@ -49,7 +49,6 @@ exports.createNewService = async (req, res, next) => {
 
             const packages = serviceData.packages;
             
-            console.log("fullName---", fullName);
             packages.map((pack, index)=>{
                 const amenities = []
                 pack.amenites.split(",").map((amm, index)=>{
@@ -57,7 +56,7 @@ exports.createNewService = async (req, res, next) => {
                 })
                 pack.amenites = amenities
                 pack.photo_url = [pack.photo_url]
-                console.log("package amenities ---", amenities);
+                console.log("package amenities ---", pack.amenites);
             })
 
 
@@ -69,12 +68,12 @@ exports.createNewService = async (req, res, next) => {
             const serviceObj = new Service(service_id, fullName, type, price, amenities, totalPlans, packages, servicePhotos, aboutUs, workDetails, clientPhotos, discographyDetails, reviews, featuredReviews, isActive);
 
             
-            // console.log("serviceObj", serviceObj);
-            // serviceObj.save()
-            // .then(resultData => {
-            //     addedData.push(service_id)
-            // })
-            // .catch(err => console.log(err));
+            console.log("serviceObj", serviceObj);
+            serviceObj.save()
+            .then(resultData => {
+                addedData.push(service_id)
+            })
+            .catch(err => console.log(err));
             
 
         })
@@ -261,7 +260,7 @@ exports.getServiceBookingsDetails = async (req, res) => {
                 userFullName: { $arrayElemAt: ["$user.fullName", 0] },
                 userPhone: { $arrayElemAt: ["$user.phone", 0] },
                 userEmail: { $arrayElemAt: ["$user.email", 0] },
-                totalPrice: { $arrayElemAt: ["$service.price", 0] },
+                totalPrice: "$totalPrice",
             }
         }
     ];
