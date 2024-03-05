@@ -24,3 +24,5 @@ logs.log
 malware_remove_check.*
 util/app.log
 logs/info.log
+
+.zip
