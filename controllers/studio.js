@@ -154,6 +154,86 @@ exports.getStudios = (req,res,next)=>{
     
 }
 
+// Added Aggregation performing operations on it but shows incorrect results
+exports.getStudios_aggreation = async (req, res, next) => {
+    try {
+        console.log("body---", req.body, parseFloat(req.body.longitude));
+        const db = getDb();
+        const { city, state, minArea, minPricePerHour, amenity, availabilityDay, latitude, longitude, range, active, studioId } = req.body;
+        let filter = { isActive: 1 };
+
+        
+        if (active) filter.isActive = active;
+        if (studioId) filter._id = new ObjectId(studioId);
+        if (city) filter.city = city;
+        if (state) filter.state = state;
+        if (minArea) filter['area'] = { $gte: parseInt(minArea) };
+        if (minPricePerHour) filter['roomsDetails.basePrice'] = { $gte: parseInt(minPricePerHour) };
+        if (amenity) filter['amenities.name'] = amenity;
+        if (availabilityDay) {
+            filter['roomsDetails.generalStartTime'] = availabilityDay.startTime;
+            filter['roomsDetails.generalEndTime'] = availabilityDay.endTime;
+        }
+        if (req.query.name) {
+            filter.fullName = req.query.name;
+        }
+
+        const options = {
+            // sort: { distance: range ? parseInt(range) : 1 }, // Sorting by distance
+            limit: parseInt(req.query.limit) || 10,
+            page: parseInt(req.query.page) || 1
+        };
+
+        if (latitude?.length && longitude?.length) {
+            
+            const nearbyStudios = await Studio.aggregate([
+                {
+                    $addFields: {
+                        distance: {
+                            $sqrt: {
+                                $add: [
+                                    { $pow: [{ $subtract: [parseFloat(longitude), { $toDouble: '$longitude' }] }, 2] },
+                                    { $pow: [{ $subtract: [parseFloat(latitude), { $toDouble: '$latitude' }] }, 2] }
+                                ]
+                            }
+                        }
+                    }
+                },
+                { $match: { distance: { $lte: range ? parseInt(range) : 1 } } },
+                { $match: filter },
+                { $skip: (options.page - 1) * options.limit },
+                { $limit: options.limit }
+            ]);
+
+            const totalNearbyStudios = await db.collection('studios').countDocuments(filter);
+            const totalPages = Math.ceil(totalNearbyStudios / options.limit);
+            console.log("nearbyStudios---", nearbyStudios);
+            return res.json({
+                status: true,
+                message: `Page ${options.page} of ${totalPages} - ${nearbyStudios.length} studios returned`,
+                paginate: {
+                    page: options.page,
+                    limit: options.limit,
+                    totalResults: totalNearbyStudios,
+                    totalPages: totalPages
+                },
+                studios: nearbyStudios
+            });
+        } else {
+            const studioData = await Studio.paginate(filter, options);
+            return res.send(200).json({
+                status: true,
+                message: "All studios returned",
+                studios: studioData
+            });
+        }
+    } catch (error) {
+        console.error("Error occurred:", error);
+        return res.status(500).json({ status: false, message: "Internal server error" });
+    }
+};
+
+
 exports.getStudiosOptimized = (req, res, next) => {
     console.log("body---", req.body);
     const { city, state, minArea, minPricePerHour, amenity, availabilityDay, latitude, longitude, range, active, studioId } = req.body;

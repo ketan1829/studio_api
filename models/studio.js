@@ -36,9 +36,9 @@ class Studio {
         return db.collection('studios').insertOne(this);
     }
 
-    aggregate(Data) {
+    static aggregate(Data) {
         const db = getDb();
-        return db.collection('studios').aggregate(Data);
+        return db.collection('studios').aggregate(Data).toArray();
     }
 
     static findStudioById(sId) {
