@@ -74,6 +74,34 @@ class Service {
             return{ status: false, message: "Internal Server Error" };
         }
     }
+    static async updateServicePackageById(pId,newData) {
+        const db = getDB();
+    
+        try {            
+             const updatedResult = await db.collection(collectionName).findOneAndUpdate({ _id: new ObjectId(pId) },{$set: newData},{new:true});                
+            return{ status: true, message: "Service updated successfully", updatedService:updatedResult };
+        } catch (error) {
+            console.error("Error deleting service:", error);
+            return{ status: false, message: "Internal Server Error" };
+        }
+    }
+
+    static filterEmptyFields(service_obj) {
+        const filteredObject = {};
+      
+        for (const key in service_obj) {
+          if (service_obj[key]) {
+            filteredObject[key] = service_obj[key];
+          }
+        }
+      
+        return filteredObject;
+      }
+      
+
+    static async updateServiceByPackageId(pId,newData) {
+                
+    }
 
     static async findServiceById(sId) {
         const db = getDB();

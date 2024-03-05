@@ -15,7 +15,7 @@ let State = require('country-state-city').State;
 const jwt = require('jsonwebtoken');
 
 var GeoPoint = require('geopoint');
-const mapQuestKey = process.env.MAP_QUEST_KEY;
+const GOOGLE_MAP_KEY = process.env.GOOGLE_MAP_KEY;
 
 
 
@@ -271,10 +271,57 @@ exports.getAllNearStudios = (req,res,next)=>{
 }
 
 
-exports.createNewStudio = async(req,res,next)=>{
+// exports.createNewStudio = async(req,res,next)=>{
     
+//     const fullName = req.body.fullName.trim();
+//     const address = req.body.address;
+//     const mapLink = req.body.mapLink;
+//     const city = req.body.city;
+//     const state = req.body.state;
+//     const area = parseFloat(req.body.area);
+//     const pincode = req.body.pincode;
+//     const pricePerHour = parseFloat(req.body.pricePerHour);
+//     const availabilities = req.body.availabilities;
+//     const amenities = req.body.amenities;
+//     const totalRooms = +req.body.totalRooms;
+//     const roomsDetails = req.body.roomsDetails;
+//     const maxGuests = req.body.maxGuests;
+//     const studioPhotos = req.body.studioPhotos;
+//     const aboutUs = req.body.aboutUs;
+//     const teamDetails = req.body.teamDetails;
+//     const clientPhotos = req.body.clientPhotos;
+//     const reviews = {};
+//     const featuredReviews = [];
+
+//      axios.get("https://www.mapquestapi.com/geocoding/v1/address?key="+mapQuestKey+"&location="+address)
+//     .then(function (response) {
+//         // console.log(response.data.results[0].locations[0]);
+//         // res.json({location:response.data.results[0].locations[0]})
+//         if(response.data.results[0].locations[0].postalCode.length==0)
+//         {
+//             return res.json({status:false, message:"Enter valid address for studio"});
+//         }
+//         else{
+//             let latitude = response.data.results[0].locations[0].latLng.lat.toString();
+//             let longitude = response.data.results[0].locations[0].latLng.lng.toString();
+//             const studioObj = new Studio(fullName,address,latitude,longitude,mapLink,city,state,area,pincode,pricePerHour,availabilities,amenities,totalRooms,roomsDetails,
+//                                 maxGuests,studioPhotos,aboutUs,teamDetails,clientPhotos,reviews,featuredReviews,1);
+           
+//            // saving in database
+//             return studioObj.save()
+//             .then(resultData=>{
+//                 return res.json({status:true,message:"Studio created successfully",studio:resultData["ops"][0]});
+//             })
+//             .catch(err=>console.log(err));
+//         }
+//     })
+
+// }
+
+exports.createNewStudio = async (req, res, next) => {
+
     const fullName = req.body.fullName.trim();
-    const address = req.body.address;
+    let address = req.body.address;
     const mapLink = req.body.mapLink;
     const city = req.body.city;
     const state = req.body.state;
@@ -293,28 +340,47 @@ exports.createNewStudio = async(req,res,next)=>{
     const reviews = {};
     const featuredReviews = [];
 
-    axios.get("https://www.mapquestapi.com/geocoding/v1/address?key="+mapQuestKey+"&location="+address)
-    .then(function (response) {
-        // console.log(response.data.results[0].locations[0]);
-        // res.json({location:response.data.results[0].locations[0]})
-        if(response.data.results[0].locations[0].postalCode.length==0)
-        {
-            return res.json({status:false, message:"Enter valid address for studio"});
-        }
-        else{
-            let latitude = response.data.results[0].locations[0].latLng.lat.toString();
-            let longitude = response.data.results[0].locations[0].latLng.lng.toString();
-            const studioObj = new Studio(fullName,address,latitude,longitude,mapLink,city,state,area,pincode,pricePerHour,availabilities,amenities,totalRooms,roomsDetails,
-                                maxGuests,studioPhotos,aboutUs,teamDetails,clientPhotos,reviews,featuredReviews,1);
-           
-           // saving in database
-            return studioObj.save()
-            .then(resultData=>{
-                return res.json({status:true,message:"Studio created successfully",studio:resultData["ops"][0]});
+
+    try {
+
+        address = address.replace("&","and")
+
+        console.log("https://maps.googleapis.com/maps/api/geocode/json?address="+address+"&key="+GOOGLE_MAP_KEY);
+        axios.get("https://maps.googleapis.com/maps/api/geocode/json?address="+address+"&key="+GOOGLE_MAP_KEY)
+            .then(function (response) {
+                // console.log(response.data.results[0].locations[0]);
+                // res.json({location:response.data.results[0].locations[0]})
+                // const res_data = response.data?.features[0]?.properties;
+                const res_data = response.data?.results[0].geometry.location
+                if (!res_data) {
+                    return res.json({ status: false, message: "Enter valid address for studio" });
+                }
+                else {
+                    let latitude = res_data.lat.toString();
+                    let longitude = res_data.lng.toString();
+
+                    console.log(latitude,longitude)
+
+                    const studioObj = new Studio(fullName, address, latitude, longitude, mapLink, city, state, area, pincode, pricePerHour, availabilities, amenities, totalRooms, roomsDetails,
+                        maxGuests, studioPhotos, aboutUs, teamDetails, clientPhotos, reviews, featuredReviews, 1);
+
+                    // saving in database
+                    return studioObj.save()
+                        .then(resultData => {
+                            return res.json({ status: true, message: "Studio created successfully", studio: resultData["ops"][0] });
+                        })
+                        .catch(err => console.log(err));
+                }
             })
-            .catch(err=>console.log(err));
-        }
-    })
+
+    } catch (error) {
+
+        return res.json({ status: false, message: "Address Lat Long failed! :( contact Dev. NR" });
+
+
+    }
+
+
 
 }
 
