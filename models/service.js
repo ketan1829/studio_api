@@ -79,7 +79,7 @@ class Service {
         const db = getDB();
         try {
             const serviceData = await db.collection(collectionName).findOne({ _id: new ObjectId(sId) });
-            console.log("serviceData----", serviceData);
+            // console.log("serviceData----", serviceData);
             return serviceData;
         } catch (error) {
             console.error('Error finding service by ID:', error);
