@@ -280,8 +280,6 @@ function convertTo12HourFormatWithoutAMPM(time) {
     return time.join(''); // return adjusted time or original string
 }
 
-// ----------------------------------------
-
 // ------------------ misc. --------------------------------------------
 
 async function findUserById(userId) {
@@ -507,6 +505,8 @@ exports.createServiceBooking = async (req, res, next) => {
         //     return res.status(400).json({ errors: errors.array() });
         // }
 
+        console.log("req.body", req.body);
+
         const { userId, serviceId, planId, bookingDate, bookingTime, totalPrice, serviceType } = req.body;
         const bookingStatus = 0;
 
@@ -514,6 +514,7 @@ exports.createServiceBooking = async (req, res, next) => {
         bookingTime.endTime = convertTo24HourFormat(bookingTime.endTime);
 
         let userData = await findUserById(userId);
+        
         if (!userData) {
             return res.status(404).json({ status: false, message: "Enter valid user ID" });
         }
@@ -521,21 +522,19 @@ exports.createServiceBooking = async (req, res, next) => {
         let userDeviceId = userData.deviceId || '';
 
         const serviceData = await Service.findServiceById(serviceId);
-
-
-        const ExistingServiceData = await Booking.findBooking({ userId, serviceId, planId });
+        const serData = { userId, serviceId, planId }
+        const ExistingServiceData = await Booking.findBooking(serData);
 
         if (!serviceData) {
             return res.status(200).json({ status: false, message: "Something went wrong, Try again later" });
         }
 
-        if (!ExistingServiceData) {
+        if (ExistingServiceData.length) {
+            console.log("ExistingServiceData:", ExistingServiceData);
             return res.status(200).json({ status: false, message: "Requested Package booking has been pre-booked already!" });
         }
 
-        console.log("ExistingServiceData:", ExistingServiceData);
-
-        const bookingObj = new Booking(userId, serviceId, parseInt(planId), bookingDate, bookingTime, parseFloat(totalPrice), parseInt(bookingStatus), serviceType);
+        const bookingObj = new Booking(userId, serviceId, parseInt(planId), bookingDate, bookingTime, parseFloat(totalPrice), bookingStatus, serviceType);
         const resultData = await bookingObj.save();
         const bookingData = resultData.ops[0];
         bookingData.totalPrice = bookingData.totalPrice.toFixed(2);
@@ -2327,6 +2326,7 @@ exports.getServiceBookings = async (req, res) => {
 // update booking status of any category
 exports.updateServiceBooking = async (req, res) => {
     const { bookingId, status } = req.body;
+    console.log({ bookingId, status });
     const bookingData = await getSingleBooking(bookingId);
     if (!bookingData || !bookingId) {
         return res.status(404).json({ status: false, message: "No Booking with this ID exists" });

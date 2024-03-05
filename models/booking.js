@@ -9,11 +9,11 @@ class Booking
     {
         this.userId = userId;
         this.studioId = studioId;
-        this.roomId = parseInt(roomId);
+        this.roomId = roomId;
         this.bookingDate = bookingDate;
         this.bookingTime = bookingTime;
         this.totalPrice = totalPrice;
-        this.bookingStatus = parseInt(bookingStatus);   // 0-> Active, 1-> Completed, 2-> Cancelled
+        this.bookingStatus = bookingStatus;   // 0-> Active, 1-> Completed, 2-> Cancelled
         this.creationTimeStamp = new Date();
         this.type = serviceType || "c1";
     }
@@ -42,15 +42,18 @@ class Booking
             .catch(err=>console.log(err));
     }
 
-    static async findBooking(serviceDatafilter) {
+    static findBooking(serviceDatafilter) {
 
         const { userId, serviceId, planId } = serviceDatafilter;
-
+        console.log({userId, serviceId, planId});
         const db = getDb();
         try {
-            const serviceData = await db.collection(collectionName).find({ userId, serviceId, planId });
-            console.log("serviceData----", serviceData);
-            return serviceData;
+            return db.collection('bookings').find({ userId, studioId: serviceId, roomId: parseInt(planId) }).toArray()
+            .then(bookingData=>{
+                // console.log("bookingData:", bookingData);
+                return bookingData;
+            })
+            .catch(err=>console.log(err));
         } catch (error) {
             console.error('Error finding service by ID:', error);
             throw error;

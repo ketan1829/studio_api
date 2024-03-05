@@ -45,6 +45,7 @@ const auth = require("../util/authCheck");
  *       500:
  *         description: Internal server error
  */
+// Create Studio Booking
 router.post('/bookings/create',auth.isAdminOrOwnerOrUser,controller.createNewBooking); 
 
 router.post('/bookings/update',auth.isAdminOrOwnerOrUser, controller.updateServiceBooking); 
@@ -92,7 +93,8 @@ router.post('/bookings/delete',auth.isAdminOrOwnerOrUser, controller.deleteBooki
  *       500:
  *         description: Internal server error
  */
- router.post('/bookings/service/create',auth.isAdminOrOwnerOrUser,controller.createServiceBooking);
+// Create Service Booking
+router.post('/bookings/service/create',auth.isAdminOrOwnerOrUser,controller.createServiceBooking);
 
 /**
  * @swagger

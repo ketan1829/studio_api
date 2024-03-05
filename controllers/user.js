@@ -449,7 +449,7 @@ exports.getAllUsers = (req, res, next) => {
     User.fetchAllUsers(skip, limit)
         .then(userData => {
             return res.json({ status: true, message: "All Users returned", users: userData });
-        })
+    })
 
 }
 

@@ -137,19 +137,14 @@ exports.getStudios = (req,res,next)=>{
     //     page, // Page number
     //     populate, // Fields to populate
     // };
-
-    if (latitude && longitude) {
-
+    if (latitude.length && longitude.length) {
         Studio.fetchAllStudios(0,0)
         .then(studioData=>{
             const paginatedStudios = filterNearbySudios(studioData, latitude, longitude, options.page || 1, options.limit  || 10, range ? range : 10);
             return res.json({status:true, message:paginatedStudios.message,nearYou:paginatedStudios.studios, paginate:paginatedStudios.paginate});
         })
-        
     }else {
-
     Studio.paginate(filter, options).then(studioData=>{
-
         return res.json({status:true, message:"All studios returned",studios:studioData});
     })
 }
@@ -270,7 +265,6 @@ exports.getAllNearStudios = (req,res,next)=>{
     })
 }
 
-
 exports.createNewStudio = async(req,res,next)=>{
     
     const fullName = req.body.fullName.trim();
@@ -317,7 +311,6 @@ exports.createNewStudio = async(req,res,next)=>{
     })
 
 }
-
 
 exports.getParticularStudioDetails = (req,res,next)=>{
 
