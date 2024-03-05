@@ -1,0 +1,56 @@
+LOGIN-OTP response
+
+
+
+you'll get this response when the user is new
+
+{
+    "status": true,
+    "message": "",
+    "newUser": true,
+    "user": {
+      "fullName": "",
+      "dateOfBirth": "",
+      "email": "",
+      "phone": "9820973885",
+      "password": "",
+      "latitude": "",
+      "longitude": "",
+      "city": "",
+      "state": "",
+      "profileUrl": "",
+      "gender": "",
+      "userType": "NUMBER",
+      "favourites": [],
+      "deviceId": "0da1742c-86cf-4874-87b4-681086492e26",
+      "creationTimeStamp": "2023-02-27T13:32:04.299Z",
+      "_id": "63fcb0d49ffbf86395b3e484"
+    }
+  }
+
+the following response is return when the user already exists
+
+{
+    "status": true,
+    "message": "Successfully Logged In",
+    "newUser": false,
+    "user": {
+      "_id": "63fcb0769ffbf86395b3e483",
+      "fullName": "",
+      "dateOfBirth": "",
+      "email": "",
+      "phone": "9820973885",
+      "password": "",
+      "latitude": "",
+      "longitude": "",
+      "city": "",
+      "state": "",
+      "profileUrl": "",
+      "gender": "",
+      "userType": "NUMBER",
+      "favourites": [],
+      "deviceId": "0da1742c-86cf-4874-87b4-681086492e26",
+      "creationTimeStamp": "2023-02-27T13:30:30.379Z"
+    },
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7Il9pZCI6IjYzZmNiMDc2OWZmYmY4NjM5NWIzZTQ4MyIsImZ1bGxOYW1lIjoiIiwiZGF0ZU9mQmlydGgiOiIiLCJlbWFpbCI6IiIsInBob25lIjoiOTgyMDk3Mzg4NSIsInBhc3N3b3JkIjoiIiwibGF0aXR1ZGUiOiIiLCJsb25naXR1ZGUiOiIiLCJjaXR5IjoiIiwic3RhdGUiOiIiLCJwcm9maWxlVXJsIjoiIiwiZ2VuZGVyIjoiIiwidXNlclR5cGUiOiJOVU1CRVIiLCJmYXZvdXJpdGVzIjpbXSwiZGV2aWNlSWQiOiIwZGExNzQyYy04NmNmLTQ4NzQtODdiNC02ODEwODY0OTJlMjYiLCJjcmVhdGlvblRpbWVTdGFtcCI6IjIwMjMtMDItMjdUMTM6MzA6MzAuMzc5WiJ9LCJpYXQiOjE2Nzc1MDQ2ODZ9.QOXJDxFBAnH-wvfZizz8U6TtC73Twfy3E87CH_pSgwo"
+  }
