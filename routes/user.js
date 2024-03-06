@@ -131,35 +131,43 @@ router.post('/users/signup',controller.signupUser);
  * @swagger
  * /users/login-otp:
  *   post:
- *     summary: Login to account using phoneNumber & OTP verification
+ *     summary: Request OTP for User Login--
  *     tags: [Users]
  *     requestBody:
- *       description: | 
- *          #
- *          Possible values for UserType => PhoneNumber
- *          #
- *       phoneNumber: string
- *       dateOfBirth: string
- *       userType: string
- *       deviceId: string
+ *       description: Request a One-Time Password (OTP) for user login.
+ *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             id: string
- *           example : 
- *             phoneNumber: "917021908949"
+ *             type: object
+ *             properties:
+ *               phone:
+ *                 type: string
+ *                 description: User's phone number
+ *               userType:
+ *                 type: string
+ *                 description: User type can be EMAIL, FACEBOOK, or GOOGLE
+ *               deviceId:
+ *                 type: string
+ *                 description: User's device ID
+ *               role:
+ *                 type: string
+ *                 description: User's role (e.g., ADMIN, USER)
+ *           example:
+ *             phone: "9351999562"
  *             userType: "EMAIL"
- *             deviceId: "df4bbe08-c80b-4fb1-b46c-5739ebe5f716"
+ *             deviceId: "1234"
+ *             role: "USER"
  *     responses:
  *       200:
- *         description: The post was successfully created
+ *         description: OTP sent successfully
  *         content:
  *           application/json:
- *               example : 
- *                 status : true
- *                 message : "OTP sent"
- *                 user : {}
- *                 token : "abcd123455322ghjdi"
+ *             example:
+ *               status: true
+ *               message: "OTP sent"
+ *               user: {}
+ *               token: "abcd123455322ghjdi"
  *       400:
  *         description: Bad Request, check request body
  *       409:
@@ -171,32 +179,62 @@ router.post('/users/signup',controller.signupUser);
  router.post('/users/login-otp',controller.loginUserOTP);
  router.post('/users/test-login-otp',controller.TestloginUserOTP);
 
- /**
+ 
+//modefied :-
+/**
  * @swagger
  * /users/send-signup-v2:
  *   post:
- *     summary: Send OTP to email and phone
+ *     summary: Send Signup Verification for User (v2)
  *     tags: [Users]
  *     requestBody:
- *       description : Match the OTP recieved in response, with the user entered OTP
- *       email: string
- *       phone: string
+ *       description: Send signup verification for user (v2).
+ *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             id: string
- *           example : 
- *             email: "samarthchadda@gmail.com"
- *             phone: "9351999562"
+ *             type: object
+ *             properties:
+ *               fullName:
+ *                 type: string
+ *                 description: User's full name
+ *               userType:
+ *                 type: string
+ *                 description: User type can be EMAIL, FACEBOOK, or GOOGLE
+ *               dateOfBirth:
+ *                 type: string
+ *                 format: date
+ *                 description: User's date of birth
+ *               email:
+ *                 type: string
+ *                 description: User's email address
+ *               phoneNumber:
+ *                 type: string
+ *                 description: User's phone number
+ *               deviceId:
+ *                 type: string
+ *                 description: User's device ID
+ *               role:
+ *                 type: string
+ *                 description: User's role (e.g., ADMIN, USER)
+ *           example:
+ *             fullName: "John Doe"
+ *             userType: "EMAIL"
+ *             dateOfBirth: "1990-01-01"
+ *             email: "example@email.com"
+ *             phoneNumber: "1234567890"
+ *             deviceId: "1234"
+ *             role: "USER"
  *     responses:
  *       200:
- *         description: OTP sent successfully
+ *         description: Signup verification sent successfully
  *         content:
  *           application/json:
- *               example : 
- *                 status : true
- *                 message : "OTP sent successfully"
- *                 otp : "123456"
+ *             example:
+ *               status: true
+ *               message: "Signup verification sent"
+ *               user: {}
+ *               token: "abcd123455322ghjdi"
  *       400:
  *         description: Bad Request, check request body
  *       409:
@@ -204,7 +242,6 @@ router.post('/users/signup',controller.signupUser);
  *       500:
  *         description: Internal server error
  */
-
 router.post('/users/send-signup-v2',controller.signupUserV2);
 
 /**

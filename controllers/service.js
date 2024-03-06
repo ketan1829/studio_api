@@ -327,6 +327,12 @@ exports.getServiceBookingsDetails = async (req, res) => {
 
 exports.deleteService = async (req, res) => {
   const sId = req.params.serviceId;
+  if (!sId) {
+    return res.status(400).json({
+      status: false,
+      message: "Service does not exist or provide the correct service Id",
+    });
+  }
   const deleted_result = await Service.deleteServiceById(sId);
   res.send(deleted_result);
 };
@@ -350,7 +356,7 @@ exports.updateService = async (req, res) => {
   const type = req.body.type || "c2";
   const serviceData = await Service.findServiceById(sId);
   if (!serviceData) {
-    res.status(400).json({
+    return res.status(400).json({
       status: false,
       message: "Service does not exist or provide the correct service Id",
     });

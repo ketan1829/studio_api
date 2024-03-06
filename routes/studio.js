@@ -393,6 +393,47 @@ router.post('/near-studios',auth.isUser,controller.getAllNearStudios);
 *         description: Internal server error
 */
 router.post('/studios/date-filter',auth.isAdminOrOwner,controller.getStudiosByDate);
+
+
+//added by me:
+
+/**
+ * @swagger
+ * /studios/filter/data:
+ *   get:
+ *     summary: Get filtered studios--
+ *     tags: [Studios]
+ *     parameters:
+ *       - in : query
+ *         name: skip
+ *         description: skipCount
+ *         required: false
+ *       - in : query
+ *         name: limit
+ *         description: limitCount
+ *         required: false
+ *     requestBody:
+ *       description: | 
+ *          #
+ *          Skip and Limit are optional Query Params
+ *          #
+ *          (First admin login is needed to generate token, then use "AUTHORIZE" button above to validate)
+ *     responses:
+ *       200:
+ *         description: Filtered Studio
+ *         content:
+ *           application/json:
+ *               example : 
+ *                 status : true
+ *                 message : "All filtered studios returned"
+ *                 studios : []
+ *       401:
+ *         description: Provide filter options
+ *       500:
+ *         description: Some server error, enter valid mongo object ID
+ */
+
+// /studios/filter/data
 router.get('/studios/filter/data',controller.getStudiosFiltersData);
 
 
