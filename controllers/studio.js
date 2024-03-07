@@ -222,7 +222,7 @@ exports.getAllNearStudios = (req,res,next)=>{
                     return res.status(400).json({status:false, message:"Enter valid latitude and longitude",nearYou:[],topRated:[],forYou:[]});  
                 }
                 else{
-                    // console.log("Non-default filter");
+                    console.log("Non-default filter");
                     try{
                         var point1 = new GeoPoint(+latitude,+longitude);
                         var availableStudios = [];
@@ -269,6 +269,24 @@ exports.getAllNearStudios = (req,res,next)=>{
         })
     })
 }
+
+exports.getAllNearStudiosV1 = async (req, res, next) => {
+    try {
+      const latitude = req.body.latitude;
+      const longitude = req.body.longitude;
+      const location = await Studio.getNearByStudios(+latitude, +longitude);
+      return res.json({ status: "location", count:location.length, data: location, });
+    } catch (error) {
+      console.log(error);
+      return res.status(500).send({ error: 'Internal Server Error' });
+    }
+  };
+  
+
+
+
+
+
 
 
 // exports.createNewStudio = async(req,res,next)=>{

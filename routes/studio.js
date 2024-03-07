@@ -357,6 +357,7 @@ router.patch('/studios/:studioId',auth.isAdminOrOwner,controller.editStudioDetai
  *         description: Some server error, enter valid mongo object ID
 */
 router.post('/near-studios',auth.isUser,controller.getAllNearStudios);
+router.get('/near-studios',controller.getAllNearStudiosV1); //add auth.isUser
 
 /**
 * @swagger
