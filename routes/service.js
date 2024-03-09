@@ -16,6 +16,11 @@ router.get('/services/bookings/create',auth.isBoth,controller.getServiceBookings
 // GS
 router.get('/services/bookings/detail',auth.isBoth,controller.getServiceBookingsDetails);
 
+router.put('/services/update/:serviceId',auth.isAdmin,controller.updateService);
+
+router.delete('/services/delete/:serviceId',auth.isAdmin,controller.deleteService);
+
+
 /**
  * @swagger
  * /services/create:

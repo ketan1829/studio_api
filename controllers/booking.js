@@ -301,9 +301,9 @@ async function findUserById(userId) {
 // ----------------------------------------------------------------------
 
 async function getSingleBooking(bookingId) {
-    const { bookingType, bookingStatus } = req.body;
+    // const { bookingType, bookingStatus } = req.body;
 
-    const bookingData = await Booking.findStudioById(bookingId)
+    const bookingData = await Booking.findBookingById(bookingId)
     if (!bookingData) {
         return null;
     }
@@ -518,19 +518,19 @@ exports.createServiceBooking = async (req, res, next) => {
         let userDeviceId = userData.deviceId || '';
 
         const serviceData = await Service.findServiceById(serviceId);
-
-
-        const ExistingServiceData = await Booking.findBooking({ userId, serviceId, planId });
+        const serData = { userId, serviceId, planId }
+        const ExistingServiceData = await Booking.findBooking(serData);
 
         if (!serviceData) {
-            return res.status(404).json({ status: false, message: "No Service with this ID exists" });
+            return res.status(200).json({ status: false, message: "Something went wrong, Try again later" });
         }
 
-        if (!ExistingServiceData) {
-            return res.status(404).json({ status: false, message: "Requested Package booking has been pre-booked already!" });
+        if (ExistingServiceData.length) {
+            console.log("ExistingServiceData:", ExistingServiceData);
+            return res.status(200).json({ status: false, message: "Requested Package booking has been pre-booked already!" });
         }
 
-        const bookingObj = new Booking(userId, serviceId, parseInt(planId), bookingDate, bookingTime, parseFloat(totalPrice), parseInt(bookingStatus), serviceType);
+        const bookingObj = new Booking(userId, serviceId, parseInt(planId), bookingDate, bookingTime, parseFloat(totalPrice), bookingStatus, serviceType);
         const resultData = await bookingObj.save();
         const bookingData = resultData.ops[0];
         bookingData.totalPrice = bookingData.totalPrice.toFixed(2);
@@ -551,7 +551,9 @@ exports.createServiceBooking = async (req, res, next) => {
             }
         });
 
-        if (result.data.recipients === 1) {
+        console.log("oneSignal result:", result.status);
+
+        if (result.status === 1) {
             const notification = new Notifications(userId, title, message);
             await notification.save();
 
@@ -2234,22 +2236,23 @@ exports.getAllBookings = async (req, res, next) => {
 
 // get All Packages/Service Bookings
 exports.getServiceBookings = async (req, res) => {
-    const options = pick(req.query, ['sortBy', 'limit', 'page']);
-    // let { last_id } = 0
+    const { bookingType, userId, phoneNumber } = req.query; 
+    const matchStage = {};
 
-    // console.log("last_id:", last_id);
-    // last_id = last_id === "0" ? 0 : last_id;
+    if (bookingType) {
+        matchStage.type = bookingType;
+    } else {
+        matchStage.type = { $in: ["c2", "c3"] };
+    }    if (userId) matchStage.userId = userId;
+    if (phoneNumber) {
+        matchStage['user.phone'] = phoneNumber;
+    }
+
 
     const db = getDb();
     const pipeline = [
         {
-            $match: {
-                // _id: { $gt: ObjectId(last_id) },
-                $or: [
-                    { type: { $eq: "c2" } },
-                    { type: { $eq: "c3" } }
-                ]
-            },
+            $match: matchStage, // filters
 
         },
         {
@@ -2292,15 +2295,19 @@ exports.getServiceBookings = async (req, res) => {
         },
         {
             $project: {
+                
+                serviceId: { $arrayElemAt: ["$service._id", 0] },
+                service_id: { $arrayElemAt: ["$service.service_id", 0] },
+                planId: "$roomId",
                 serviceFullName: { $arrayElemAt: ["$service.fullName", 0] },
                 userFullName: { $arrayElemAt: ["$user.fullName", 0] },
                 userPhone: { $arrayElemAt: ["$user.phone", 0] },
                 userEmail: { $arrayElemAt: ["$user.email", 0] },
                 totalPrice: "$totalPrice",
                 type: "$type",
-                planId: "$roomId",
                 bookingDate: "$bookingDate",
-                package: { $arrayElemAt: ["$service.packages", 0] }
+                package: { $arrayElemAt: ["$service.packages", 0] },
+                status: "$bookingStatus"
             }
         }
     ];
@@ -2329,6 +2336,33 @@ exports.updateServiceBooking = async (req, res) => {
         .catch(err => console.log(err));
 }
 
+
+exports.deleteBooking = async (req, res) => {
+    const { bookingId } = req.body;
+
+    if (!bookingId) {
+        return res.status(200).json({ status: false, message: "Booking ID, package ID, and user ID are required" });
+    }
+
+    
+    const bookingData = await getSingleBooking(bookingId);
+    if (!bookingData) {
+        return res.status(200).json({ status: false, message: "No Booking with this ID exists" });
+    }
+
+    const db = getDb();
+    try {
+        const result = await db.collection('bookings').deleteOne({ _id: ObjectId(bookingId) });
+        if (result.deletedCount === 1) {
+            return res.status(200).json({ status: true, message: "Booking deleted successfully" });
+        } else {
+            return res.status(200).json({ status: false, message: "Failed to delete booking" });
+        }
+    } catch (error) {
+        console.error("Error deleting booking:", error);
+        return res.status(500).json({ status: false, message: "Internal server error" });
+    }
+};
 
 
 exports.getAllBookingsOptimized = async (req, res, next) => {

@@ -20,11 +20,13 @@ const ObjectId = mongodb.ObjectId;
 
 exports.createNewService = async (req, res, next) => {
 
+
+    // console.log("req.body:", req.body);
+
     const { source, service_objs } = req.body;
 
-    console.log("req.body:", req.body);
-
     if(source === "google-sheet") {
+
         const addedData = []
         Object.keys(service_objs).map(key=>{
             const serviceData = service_objs[key];
@@ -32,8 +34,7 @@ exports.createNewService = async (req, res, next) => {
             const service_id = serviceData.service_id;
             const fullName = serviceData.service_name.trim();
             const price = parseInt(serviceData.service_lowest_price);
-            const amenitiesData = serviceData.service_amenities;
-            
+            const amenitiesData = serviceData.service_amenities;            
             const totalPlans = parseInt(+serviceData.service_package_count);
             
             const servicePhotos = [serviceData.service_photo_url] || [];
@@ -56,6 +57,7 @@ exports.createNewService = async (req, res, next) => {
                 })
                 pack.amenites = amenities
                 pack.photo_url = [pack.photo_url]
+                console.log("package amenities ---", pack.amenites);
             })
 
 
@@ -63,11 +65,11 @@ exports.createNewService = async (req, res, next) => {
             amenitiesData.split(",").map((amm, index)=>{
                 amenities.push({name:amm, id: index+1})
             })
-        
+            // console.log("amenities ---", amenities);
             const serviceObj = new Service(service_id, fullName, type, price, amenities, totalPlans, packages, servicePhotos, aboutUs, workDetails, clientPhotos, discographyDetails, reviews, featuredReviews, isActive);
 
             
-            console.log("serviceObj", serviceObj);
+            console.log("serviceObj---", serviceObj);
             serviceObj.save()
             .then(resultData => {
                 addedData.push(service_id)
@@ -80,6 +82,7 @@ exports.createNewService = async (req, res, next) => {
 
     } else {
 
+    const service_id = req.body.service_id || -1;
     const fullName = req.body.serviceName.trim();
     const price = parseFloat(req.body.startingPrice);
     const amenities = req.body.offerings;
@@ -94,6 +97,7 @@ exports.createNewService = async (req, res, next) => {
     const featuredReviews = req.body.starredReviews;
     const type = req.body.type || "c2"
 
+    console.log("else is running");
     const { error } = validateService(req.body);
     if (error) {
         return res.status(400).json({ error: error.details[0].message });
@@ -101,13 +105,13 @@ exports.createNewService = async (req, res, next) => {
     // If validation passes, proceed to the next middleware or controller function
     // next();
 
-    const serviceObj = new Service(fullName, price, amenities, totalPlans, packages,
-        servicePhotos, aboutUs, workDetails, discographyDetails, clientPhotos, reviews, featuredReviews);
+    const serviceObj = new Service(service_id, fullName, price, amenities, totalPlans, packages,
+        servicePhotos, aboutUs, workDetails, discographyDetails, clientPhotos, reviews, featuredReviews,type);
 
     // saving in database
-    return serviceObj.save()
+    return serviceObj.checkBeforeSave()
         .then(resultData => {
-            return res.json({ status: true, message: "Service added successfully", data: resultData["ops"][0] });
+            return res.json({ status: true, message: "Service added successfully", data: resultData["ops"] });
         })
         .catch(err => console.log(err));
     }
@@ -191,6 +195,18 @@ exports.getServiceBookings = (req, res, next) => {
 
 }
 
+// exports.updateService = (req, res, next) => {
+    
+//     const { bookingId, service_id,  } = req.query;
+//     if (bookingId) {
+//         var o_id = new ObjectId(bookingId);
+//         filter._id = o_id
+//     }
+
+//     if (service_id) {
+//         filter.service_id = service_id
+//     }
+// }
 
 exports.getServiceBookingsDetails = async (req, res) => {
 
@@ -258,3 +274,34 @@ exports.getServiceBookingsDetails = async (req, res) => {
     return res.json({ status: true,data})
 
 }
+
+
+
+exports.deleteService = async (req, res) => {
+    const sId = req.params.serviceId;
+    const deleted_result = await Service.deleteServiceById(sId)
+    res.send(deleted_result)
+};
+
+
+exports.updateService = async (req,res)=>{
+    const sId = req.params.serviceId;
+    const fullName = req.body.serviceName.trim();
+    const price = parseFloat(req.body.startingPrice);
+    const amenities = req.body.offerings;
+    const totalPlans = +req.body.TotalServices;
+    const packages = req.body.servicePlans;
+    const servicePhotos = req.body.ServicePhotos;
+    const aboutUs = req.body.description;
+    const workDetails = req.body.portfolio;
+    const discographyDetails = req.body.discography;
+    const clientPhotos = req.body.userPhotos;
+    const reviews = req.body.userReviews;
+    const featuredReviews = req.body.starredReviews;
+    const newData = {fullName,price,amenities,totalPlans,packages,servicePhotos,aboutUs,workDetails,discographyDetails,clientPhotos,reviews,featuredReviews}
+    const updated_result = await Service.updateServiceById(sId,newData)
+    res.send(updated_result)
+}
+
+
+

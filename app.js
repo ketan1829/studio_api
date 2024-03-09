@@ -55,9 +55,6 @@ const options = {
         },
         {
           url: "http://studiotest.choira.io/api/",
-        },
-        {
-          url:"https://test.choira.io/",
         }
       ],
       components: {
@@ -148,10 +145,7 @@ app.use(express.static("dist/BookMyStudioAppAdmin"));
 
 // show admin panel 
 app.get("/bms-admin*", (req, res) => {
-
-    console.log("admin path",__dirname)
-    const test = res.sendFile(path.resolve(__dirname, "dist", "BookMyStudioAppAdmin", "index.html"));
-    console.log(test)
+    res.sendFile(path.resolve(__dirname, "dist", "BookMyStudioAppAdmin", "index.html"));
 });
 
 // serve static folder (owner-panel)
@@ -196,3 +190,6 @@ mongoConnect(()=>{
     app.listen(port);
 
 });
+
+
+//Made in Bharat with ❤️

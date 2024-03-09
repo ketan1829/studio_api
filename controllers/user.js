@@ -215,6 +215,7 @@ exports.loginUserOTP = async (req, res, next) => {
             // New Test User
             else if (!tempUserData && role === "tester") {
                 const tempUser = await TempUser.save({ phoneNumber, userType, deviceId, role });
+                sendOTP(phoneNumber, otp)
                 statusInfo.newUser = true
                 statusInfo.status = true
                 statusInfo.otp = otp
@@ -224,6 +225,7 @@ exports.loginUserOTP = async (req, res, next) => {
             //user role login
             else {
                 // existing user role login
+                sendOTP(phoneNumber, otp)
                 statusInfo.role = "user"
                 if (userData) {
                     userData.deviceId = deviceId;
@@ -447,7 +449,7 @@ exports.getAllUsers = (req, res, next) => {
     User.fetchAllUsers(skip, limit)
         .then(userData => {
             return res.json({ status: true, message: "All Users returned", users: userData });
-        })
+    })
 
 }
 

@@ -133,25 +133,23 @@ exports.getStudios = (req,res,next)=>{
         filter['roomsDetails.generalStartTime'] = availabilityDay.startTime; 
         filter['roomsDetails.generalEndTime'] = availabilityDay.endTime;
     }
+    if(filter.name) {
+        filter.fullName = filter.name;
+    }
     // const options = {
     //     sortBy, // Sort criteria
     //     limit, // Limit per page
     //     page, // Page number
     //     populate, // Fields to populate
     // };
-
-    if (latitude && longitude) {
-
+    if (latitude?.length && longitude?.length) {
         Studio.fetchAllStudios(0,0)
         .then(studioData=>{
             const paginatedStudios = filterNearbySudios(studioData, latitude, longitude, options.page || 1, options.limit  || 10, range ? range : 10);
             return res.json({status:true, message:paginatedStudios.message,nearYou:paginatedStudios.studios, paginate:paginatedStudios.paginate});
         })
-        
     }else {
-
     Studio.paginate(filter, options).then(studioData=>{
-
         return res.json({status:true, message:"All studios returned",studios:studioData});
     })
 }
@@ -272,11 +270,10 @@ exports.getAllNearStudios = (req,res,next)=>{
     })
 }
 
-
-exports.createNewStudio = async (req, res, next) => {
-
+exports.createNewStudio = async(req,res,next)=>{
+    
     const fullName = req.body.fullName.trim();
-    let address = req.body.address;
+    const address = req.body.address;
     const mapLink = req.body.mapLink;
     const city = req.body.city;
     const state = req.body.state;
@@ -798,6 +795,73 @@ exports.getAllStudios = (req,res,next)=>{
     .then(studioData=>{
         return res.json({status:true, message:"All studios returned",studios:studioData});
     })
+
+    // const pipeline = [
+    //     {
+    //         $match: matchStage, // filters
+
+    //     },
+    //     {
+    //         $lookup: {
+    //             from: "studios",
+    //             let: { _IdStr: "$studioId", roomIdint: "$roomId" },
+    //             pipeline: [
+    //                 {
+    //                     $match: {
+    //                         $expr: { $eq: ["$_id", { $toObjectId: "$$serviceIdStr" }] }
+    //                     }
+    //                 },
+    //                 {
+    //                     $unwind: "$packages" // Unwind the packages array
+    //                 },
+    //                 {
+    //                     $match: {
+    //                         $expr: {
+    //                             $eq: ["$$roomIdint", "$packages.planId"] // Match bookings.roomId with services.packages.planId
+    //                         }
+    //                     }
+    //                 }
+    //             ],
+    //             as: "service"
+    //         }
+    //     },
+    //     {
+    //         $lookup: {
+    //             from: "users",
+    //             let: { userIdStr: "$userId" }, // define a variable to hold the string serviceId
+    //             pipeline: [
+    //                 {
+    //                     $match: {
+    //                         $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] }
+    //                     }
+    //                 }
+    //             ],
+    //             as: "user"
+    //         }
+    //     },
+    //     {
+    //         $project: {
+                
+    //             serviceId: { $arrayElemAt: ["$service._id", 0] },
+    //             service_id: { $arrayElemAt: ["$service.service_id", 0] },
+    //             planId: "$roomId",
+    //             serviceFullName: { $arrayElemAt: ["$service.fullName", 0] },
+    //             userFullName: { $arrayElemAt: ["$user.fullName", 0] },
+    //             userPhone: { $arrayElemAt: ["$user.phone", 0] },
+    //             userEmail: { $arrayElemAt: ["$user.email", 0] },
+    //             totalPrice: "$totalPrice",
+    //             type: "$type",
+    //             bookingDate: "$bookingDate",
+    //             package: { $arrayElemAt: ["$service.packages", 0] },
+    //             status: "$bookingStatus"
+    //         }
+    //     }
+    // ];
+
+    // Studio.aggregate(pipeline)
+    // .then(studioData=>{
+    //     return res.json({status:true, message:"All studios returned",studios:studioData});
+    // })
 
 }
 
