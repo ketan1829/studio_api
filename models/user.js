@@ -5,7 +5,7 @@ const ObjectId = mongodb.ObjectId;
 
 class User
 {
-    constructor({
+    constructor(
         fullName,
         dateOfBirth,
         email,
@@ -21,7 +21,7 @@ class User
         userType = "NUMBER",
         favourites = [],
         deviceId,
-    }) 
+    ) 
     
     {
         this.fullName = fullName;

@@ -201,87 +201,98 @@ exports.getStudiosOptimized = (req, res, next) => {
 
 // ----------------- END v2.2.3 ---------------------------
 
-exports.getAllNearStudios = (req,res,next)=>{
+exports.getAllNearStudios = async(req,res,next)=>{
 
     const latitude = req.body.latitude;
     const longitude = req.body.longitude;
-    const range = 100;
-
-    Studio.fetchAllActiveStudios(0,0).then(studiosData=>{
-        //get offers mapping
-        offersMapping(studiosData,(resData)=>{
-            // console.log(resData);
-            studiosData = resData;
-            if(studiosData.length==0)
-            {
-                return res.status(404).json({status:false, message:"No studio exist",nearYou:[]});
-            }
-            else{
-                if(latitude==undefined || latitude.length==0)
-                {
-                    return res.status(400).json({status:false, message:"Enter valid latitude and longitude",nearYou:[],topRated:[],forYou:[]});  
-                }
-                else{
-                    console.log("Non-default filter");
-                    try{
-                        var point1 = new GeoPoint(+latitude,+longitude);
-                        var availableStudios = [];
-                        for(var i = 0;i<studiosData.length;i++)
-                        {
-                            // console.log(studiosData[i].latitude,studiosData[i].longitude);
-                            var point2 = new GeoPoint(+studiosData[i].latitude,+studiosData[i].longitude);
-                            var distance = point1.distanceTo(point2, true)  //output in kilometers
-                            // console.log("Distance:",distance.toFixed(2));
-                            
-                            if(distance<=range)
-                            {
-                                availableStudios.push({...studiosData[i],distance:distance.toFixed(2)});
-                            }
-                            //Remove duplicates
-                            availableStudios = availableStudios.filter((value, index) => {
-                                const _value = JSON.stringify(value);
-                                return index === availableStudios.findIndex(obj => {
-                                  return JSON.stringify(obj) === _value;
-                                });
-                            });
+    const range = 10;
+    try {
+          if(latitude==undefined || latitude.length==0 || longitude==undefined || longitude.length==0)
+          {
+              return res.status(400).json({status:false, message:"Enter valid latitude and longitude"});  
+          }
+          const availableStudios = await Studio.getNearByStudios(
+            +longitude,
+            +latitude,
+            range
+          );
+          return res.json({
+            status: true,
+            message: "All " + availableStudios.length + " studios returned",
+            nearYou: availableStudios,
+            topRated: [],
+            forYou: [],
+          });
+        } catch (exception) {
+          console.log("Exception Occured : ",exception);
+            return res.json({status:false, message:"Geopoint Exception Occured....Invalid Latitude", error:exception});               
+        }
     
-                            if(i == studiosData.length-1)
-                            {
-                                // Sort Based on distance
-                                availableStudios.sort((a,b)=> a.distance - b.distance);
-                                // let allNearStudios = availableStudios.slice(0, 4);//Note that the slice function on arrays returns a shallow copy of the array, and does not modify the original array
-                                return res.json({
-                                    status:true,
-                                    message:"All "+availableStudios.length+" studios returned",nearYou:availableStudios,
-                                    topRated:[],forYou:[]
-                                });
-                            }
-                        };
-                    }
-                    catch(exception)
-                    {
-                        // return;  //Return statement is used for BREAKING the for loop
-                        console.log("Exception Occured : ",exception);
-                        return res.json({status:false, message:"Geopoint Exception Occured....Invalid Latitude", error:exception});                
-                    }
-                }
-            }
-        })
-    })
+    // Studio.fetchAllActiveStudios(0,0).then(studiosData=>{
+    //     //get offers mapping
+    //     offersMapping(studiosData,(resData)=>{
+    //         // console.log(resData);
+    //         studiosData = resData;
+    //         if(studiosData.length==0)
+    //         {
+    //             return res.status(404).json({status:false, message:"No studio exist",nearYou:[]});
+    //         }
+    //         else{
+    //             if(latitude==undefined || latitude.length==0)
+    //             {
+    //                 return res.status(400).json({status:false, message:"Enter valid latitude and longitude",nearYou:[],topRated:[],forYou:[]});  
+    //             }
+    //             else{
+    //                 console.log("Non-default filter");
+    //                 try{
+    //                     var point1 = new GeoPoint(+latitude,+longitude);
+    //                     var availableStudios = [];
+    //                     for(var i = 0;i<studiosData.length;i++)
+    //                     {
+    //                         // console.log(studiosData[i].latitude,studiosData[i].longitude);
+    //                         var point2 = new GeoPoint(+studiosData[i].latitude,+studiosData[i].longitude);
+    //                         var distance = point1.distanceTo(point2, true)  //output in kilometers
+    //                         // console.log("Distance:",distance.toFixed(2));
+                            
+    //                         if(distance<=range)
+    //                         {
+    //                             availableStudios.push({...studiosData[i],distance:distance.toFixed(2)});
+    //                         }
+    //                         //Remove duplicates
+    //                         availableStudios = availableStudios.filter((value, index) => {
+    //                             const _value = JSON.stringify(value);
+    //                             return index === availableStudios.findIndex(obj => {
+    //                               return JSON.stringify(obj) === _value;
+    //                             });
+    //                         });
+
+    //                         if(i == studiosData.length-1)
+    //                         {
+    //                             // Sort Based on distance
+    //                             availableStudios.sort((a,b)=> a.distance - b.distance);
+    //                             // let allNearStudios = availableStudios.slice(0, 4);//Note that the slice function on arrays returns a shallow copy of the array, and does not modify the original array
+    //                             return res.json({
+    //                                 status:true,
+    //                                 message:"All "+availableStudios.length+" studios returned",nearYou:availableStudios,
+    //                                 topRated:[],forYou:[]
+    //                             });
+    //                         }
+    //                     };
+    //                 }
+    //                 catch(exception)
+    //                 {
+    //                     // return;  //Return statement is used for BREAKING the for loop
+    //                     console.log("Exception Occured : ",exception);
+    //                     return res.json({status:false, message:"Geopoint Exception Occured....Invalid Latitude", error:exception});                
+    //                 }
+    //             }
+    //         }
+    //     })
+    // })
 }
 
-exports.getAllNearStudiosV1 = async (req, res, next) => {
-    try {
-      const latitude = req.body.latitude;
-      const longitude = req.body.longitude;
-      const location = await Studio.getNearByStudios(+latitude, +longitude);
-      return res.json({ status: "location", count:location.length, data: location, });
-    } catch (error) {
-      console.log(error);
-      return res.status(500).send({ error: 'Internal Server Error' });
-    }
-  };
-  
+
+
 
 
 

@@ -63,14 +63,14 @@ class Studio {
     return db.collection("studios").aggregate(Data);
   }
 
-  static async getNearByStudios(longitude, latitude) {
+  static async getNearByStudios(longitude, latitude,range) {
     try {
       const db = getDb();
       const nearByStudiosCursor = await db.collection("studios").find({
         location: {
           $nearSphere: {
             $geometry: { type: "Point", coordinates: [longitude, latitude] },
-            $maxDistance: 5 * 1609.34
+            $maxDistance: range * 1000
           },
         },
       });
