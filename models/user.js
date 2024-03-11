@@ -104,6 +104,18 @@ class User
             .catch(err=>console.log(err));
     }
 
+    static async fetchAllUsersByAggregate() {
+        try {
+            const db = getDb();
+            const userData = await db.collection('users').aggregate([{$match:{}}]).toArray();
+            return userData;
+        } catch (err) {
+            console.error("Error in fetchAllUsersByAggregate:", err);
+            throw err; 
+        }
+    }
+    
+
 }
 
 

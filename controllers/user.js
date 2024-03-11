@@ -1121,3 +1121,9 @@ exports.getUserNearyByLocations = (req, res, next) => {
     console.log("point1", point1)
     return res.json({ 'msg': 'near by places' })
 }
+
+
+exports.exportUserData = async(req,res)=>{
+    const allUser = await User.fetchAllUsersByAggregate()
+    return res.status(200).json({status:true,"no_of_users":allUser.length,message:"All Users", All_User:allUser})
+}

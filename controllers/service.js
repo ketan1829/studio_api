@@ -48,6 +48,7 @@ exports.createNewService = async (req, res, next) => {
 
       const packages = serviceData.packages;
 
+
       packages.map((pack, index) => {
         const amenities = [];
         pack.amenites.split(",").map((amm, index) => {
@@ -81,12 +82,22 @@ exports.createNewService = async (req, res, next) => {
         isActive
       );
 
-      console.log("serviceObj---", serviceObj);
+      console.log("serviceObj", serviceObj);
       serviceObj
-        .save()
-        .then((resultData) => {
-          addedData.push(service_id);
-        })
+      .checkBeforeSave()
+      .then((resultData) => {
+        if(resultData.status==false){
+          return res.json({
+            status: 400,
+            message: resultData.message,
+          });
+        }
+        return res.json({
+          status: true,
+          message: "Service added successfully",
+          data: resultData["ops"],
+        });
+      })
         .catch((err) => console.log(err));
     });
     return res.status(200).json({
@@ -95,7 +106,7 @@ exports.createNewService = async (req, res, next) => {
       data: addedData,
     });
   } else {
-    const service_id = req.body.service_id || -1;
+    const service_id = req.body.service_id;
     const fullName = req.body.serviceName.trim();
     const price = parseFloat(req.body.startingPrice);
     const amenities = req.body.offerings;
@@ -111,10 +122,10 @@ exports.createNewService = async (req, res, next) => {
     const type = req.body.type || "c2";
 
     console.log("else is running");
-    const { error } = validateService(req.body);
-    if (error) {
-      return res.status(400).json({ error: error.details[0].message });
-    }
+    // const { error } = validateService(req.body);
+    // if (error) {
+    //   return res.status(400).json({ error: error.details[0].message });
+    // }
     // If validation passes, proceed to the next middleware or controller function
     // next();
 
@@ -139,6 +150,12 @@ exports.createNewService = async (req, res, next) => {
     return serviceObj
       .checkBeforeSave()
       .then((resultData) => {
+        if(resultData.status==false){
+          return res.json({
+            status: 400,
+            message: resultData.message,
+          });
+        }
         return res.json({
           status: true,
           message: "Service added successfully",
@@ -394,3 +411,10 @@ exports.updateService = async (req, res) => {
   const updated_result = await Service.updateServiceById(sId, newData);
   res.send(updated_result);
 };
+
+
+exports.exportServicesData = async(req,res)=>{
+  const allService = await Service.fetchAllServicesByAggregate()
+  return res.status(200).json({status:true,"no_of_services":allService.length,message:"All Services", All_User:allService})
+}
+

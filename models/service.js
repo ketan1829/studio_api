@@ -31,11 +31,11 @@ class Service {
     async checkBeforeSave() {
         const db = getDB();
         try {
-            // const existingService = await db.collection(collectionName).findOne({ service_id: this.service_id });
+            const existingService = await db.collection(collectionName).findOne({ service_id: this.service_id });
             
-            // if (existingService) {
-            //     return { status: false, message: "Service with the given ID already exists" };
-            // }
+            if (existingService) {
+                return { status: false, message: "Service with the given ID already exists" };
+            }
     
             const result = await db.collection(collectionName).insertOne(this);
             return result.ops[0];
@@ -115,6 +115,17 @@ class Service {
         }
     }
 
+
+    static async fetchAllServicesByAggregate() {
+        try {
+            const db = getDB();
+            const serviceData = await db.collection(collectionName).aggregate([{$match:{}}]).toArray();
+            return serviceData;
+        } catch (err) {
+            console.error("Error in fetchAllServicesByAggregate:", err);
+            throw err; 
+        }
+    }
 }
 
 module.exports = Service;

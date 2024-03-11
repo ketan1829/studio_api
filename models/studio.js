@@ -376,6 +376,18 @@ class Studio {
       .limit(per_page)
       .toArray();
   }
+
+static async fetchAllStudiosByAggregate() {
+  try {
+      const db = getDb();
+      const studioData = await db.collection("studios").aggregate([{$match:{}}]).toArray();
+      return studioData;
+  } catch (err) {
+      console.error("Error in fetchAllStudioByAggregate:", err);
+      throw err; 
+  }
+}
+
 }
 
 module.exports = Studio;

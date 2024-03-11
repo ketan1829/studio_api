@@ -145,6 +145,17 @@ class Booking
             .catch(err => console.error(err));
     }
 
+    static async fetchAllBookingByAggregate() {
+        try {
+            const db = getDb();
+            const bookingData = await db.collection('bookings').aggregate([{$match:{}}]).toArray();
+            return bookingData;
+        } catch (err) {
+            console.error("Error in fetchAllBookingByAggregate:", err);
+            throw err; 
+        }
+    }
+
 }
 
 

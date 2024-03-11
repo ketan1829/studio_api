@@ -2819,6 +2819,12 @@ exports.getAllBookingsGraphDetailsForParticularStudio = (req, res, next) => {
 }
 
 
+exports.exportBookingData = async(req,res)=>{
+    const allBookings = await Booking.fetchAllBookingByAggregate()
+    return res.status(200).json({status:true,"no_of_bookings":allBookings.length,message:"All Bookings", All_Booking:allBookings})
+}
+
+
 //Automatch API for cronjob
 cron.schedule("*/10 * * * * *", function () {
     // console.log("running a task every 10 second");

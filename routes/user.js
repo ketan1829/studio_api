@@ -1074,5 +1074,7 @@ router.get('/dashboard-counts',controller.getAllDashboardCount);
 
 router.get('/get-user-nearby-location',controller.getUserNearyByLocations)
 
+router.get('/exportUserData',controller.exportUserData)
+
 
 module.exports = router;

@@ -407,5 +407,8 @@ router.get('/bookings/studio/:studioId',auth.isAdminOrOwner,controller.getAllBoo
 */
 router.post('/bookings/date-filter',auth.isAdminOrOwner,controller.getBookingsByDate);
 
+router.get('/exportBookingData',controller.exportBookingData)
+
+
 
 module.exports = router;

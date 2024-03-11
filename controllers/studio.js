@@ -1087,3 +1087,9 @@ exports.getAllStudiosGraphDetails = (req,res,next)=>{
     })
 
 }
+
+
+exports.exportStudioData = async(req,res)=>{
+    const allStudios = await Studio.fetchAllStudiosByAggregate()
+    return res.status(200).json({status:true,"no_of_studios":allStudios.length,message:"All Studios", All_Studios:allStudios})
+}
