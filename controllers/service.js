@@ -120,6 +120,7 @@ exports.createNewService = async (req, res, next) => {
     const reviews = req.body.userReviews;
     const featuredReviews = req.body.starredReviews;
     const type = req.body.type || "c2";
+    const isActive = req.body.service_status || 1;
 
     console.log("else is running");
     // const { error } = validateService(req.body);
@@ -143,7 +144,8 @@ exports.createNewService = async (req, res, next) => {
       clientPhotos,
       reviews,
       featuredReviews,
-      type
+      type,
+      isActive
     );
 
     // saving in database
@@ -371,14 +373,16 @@ exports.updateService = async (req, res) => {
   const reviews = req.body.userReviews;
   const featuredReviews = req.body.starredReviews;
   const type = req.body.type || "c2";
+  const isActive = +req.body.service_status;
   const serviceData = await Service.findServiceById(sId);
+console.log(sId);
   if (!serviceData) {
     return res.status(400).json({
       status: false,
       message: "Service does not exist or provide the correct service Id",
     });
   }
-  const updatedPackages = packages.map((p_key, j) => {
+  const updatedPackages = packages?.map((p_key, j) => {
     return serviceData.packages.map((pkg, i) => {
       if (pkg.planId === p_key.planId) {
         let updata_pack = serviceData.packages[i];
@@ -388,7 +392,7 @@ exports.updateService = async (req, res) => {
       return pkg;
     });
   });
-
+// console.log(updatedPackages);
 
   let service_obj = {
     service_id,
@@ -396,7 +400,7 @@ exports.updateService = async (req, res) => {
     price,
     amenities,
     totalPlans,
-    packages: updatedPackages[0],
+    packages: updatedPackages,
     servicePhotos,
     aboutUs,
     workDetails,
@@ -405,10 +409,13 @@ exports.updateService = async (req, res) => {
     reviews,
     featuredReviews,
     type,
+    isActive
   };
+
   let newData = Service.filterEmptyFields(service_obj);
-  console.log("newData", newData);
+  // console.log("newData===================", newData);
   const updated_result = await Service.updateServiceById(sId, newData);
+  // console.log("updated_result===",updated_result)
   res.send(updated_result);
 };
 

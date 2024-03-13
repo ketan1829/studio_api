@@ -21,6 +21,7 @@
     "country-state-city": "^3.0.1",
     "dotenv": "^16.0.2",
     "ejs": "^3.1.6",
+    "exceljs": "^4.4.0",
     "express": "^4.17.1",
     "express-validator": "^6.6.1",
     "geopoint": "^1.0.1",
