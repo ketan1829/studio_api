@@ -8,6 +8,7 @@ const AdminNotifications = require('../models/adminNotifications');
 const Admin = require('../models/admin');
 const SubAdmin = require('../models/subAdmin');
 const Owner = require('../models/owner');
+const excelJS = require('exceljs')
 
 const cron = require('node-cron');
 const axios = require('axios');
@@ -2820,8 +2821,124 @@ exports.getAllBookingsGraphDetailsForParticularStudio = (req, res, next) => {
 
 
 exports.exportBookingData = async(req,res)=>{
-    const allBookings = await Booking.fetchAllBookingByAggregate()
-    return res.status(200).json({status:true,"no_of_bookings":allBookings.length,message:"All Bookings", All_Booking:allBookings})
+    // const allBookings = await Booking.fetchAllBookingByAggregate()
+    // return res.status(200).json({status:true,"no_of_bookings":allBookings.length,message:"All Bookings", All_Booking:allBookings})
+    try {
+        // const filter = pick(req.query, ['dateOfBirth', 'userType', 'role']); // {startDate: 2022-19-01}
+        // const options = pick(req.query, ['sort', 'limit', 'gender', 'startDate','endDate','page','sortfield','sortvalue']); // {}
+        // const pipeline = []
+        
+        // if(Object.keys(filter).length){
+        //   pipeline.push(
+        //     {
+        //       $match: filter,
+        //     }
+        //   )
+        // }
+            
+    
+        //   console.log("this is pipe======>",pipeline);
+        //   if (options.startDate && options.endDate) {
+        //     let startDate=options.startDate
+        //     let endDate=options.endDate
+        //     pipeline.push({
+        //       $match: {
+        //         creationTimeStamp: {
+        //           $gte: new Date(startDate),
+        //           $lte: new Date(endDate)
+        //         },
+        //       },
+        //     });
+        //   }
+    
+    
+    
+        //   const sortobj = {[options.sortfield]:+options.sortvalue}
+    
+        //   if (options.sortfield) {
+        //     const sortStage = {
+        //       $sort: sortobj
+        //     };
+        //     pipeline.push(sortStage);
+        //   }
+         
+      
+        //   if (options.limit) {
+        //     const limitStage = {
+        //       $limit: parseInt(options.limit),
+        //     };
+        //     pipeline.push(limitStage);
+        //   }
+      
+        //   if (options.page) {
+        //     const skipStage = {
+        //       $skip: (parseInt(options.page) - 1
+        //       ) * parseInt(options.limit),
+        //     };
+        //     pipeline.push(skipStage);
+        //   }
+        //   console.log(JSON.stringify(pipeline))
+        // let allBooking;
+        //   if(filter || options) {
+        //     allBooking = await Booking.aggregate(pipeline)
+        //   }else {
+        //     allBooking = await Booking.fetchAllBookings(0,0)
+        //   }
+          // console.log(JSON.stringify(pipeline))
+        let allBookings = await Booking.fetchAllBookings(0,0)
+        const workbook = new excelJS.Workbook();
+        const worksheet = workbook.addWorksheet("bookingData");
+        const path = "./files";
+        worksheet.columns = [
+          { header: "S no.", key: "s_no", width: 10 },
+          { header: "_id.", key: "_id", width: 10 },
+          { header: "userId", key: "userId", width: 10 },
+          { header: "studioId", key: "studioId", width: 10 },
+          { header: "roomId", key: "roomId", width: 10 },
+          { header: "bookingDate", key: "bookingDate", width: 10 },
+          { header: "bookingTime", key: "bookingTime", width: 10 },
+          { header: "totalPrice", key: "totalPrice", width: 10 },
+          { header: "bookingStatus", key: "bookingStatus", width: 10 },
+          { header: "creationTimeStamp", key: "creationTimeStamp", width: 10 },
+          { header: "type", key: "type", width: 10 },
+        ];
+    
+        let counter = 1;
+        await allBookings.forEach((booking) => {
+          booking.s_no = counter;
+          worksheet.addRow(booking);
+          counter++;
+        });
+    
+        worksheet.getRow(1).eachCell((cell) => {
+          cell.font = { bold: true };
+        });
+    
+        // return res.status(200).json({status:true,"no_of_users":allUser.length,message:"All Users", All_User:allUser})
+        const data = await workbook.xlsx
+      .writeFile(`C:/Users/Choira Dev 2/Desktop/studio_api/files/bookings.xlsx`)
+      .then(() => {
+    
+        res.header({"Content-disposition" : "attachment; filename=bookings.xlsx" ,"Content-Type" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}).sendFile("bookings.xlsx", {root: `C:/Users/Choira Dev 2/Desktop/studio_api/files`}, function (err) {
+          if (err) {
+              console.error('Error sending file:', err);
+          } else {
+              console.log({
+                status: "success",
+                message: "file successfully downloaded",
+                path: `${path}/bookings.xlsx`
+              });
+          }
+      })
+      });
+      } catch (error) {
+        console.log(error)
+        res.send({
+          status: "error",
+          message: "Something went wrong",
+          error:error.message
+        });
+      }
 }
 
 

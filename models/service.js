@@ -2,6 +2,7 @@ const mongodb = require('mongodb');
 const ObjectId = mongodb.ObjectId;
 const { getDB } = require('../util/database');
 
+
 const collectionName = 'services';
 
 class Service {
@@ -119,11 +120,22 @@ class Service {
         }
     }
 
+    static fetchAllService()
+    {
+        const db = getDB();
+        return db.collection(collectionName).find().toArray()
+            .then(serviceData=>{
+                return serviceData;
+            })
+            .catch(err=>console.log(err));
+    }
 
-    static async fetchAllServicesByAggregate() {
+
+    static async fetchAllServicesByAggregate(pipeline) {
         try {
             const db = getDB();
-            const serviceData = await db.collection(collectionName).aggregate([{$match:{}}]).toArray();
+            const serviceData = await db.collection(collectionName).aggregate(pipeline).toArray();
+            console.log(serviceData)
             return serviceData;
         } catch (err) {
             console.error("Error in fetchAllServicesByAggregate:", err);

@@ -1396,7 +1396,7 @@ exports.exportUserData = async (req, res) => {
       }else {
          allUser = await User.fetchAllUsers(0,0);
       }
-      console.log(JSON.stringify(pipeline))
+      // console.log(JSON.stringify(pipeline))
     const workbook = new excelJS.Workbook();
     const worksheet = workbook.addWorksheet("userData");
     const mypath = "./files";

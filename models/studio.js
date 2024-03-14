@@ -377,10 +377,11 @@ class Studio {
       .toArray();
   }
 
-static async fetchAllStudiosByAggregate() {
+static async fetchAllStudiosByAggregate(pipeline) {
   try {
       const db = getDb();
-      const studioData = await db.collection("studios").aggregate([{$match:{}}]).toArray();
+      const studioData = await db.collection("studios").aggregate(pipeline).toArray();
+      console.log(studioData);
       return studioData;
   } catch (err) {
       console.error("Error in fetchAllStudioByAggregate:", err);

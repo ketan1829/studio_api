@@ -1,6 +1,7 @@
 const axios = require("axios");
 const mongodb = require("mongodb");
 const jwt = require("jsonwebtoken");
+const excelJS = require("exceljs");
 
 // models
 const Service = require("../models/service");
@@ -48,7 +49,6 @@ exports.createNewService = async (req, res, next) => {
 
       const packages = serviceData.packages;
 
-
       packages.map((pack, index) => {
         const amenities = [];
         pack.amenites.split(",").map((amm, index) => {
@@ -84,20 +84,20 @@ exports.createNewService = async (req, res, next) => {
 
       console.log("serviceObj", serviceObj);
       serviceObj
-      .checkBeforeSave()
-      .then((resultData) => {
-        if(resultData.status==false){
+        .checkBeforeSave()
+        .then((resultData) => {
+          if (resultData.status == false) {
+            return res.json({
+              status: 400,
+              message: resultData.message,
+            });
+          }
           return res.json({
-            status: 400,
-            message: resultData.message,
+            status: true,
+            message: "Service added successfully",
+            data: resultData["ops"],
           });
-        }
-        return res.json({
-          status: true,
-          message: "Service added successfully",
-          data: resultData["ops"],
-        });
-      })
+        })
         .catch((err) => console.log(err));
     });
     return res.status(200).json({
@@ -152,7 +152,7 @@ exports.createNewService = async (req, res, next) => {
     return serviceObj
       .checkBeforeSave()
       .then((resultData) => {
-        if(resultData.status==false){
+        if (resultData.status == false) {
           return res.json({
             status: 400,
             message: resultData.message,
@@ -360,7 +360,7 @@ exports.updateService = async (req, res) => {
   const sId = req.params.serviceId;
   const pId = req.params.packageId;
   const service_id = req.body.service_id || -1;
-  const fullName = req.body.serviceName
+  const fullName = req.body.serviceName;
   const price = parseFloat(req.body.startingPrice);
   const amenities = req.body.offerings;
   const totalPlans = +req.body.TotalServices;
@@ -375,7 +375,7 @@ exports.updateService = async (req, res) => {
   const type = req.body.type || "c2";
   const isActive = +req.body.service_status;
   const serviceData = await Service.findServiceById(sId);
-console.log(sId);
+  console.log(sId);
   if (!serviceData) {
     return res.status(400).json({
       status: false,
@@ -392,7 +392,7 @@ console.log(sId);
       return pkg;
     });
   });
-// console.log(updatedPackages);
+  // console.log(updatedPackages);
 
   let service_obj = {
     service_id,
@@ -409,7 +409,7 @@ console.log(sId);
     reviews,
     featuredReviews,
     type,
-    isActive
+    isActive,
   };
 
   let newData = Service.filterEmptyFields(service_obj);
@@ -419,9 +419,124 @@ console.log(sId);
   res.send(updated_result);
 };
 
+exports.exportServicesData = async (req, res) => {
+  try {
+    const filter = pick(req.query, ['type','fullName']); // {startDate: 2022-19-01}
+    const options = pick(req.query, [
+      "sort",
+      "limit",
+      "startDate",
+      "endDate",
+      "page",
+      "sortfield",
+      "sortvalue",
+    ]); // {}
+    const pipeline = [];
 
-exports.exportServicesData = async(req,res)=>{
-  const allService = await Service.fetchAllServicesByAggregate()
-  return res.status(200).json({status:true,"no_of_services":allService.length,message:"All Services", All_User:allService})
-}
+    if (Object.keys(filter).length) {
+      pipeline.push({
+        $match: filter,
+      });
+    }
 
+    console.log("this is pipe======>", pipeline);
+    if (options.startDate && options.endDate) {
+      let startDate = options.startDate;
+      let endDate = options.endDate;
+      pipeline.push({
+        $match: {
+          creationTimeStamp: {
+            $gte: new Date(startDate),
+            $lte: new Date(endDate),
+          },
+        },
+      });
+    }
+
+    const sortobj = { [options.sortfield]: +options.sortvalue };
+
+    if (options.sortfield) {
+      const sortStage = {
+        $sort: sortobj,
+      };
+      pipeline.push(sortStage);
+    }
+
+    if (options.limit) {
+      const limitStage = {
+        $limit: parseInt(options.limit),
+      };
+      pipeline.push(limitStage);
+    }
+
+    if (options.page) {
+      const skipStage = {
+        $skip: (parseInt(options.page) - 1) * parseInt(options.limit),
+      };
+      pipeline.push(skipStage);
+    }
+    console.log(JSON.stringify(pipeline));
+    let allService;
+      if(filter || options) {
+        allService = await Service.fetchAllServicesByAggregate(pipeline);
+      }else {
+        allService = await Service.fetchAllService()
+      }
+    const workbook = new excelJS.Workbook();
+    const worksheet = workbook.addWorksheet("serviceData");
+    const path = "./files";
+    worksheet.columns = [
+      { header: "S no.", key: "s_no", width: 10 },
+      { header: "_id", key: "_id", width: 10 },
+      { header: "service_id", key: "service_id", width: 10 },
+      { header: "fullname", key: "fullName", width: 10 },
+      { header: "type", key: "type", width: 10 },
+      { header: "price", key: "price", width: 10 },
+      { header: "amenities", key: "amenities", width: 10 },
+      { header: "totalPlans", key: "totalPlans", width: 10 },
+      { header: "packages", key: "packages", width: 10 },
+      { header: "servicePhotos", key: "servicePhotos", width: 10 },
+      { header: "aboutUs", key: "aboutUs", width: 10 },
+      { header: "workDetails", key: "workDetails", width: 10 },
+      { header: "clientPhotos", key: "clientPhotos", width: 10 },
+      { header: "discographyDetails", key: "discographyDetails", width: 10 },
+      { header: "reviews", key: "reviews", width: 10 },
+      { header: "featuredReviews", key: "featuredReviews", width: 10 },
+      { header: "isActive", key: "isActive", width: 10 },
+      { header: "creationTimeStamp", key: "creationTimeStamp", width: 10 },
+    ];
+    let counter = 1;
+    await allService.forEach((service) => {
+      service.s_no = counter;
+      worksheet.addRow(service);
+      counter++;
+    });
+
+    worksheet.getRow(1).eachCell((cell) => {
+      cell.font = { bold: true };
+    });
+
+    const data = await workbook.xlsx
+    .writeFile(`C:/Users/Choira Dev 2/Desktop/studio_api/files/services.xlsx`)
+    .then(() => {
+      res.header({"Content-disposition" : "attachment; filename=services.xlsx" ,"Content-Type" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}).sendFile("services.xlsx", {root: `C:/Users/Choira Dev 2/Desktop/studio_api/files`}, function (err) {
+        if (err) {
+            console.error('Error sending file:', err);
+        } else {
+            console.log({
+              status: "success",
+              message: "file successfully downloaded",
+              path: `${path}/services.xlsx`
+            });
+        }
+    })
+    });
+  } catch (error) {
+    res.send({
+      status: "error",
+      message: "Something went wrong",
+      error: error.message,
+    });
+  }
+  // return res.status(200).json({status:true,"no_of_services":allService.length,message:"All Services", All_User:allService})
+};
