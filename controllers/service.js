@@ -66,11 +66,12 @@ exports.createNewService = async (req, res, next) => {
                 amenities.push({name:amm, id: index+1})
             })
             // console.log("amenities ---", amenities);
-            const serviceObj = new Service(service_id, fullName, type, price, amenities, totalPlans, packages, servicePhotos, aboutUs, workDetails, clientPhotos, discographyDetails, reviews, featuredReviews, isActive);
+            const serviceObj = new Service(service_id, fullName, price, amenities, totalPlans, packages,
+                servicePhotos, aboutUs, workDetails, discographyDetails, clientPhotos, reviews, featuredReviews,isActive,type);
 
             
             console.log("serviceObj---", serviceObj);
-            serviceObj.save()
+            serviceObj.checkBeforeSave()
             .then(resultData => {
                 addedData.push(service_id)
             })
@@ -212,10 +213,7 @@ exports.getServiceBookingsDetails = async (req, res) => {
 
     let {last_id}  = req.query || 0
 
-    console.log("last_id:",last_id);
     last_id = last_id === "0"?0:last_id;
-    console.log("last_id:",typeof(last_id));
-
 
     const db = getDB();
     const pipeline = [

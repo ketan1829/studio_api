@@ -2140,38 +2140,56 @@ exports.getAllBookings3 = async (req, res, next) => {
 
 // only Studio Bookings
 exports.getAllBookings = async (req, res, next) => {
+
+    console.log("HITTTT")
+    console.log("data:", req.query)
     try {
         let skip = +req.query.skip || 0;
         let limit = +req.query.limit || 0;
-        let bookingType = +req.query.bookingType || -1;
+        let bookingType = [0, 1, 2].includes(+req.query.bookingType) ? +req.query.bookingType : -1;
+        let booking_category = req.query.category || "c1";
+
+        console.log({ booking_category, bookingType });
 
         if (isNaN(skip)) {
             skip = 0;
-            limit = 0;
+            // limit = 0;
         }
 
-        const pipeline = [];
+        const pipeline_lane = [];
 
         if (bookingType === -1) {
-            pipeline.push({ $skip: skip });
-            pipeline.push({ $limit: limit });
-            pipeline.push({
+            pipeline_lane.push({ $skip: skip });
+            pipeline_lane.push({ $limit: limit });
+            pipeline_lane.push({
                 $lookup: {
                     from: "studios",
-                    localField: "studioId",
-                    foreignField: "_id",
+                    let: { studioIdStr: "$studioId" }, // define a variable to hold the string serviceId
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] }
+                            }
+                        }
+                    ],
                     as: "studioInfo"
                 }
             });
-            pipeline.push({
+            pipeline_lane.push({
                 $lookup: {
                     from: "users",
-                    localField: "userId",
-                    foreignField: "_id",
+                    let: { userIdStr: "$userId" }, // define a variable to hold the string userId
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] }
+                            }
+                        }
+                    ],
                     as: "userInfo"
                 }
             });
-            pipeline.push({
+            pipeline_lane.push({
                 $addFields: {
                     studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
                     userName: { $arrayElemAt: ["$userInfo.fullName", 0] },
@@ -2180,54 +2198,95 @@ exports.getAllBookings = async (req, res, next) => {
                     userType: { $cond: [{ $eq: ["$userInfo", []] }, "", "USER"] }
                 }
             });
-            pipeline.push({
+            pipeline_lane.push({
                 $project: {
                     studioInfo: 0,
                     userInfo: 0
                 }
             });
         } else {
-            pipeline.push({ $match: { bookingStatus: bookingType } });
-            pipeline.push({
+            pipeline_lane.push({ $match: { bookingStatus: bookingType, $or: [{ type: "c1" }, { type: { $nin: ["c2", "c3"] } }] } });
+            pipeline_lane.push({
+
                 $lookup: {
                     from: "studios",
-                    localField: "studioId",
-                    foreignField: "_id",
+                    let: { studioIdStr: "$studioId" }, // define a variable to hold the string serviceId
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] }
+                            }
+                        }
+                    ],
                     as: "studioInfo"
                 }
             });
-            pipeline.push({
+            pipeline_lane.push({
                 $lookup: {
                     from: "users",
-                    localField: "userId",
-                    foreignField: "_id",
+                    let: { userIdStr: "$userId" }, // define a variable to hold the string userId
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] }
+                            }
+                        }
+                    ],
                     as: "userInfo"
                 }
             });
-            pipeline.push({
-                $addFields: {
+            pipeline_lane.push({
+                $project: {
                     studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
                     userName: { $arrayElemAt: ["$userInfo.fullName", 0] },
                     userEmail: { $arrayElemAt: ["$userInfo.email", 0] },
                     userPhone: { $arrayElemAt: ["$userInfo.phone", 0] },
-                    userType: { $cond: [{ $eq: ["$userInfo", []] }, "", "USER"] }
+                    userType: { $arrayElemAt: ["$userInfo.userType", 0] },
+
+                    otherFields: "$$ROOT"
                 }
-            });
-            pipeline.push({
+            },
+                {
+                    $replaceRoot: {
+                        newRoot: {
+                            $mergeObjects: ["$otherFields", {
+                                studioName: "$studioName",
+                                userName: "$studioName",
+                                userEmail: "$userEmail",
+                                userPhone: "$userPhone",
+                                userType: "$userType",
+                                // Add more specific fields as needed
+                            }]
+                        }
+                    }
+                }
+            );
+
+            pipeline_lane.push({
                 $project: {
+
                     studioInfo: 0,
-                    userInfo: 0
+                    userInfo: 0,
+
                 }
             });
         }
+        const bookingsData = await Booking.aggregate(pipeline_lane);
+        console.log("bookingsData")
+        console.log(bookingsData.length)
+        console.log(bookingsData[0])
 
-        const bookingsData = await Booking.aggregate(pipeline);
 
         const activeBookings = bookingsData.filter(booking => booking.bookingStatus === 0);
         const completedBookings = bookingsData.filter(booking => booking.bookingStatus === 1);
         const cancelledBookings = bookingsData.filter(booking => booking.bookingStatus === 2);
 
-        return res.json({ status: true, message: "All booking(s) returned", data: { activeBookings, completedBookings, cancelledBookings } });
+        let bookingsstatus_wise = [];
+        bookingsstatus_wise = bookingsData.filter(booking => booking.bookingStatus === bookingType);
+
+
+        // return res.json({ status: true, message: "All booking(s) returned", data: bookingsstatus_wise, bookings: { activeBookings, completedBookings, cancelledBookings } });
+        return res.json({ status: true, message: "All booking(s) returned", data: bookingsstatus_wise });
     } catch (error) {
         console.error("Internal server error:", error);
         return res.status(500).json({ status: false, message: "Internal server error" });
@@ -2236,14 +2295,14 @@ exports.getAllBookings = async (req, res, next) => {
 
 // get All Packages/Service Bookings
 exports.getServiceBookings = async (req, res) => {
-    const { bookingType, userId, phoneNumber } = req.query; 
+    const { bookingType, userId, phoneNumber } = req.query;
     const matchStage = {};
 
     if (bookingType) {
         matchStage.type = bookingType;
     } else {
         matchStage.type = { $in: ["c2", "c3"] };
-    }    if (userId) matchStage.userId = userId;
+    } if (userId) matchStage.userId = userId;
     if (phoneNumber) {
         matchStage['user.phone'] = phoneNumber;
     }
@@ -2295,7 +2354,7 @@ exports.getServiceBookings = async (req, res) => {
         },
         {
             $project: {
-                
+
                 serviceId: { $arrayElemAt: ["$service._id", 0] },
                 service_id: { $arrayElemAt: ["$service.service_id", 0] },
                 planId: "$roomId",
@@ -2344,7 +2403,7 @@ exports.deleteBooking = async (req, res) => {
         return res.status(200).json({ status: false, message: "Booking ID, package ID, and user ID are required" });
     }
 
-    
+
     const bookingData = await getSingleBooking(bookingId);
     if (!bookingData) {
         return res.status(200).json({ status: false, message: "No Booking with this ID exists" });

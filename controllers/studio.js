@@ -145,12 +145,12 @@ exports.getStudios = (req,res,next)=>{
     if (latitude?.length && longitude?.length) {
         Studio.fetchAllStudios(0,0)
         .then(studioData=>{
-            const paginatedStudios = filterNearbySudios(studioData, latitude, longitude, options.page || 1, options.limit  || 10, range ? range : 10);
-            return res.json({status:true, message:paginatedStudios.message,nearYou:paginatedStudios.studios, paginate:paginatedStudios.paginate});
+            const paginatedStudios = filterNearbySudios(studioData, latitude, longitude, options.page || 1, options.limit  || 10, range ? range : 50);
+            return res.json({status:true, message:paginatedStudios.message,nearYou:paginatedStudios.studios.results, paginate:paginatedStudios.paginate});
         })
     }else {
     Studio.paginate(filter, options).then(studioData=>{
-        return res.json({status:true, message:"All studios returned",studios:studioData});
+        return res.json({status:true, message:"All studios returned",studios:studioData.results});
     })
 }
     
@@ -273,7 +273,7 @@ exports.getAllNearStudios = (req,res,next)=>{
 exports.createNewStudio = async(req,res,next)=>{
     
     const fullName = req.body.fullName.trim();
-    const address = req.body.address;
+    let address = req.body.address;
     const mapLink = req.body.mapLink;
     const city = req.body.city;
     const state = req.body.state;
@@ -319,6 +319,8 @@ exports.createNewStudio = async(req,res,next)=>{
             })
 
     } catch (error) {
+
+        console.log("Address Error:",error);
 
         return res.json({ status: false, message: "Address Lat Long failed! :( contact Dev. NR" });
 

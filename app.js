@@ -51,7 +51,7 @@ const options = {
           url: "http://localhost:4200/api/",
         },
         {
-          url: "http://sadmin.choira.io:4000/api/",
+          url: "http://sadmin.choira.io:4000/api/v2",
         },
         {
           url: "http://studiotest.choira.io/api/",
@@ -110,9 +110,9 @@ app.use((req,res,next)=>{
     next();  //so that request continues to next middleware
 });
 
-const first_route = "/test_merge/api"
+const first_route = "/api/v2"
 app.get(`${first_route}`, (req, res) => {
-  res.send('Studio Test-Merge Api is live !!')
+  res.send('Studio Live-Merge Api is live with v2 !!')
 })
 
 app.use(`${first_route}`,configRoutes);
@@ -135,18 +135,19 @@ app.use(`${first_route}`,mailtestRoutes);
 // serve static folder (admin-panel)
 app.use(express.static("dist-payment/bms-webpayment"));
 
-// show admin panel 
-app.get("/webPayment*", (req, res) => {
-    res.sendFile(path.resolve(__dirname, "dist-payment", "bms-webpayment", "index.html"));
-});
-
-// serve static folder (super admin-panel)
-app.use(express.static("dist/BookMyStudioAppAdmin"));
 
 // show admin panel 
-app.get("/bms-admin*", (req, res) => {
-    res.sendFile(path.resolve(__dirname, "dist", "BookMyStudioAppAdmin", "index.html"));
-});
+// app.get("/webPayment*", (req, res) => {
+//     res.sendFile(path.resolve(__dirname, "dist-payment", "bms-webpayment", "index.html"));
+// });
+
+// // serve static folder (super admin-panel)
+// app.use(express.static("../../WebApps/Studio_Panels/dist/BookMyStudioAppAdmin"));
+
+// // show admin panel 
+// app.get("/bms-admin*", (req, res) => {
+//     res.sendFile(path.resolve(__dirname, "dist", "BookMyStudioAppAdmin", "index.html"));
+// });
 
 // serve static folder (owner-panel)
 // app.use(express.static("dist-owner/BookMyStudioAppOwner"));
@@ -155,6 +156,38 @@ app.get("/bms-admin*", (req, res) => {
 // app.get("/studio-owner*", (req, res) => {
 //     res.sendFile(path.resolve(__dirname, "dist-owner", "BookMyStudioAppOwner", "index.html"));
 // });
+
+
+//
+
+app.use(express.static("../../../WebApps/Studio_Panels/dist-payment/bms-webpayment"));
+
+// show admin panel 
+app.get("/webPayment*", (req, res) => {
+    // res.sendFile(path.resolve(__dirname, "dist-payment", "bms-webpayment", "index.html"));
+    res.sendFile(path.resolve(__dirname,  "..","..","..","WebApps", "Studio_Panels", "dist-payment", "bms-webpayment", "index.html"));
+});
+
+// serve static folder (super admin-panel)
+// app.use(express.static("dist/BookMyStudioAppAdmin"));
+app.use(express.static("../../../WebApps/Studio_Panels/dist/BookMyStudioAppAdmin"));
+
+// show admin panel 
+app.get("/bms-admin*", (req, res) => {
+    res.sendFile(path.resolve(__dirname, "..","..","..","WebApps", "Studio_Panels", "dist", "BookMyStudioAppAdmin", "index.html"));
+});
+
+// serve static folder (owner-panel)
+// app.use(express.static("dist-owner/BookMyStudioAppOwner"));
+app.use(express.static("../../../WebApps/Studio_Panels/dist-owner/BookMyStudioAppOwner"));
+
+// // show admin panel
+app.get("/studio-owner*", (req, res) => {
+    // res.sendFile(path.resolve(__dirname, "dist-owner", "BookMyStudioAppOwner", "index.html"));
+    res.sendFile(path.resolve(__dirname, "..","..","..","WebApps", "Studio_Panels", "dist-owner", "BookMyStudioAppOwner", "index.html"));
+});
+
+//
 
 app.get('/',(req,res)=>{
     logger.info('Test API check ---');
