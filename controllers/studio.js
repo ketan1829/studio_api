@@ -216,11 +216,11 @@ exports.getStudios = async (req, res, next) => {
     }
 
     if (latitude?.length && longitude?.length) {
-        console.log("latttttt");
+        
         Studio.fetchAllStudios(0, 0)
             .then(studioData => {
                 const paginatedStudios = filterNearbySudios(studioData, latitude, longitude, options.page || 1, options.limit || 0, range ? range : 10);
-                console.log(paginatedStudios)
+                
                 return res.json({ status: true, message: paginatedStudios.message, studios: paginatedStudios.studios, paginate: paginatedStudios.paginate });
             })
     } else {
