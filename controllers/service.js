@@ -149,6 +149,8 @@ exports.getServices = (req, res, next) => {
     }
 
     paginate(collectionName, mappedFilter, options).then((ServiceData) => {
+
+        console.log("ServiceData:====>",ServiceData.totalResults.length)
         return res.json({ status: true, message: `Page ${ServiceData.page} of ${ServiceData.totalPages} - ${ServiceData.totalResults} services returned`, services: ServiceData });
     })
 
@@ -284,13 +286,15 @@ exports.deleteService = async (req, res) => {
 };
 
 
-exports.updateService = async (req,res)=>{
+exports.updateService = async (req, res) => {
     const sId = req.params.serviceId;
-    const fullName = req.body.serviceName.trim();
+    const pId = req.params.packageId;
+    const service_id = req.body.service_id;
+    const fullName = req.body.serviceName
     const price = parseFloat(req.body.startingPrice);
     const amenities = req.body.offerings;
     const totalPlans = +req.body.TotalServices;
-    const packages = req.body.servicePlans;
+    const packages = req.body.packages;
     const servicePhotos = req.body.ServicePhotos;
     const aboutUs = req.body.description;
     const workDetails = req.body.portfolio;
@@ -298,10 +302,50 @@ exports.updateService = async (req,res)=>{
     const clientPhotos = req.body.userPhotos;
     const reviews = req.body.userReviews;
     const featuredReviews = req.body.starredReviews;
-    const newData = {fullName,price,amenities,totalPlans,packages,servicePhotos,aboutUs,workDetails,discographyDetails,clientPhotos,reviews,featuredReviews}
-    const updated_result = await Service.updateServiceById(sId,newData)
-    res.send(updated_result)
-}
+    const type = req.body.type;
+    const isActive = req.body.isActive;
+    const serviceData = await Service.findServiceById(sId);
+    if (!serviceData) {
+      return res.status(400).json({
+        status: false,
+        message: "Service does not exist or provide the correct service Id",
+      });
+    }
+    // const updatedPackages = packages.map((p_key, j) => {
+    //   return serviceData.packages.map((pkg, i) => {
+    //     if (pkg.planId === p_key.planId) {
+    //       let updata_pack = serviceData.packages[i];
+    //       updata_pack = { ...updata_pack, ...packages[j] };
+    //       return updata_pack;
+    //     }
+    //     return pkg;
+    //   });
+    // });
+  
+  
+    let service_obj = {
+      service_id,
+      fullName,
+      price,
+      amenities,
+      totalPlans,
+      packages,
+      servicePhotos,
+      aboutUs,
+      workDetails,
+      discographyDetails,
+      clientPhotos,
+      reviews,
+      featuredReviews,
+      type,
+      isActive,
+    };
+    let newData = Service.filterEmptyFields(service_obj);
+    console.log("newData", newData);
+    const updated_result = await Service.updateServiceById(sId, newData);
+    res.send(updated_result);
+  };
+  
 
 
 

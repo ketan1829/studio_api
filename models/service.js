@@ -67,7 +67,7 @@ class Service {
         const db = getDB();
     
         try {            
-             const updatedResult = await db.collection(collectionName).findOneAndUpdate({ _id: new ObjectId(sId) },{$set: newData},{new:true});                
+             const updatedResult = await db.collection(collectionName).findOneAndUpdate({ _id: new ObjectId(sId) },{$set: newData});                
             return{ status: true, message: "Service updated successfully", updatedService:updatedResult };
         } catch (error) {
             console.error("Error deleting service:", error);
@@ -86,6 +86,19 @@ class Service {
             throw error;
         }
     }
+
+    static async filterEmptyFields(service_obj) {
+        const filteredObject = {};
+      
+        for (const key in service_obj) {
+          if (service_obj[key]) {
+            filteredObject[key] = service_obj[key];
+          }
+        }
+        console.log("filteredObject-----", service_obj, filteredObject);
+      
+        return filteredObject;
+      }
 
 }
 

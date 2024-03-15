@@ -13,6 +13,7 @@ exports.updateAllDoc = async(req,res,next)=>{
 //    console.log("Herer -------ß", req.body)
     const collectionName = req.body.docName;
     const dataToUpdate = req.body.data;
+    const userId = req.body.check;
     if(userId === "KET"){
         Config.updateAllDoc(collectionName, dataToUpdate)
         .then(notiData=>{

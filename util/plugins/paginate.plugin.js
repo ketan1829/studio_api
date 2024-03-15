@@ -18,14 +18,19 @@ async function paginate(collectionName, filter, options) {
                 sort = { ...sort, ...criteria };
             });
         }
+        
 
         const limit = parseInt(options.limit, 10) || 10;
         const page = parseInt(options.page, 10) || 1;
         const skip = (page - 1) * limit;
 
+
+        console.log({limit,page,skip});
+
         // console.log("sort--", sort)
         const countPromise = db.collection(collectionName).countDocuments(filter);
         let docsPromise = db.collection(collectionName).find(filter).sort(sort).skip(skip).limit(limit);
+
 
         if (options.populate) {
             console.log("populate ---", options.populate);
@@ -39,6 +44,8 @@ async function paginate(collectionName, filter, options) {
         
 
         const [totalResults, results] = await Promise.all([countPromise, docsPromise.toArray()]);
+
+        console.log("results=====>",results.length);
 
         const totalPages = Math.ceil(totalResults / limit);
         

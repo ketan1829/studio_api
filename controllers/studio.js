@@ -16,7 +16,8 @@ let State = require('country-state-city').State;
 
 const jwt = require('jsonwebtoken');
 
-var GeoPoint = require('geopoint');
+// var GeoPoint = require('geopoint');
+var {GeoPoint} = require('geo-point');
 const mapQuestKey = process.env.MAP_QUEST_KEY;
 
 
@@ -62,8 +63,9 @@ function filterNearbySudios(studioData, latitude, longitude, page, limit, range)
         const availableStudios = [];
         for (let i = 0; i < studioData.length; i++) {
             const point2 = new GeoPoint(+studioData[i].latitude, +studioData[i].longitude);
-            const distance = point1.distanceTo(point2, true);
-            if (distance <= range) {
+            const distance = point1.calculateDistance(point2);
+            // console.log(studioData[i].fullName,distance/1000);
+            if (distance/1000 <= range) {
                 availableStudios.push({ ...studioData[i], distance: distance.toFixed(2) });
             }
         }
@@ -106,17 +108,12 @@ function filterNearbySudios(studioData, latitude, longitude, page, limit, range)
 
 exports.getStudios = async (req, res, next) => {
 
-    console.log("body---", req.body);
-    console.log("body---", req.query);
-    if (req.query.latitude) {
+    console.log("Query---", req.query);
+    var { city, state, minArea, minPricePerHour, amenity, availabilityDay, latitude, longitude, range, active, studioId, searchText } = req.query;
 
-        console.log("testtttttttt");
-        var { city, state, minArea, minPricePerHour, amenity, availabilityDay, latitude, longitude, range, active, studioId, searchText } = req.query;
-
-    } else {
-        var { city, state, minArea, minPricePerHour, amenity, availabilityDay, latitude, longitude, range, active, studioId, searchText } = req.body;
-
-    }
+    console.log("=========latitude");
+    console.log(latitude);
+    console.log(longitude);
     const filter = pick(req.query, ['name', 'role']) || { isActive: 1 }
     const options = pick(req.query, ['sortBy', 'limit', 'page']);
 
@@ -149,6 +146,7 @@ exports.getStudios = async (req, res, next) => {
                 studioData.forEach(element => {
                     const { latitude, longitude } = element;
                     const point = { type: "Point", coordinates: [parseFloat(longitude), parseFloat(latitude)] }
+                    console.log("point----", point);
                     db.collection('studios').updateOne({ _id: element._id }, { $set: { location: point } })
                 });
             })
@@ -163,69 +161,78 @@ exports.getStudios = async (req, res, next) => {
 
     }
 
-    if (check && check === "aggregateStudios" && (longitude?.length || latitude?.length)) {
+    // if (check && check === "aggregateStudios" && (longitude?.length || latitude?.length)) {
 
-        const db = getDb();
+    //     const db = getDb();
 
-        const aggregationPipeline = [
-            {
-                $geoNear: {
-                    near: { type: "Point", coordinates: [parseFloat(longitude), parseFloat(latitude)] },
-                    distanceField: "dist.calculated",
-                    maxDistance: 10000, // Maximum distance in meters, default is 10000 meters
-                    spherical: false,
-                    includeLocs: "dist.location",
-                }
-            }
-            // {
-            //     $match: filter
-            // }
-        ];
+    //     const aggregationPipeline = [
+    //         {
+    //             $geoNear: {
+    //                 near: { type: "Point", coordinates: [parseFloat(longitude), parseFloat(latitude)] },
+    //                 distanceField: "dist.calculated",
+    //                 maxDistance: 10000, // Maximum distance in meters, default is 10000 meters
+    //                 spherical: false,
+    //                 includeLocs: "dist.location",
+    //             }
+    //         }
+    //         // {
+    //         //     $match: filter
+    //         // }
+    //     ];
 
-        if (searchText) {
-            aggregationPipeline.push({
-                $match: { fullName: { $regex: searchText, $options: 'i' } }
-            });
-        }
+    //     if (searchText) {
+    //         aggregationPipeline.push({
+    //             $match: { fullName: { $regex: searchText, $options: 'i' } }
+    //         });
+    //     }
 
-        // Sorting
-        let sortStage = {};
-        if (req.query.sortBy) {
-            sortStage[req.query.sortBy] = 1;
-        } else {
-            sortStage.fullName = 1;
-        }
+    //     // Sorting
+    //     let sortStage = {};
+    //     if (req.query.sortBy) {
+    //         sortStage[req.query.sortBy] = 1;
+    //     } else {
+    //         sortStage.fullName = 1;
+    //     }
 
-        aggregationPipeline.push({ $sort: sortStage });
+    //     aggregationPipeline.push({ $sort: sortStage });
 
-        // Limiting results
-        const limitValue = parseInt(req.query.limit) || 10;
-        aggregationPipeline.push({ $limit: limitValue });
+    //     // Limiting results
+    //     const limitValue = parseInt(req.query.limit) || 10;
+    //     console.log("limitValue----", limitValue);
+    //     aggregationPipeline.push({ $limit: limitValue });
 
-        const nearbyStudios = await db.collection("studios").aggregate(aggregationPipeline).toArray();
-        const totalPages = Math.ceil(nearbyStudios.length / options?.limit || 10);
-        const paginateData = {
-            page: options?.page,
-            limit: parseInt(options?.limit) || 10,
-            totalResults: nearbyStudios.length,
-            totalPages: totalPages,
-        }
-        return res.json({ status: true, message: "All NearBy Studios fetched", nearYou: nearbyStudios, paginate: paginateData });
-    }
+    //     const nearbyStudios = await db.collection("studios").aggregate(aggregationPipeline).toArray();
+    //     const totalPages = Math.ceil(nearbyStudios.length / options?.limit || 10);
+    //     const paginateData = {
+    //         page: options?.page,
+    //         limit: parseInt(options?.limit) || 10,
+    //         totalResults: nearbyStudios.length,
+    //         totalPages: totalPages,
+    //     }
+    //     return res.json({ status: true, message: "All NearBy Studios fetched", nearYou: nearbyStudios, paginate: paginateData });
+    // }
 
     if (latitude?.length && longitude?.length) {
         console.log("latttttt");
         Studio.fetchAllStudios(0, 0)
             .then(studioData => {
-                const paginatedStudios = filterNearbySudios(studioData, latitude, longitude, options.page || 1, options.limit || 0, range ? range : 10);
-                return res.json({ status: true, message: paginatedStudios.message, nearYou: paginatedStudios.studios, paginate: paginatedStudios.paginate });
+                const paginatedStudios = filterNearbySudios(studioData, latitude, longitude, options.page || 1, options.limit || 10, range ? range : 50);
+                console.log(paginatedStudios.studios.length);
+                return res.json({ status: true, message: paginatedStudios.message,studios: { results :paginatedStudios.studios , paginate: paginatedStudios.paginate } });
             })
     } else {
         console.log("not lattt");
 
-        Studio.paginate(filter, options).then(studioData => {
-            return res.json({ status: true, message: "All studios returned", nearYou: studioData.results });
-        })
+        const studioData = await Studio.paginate(filter, options)
+        const paginate = {
+            page: studioData.page,
+            limit: parseInt(studioData.limit),
+            totalResults: studioData.totalResults,
+            totalPages: studioData.totalPages,
+        }
+        console.log("studioData.results.length:",studioData.results.length);
+        return res?.json({ status: true, message: "All studios returned",studios: { results :studioData.results, paginate:paginate } });
+
     }
 
 }
@@ -308,50 +315,6 @@ exports.getStudios_aggreation = async (req, res, next) => {
         return res.status(500).json({ status: false, message: "Internal server error" });
     }
 };
-
-
-exports.getStudiosOptimized = (req, res, next) => {
-    console.log("body---", req.body);
-    const { city, state, minArea, minPricePerHour, amenity, availabilityDay, latitude, longitude, range, active, studioId } = req.body;
-    const filter = pick(req.query, ['name', 'role']) || { isActive: 1 }
-    const options = pick(req.query, ['sort', 'limit', 'page']);
-
-    // const filter = { isActive: 1 };
-
-    if (active) filter.isActive = active;
-    if (studioId) {
-        var o_id = new ObjectId(studioId);
-        filter._id = o_id
-    }
-    if (city) filter.city = city;
-    if (state) filter.state = state;
-    if (minArea) filter['area'] = { $gte: parseInt(minArea) };
-    if (minPricePerHour) filter['roomsDetails.basePrice'] = { $gte: parseInt(minPricePerHour) };
-    if (amenity) filter['amenities.name'] = amenity;
-    if (availabilityDay) {
-        filter['roomsDetails.generalStartTime'] = availabilityDay.startTime;
-        filter['roomsDetails.generalEndTime'] = availabilityDay.endTime;
-    }
-    if (latitude && longitude) {
-        filter.latitude = latitude;
-        filter.longitude = longitude;
-    }
-
-    const StudPipeline = []
-
-    StudPipeline.push({ $skip: options.page });
-    StudPipeline.push({ $limit: options.limit });
-    StudPipeline.push({
-        $match: { filter }
-    });
-    StudPipeline.push({
-        $sort: options.sort
-    });
-    StudPipeline.push({
-        $sort: options.sort
-    });
-
-}
 
 // ----------------- END v2.2.3 ---------------------------
 

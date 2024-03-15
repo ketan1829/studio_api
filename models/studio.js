@@ -47,7 +47,7 @@ class Studio {
 
         return db.collection('studios').findOne({ _id: o_id })
             .then(studioData => {
-                console.log("ID---studioData---", studioData);
+                // console.log("ID---studioData---", studioData);
                 return studioData;
             })
             .catch(err => console.log(err));
@@ -71,10 +71,12 @@ class Studio {
             const limit = parseInt(options.limit, 10) || 10;
             const page = parseInt(options.page, 10) || 1;
             const skip = (page - 1) * limit;
+
+            console.log("skip::",skip);
     
             // console.log("sort--", sort)
-            const countPromise = db.collection('studios').countDocuments(filter);
-            let docsPromise = db.collection('studios').find(filter).sort(sort).skip(skip).limit(limit);
+            const countPromise = await db.collection('studios').countDocuments(filter);
+            let docsPromise = await db.collection('studios').find(filter).sort(sort).skip(skip).limit(limit).toArray();
     
             if (options.populate) {
                 console.log("populate ---", options.populate);
@@ -87,7 +89,7 @@ class Studio {
 
             
     
-            const [totalResults, results] = await Promise.all([countPromise, docsPromise.toArray()]);
+            const [totalResults, results] = await Promise.all([countPromise, docsPromise]);
             const totalPages = Math.ceil(totalResults / limit);
             
             return {

@@ -103,7 +103,7 @@ app.use((req,res,next)=>{
     //setting header to all responses
     res.setHeader('Access-Control-Allow-Origin','*'); //specifying which methods are allowed
 
-    res.setHeader('Access-Control-Allow-Origin','http://localhost:3000'); //specifying which methods are allowed
+    // res.setHeader('Access-Control-Allow-Origin','http://localhost:300'); //specifying which methods are allowed
     
     res.setHeader('Access-Control-Allow-Methods','GET,POST,PUT,PATCH,DELETE');
 
