@@ -2826,7 +2826,74 @@ exports.exportBookingData = async(req,res)=>{
     try {
         // const filter = pick(req.query, ['dateOfBirth', 'userType', 'role']); // {startDate: 2022-19-01}
         // const options = pick(req.query, ['sort', 'limit', 'gender', 'startDate','endDate','page','sortfield','sortvalue']); // {}
-        // const pipeline = []
+        const pipeline = [
+                {
+                  $match:{},
+                },
+                {
+                    $lookup: {
+                        from: "studios",
+                        let: { studioIdStr: "$studioId" }, // define a variable to hold the string serviceId
+                        pipeline: [
+                            {
+                                $match: {
+                                    $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] }
+                                }
+                            }
+                        ],
+                        as: "studioInfo"
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "users",
+                        let: { userIdStr: "$userId" }, // define a variable to hold the string userId
+                        pipeline: [
+                            {
+                                $match: {
+                                    $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] }
+                                }
+                            }
+                        ],
+                        as: "userInfo"
+                    }
+                },
+                {
+                    $addFields: {
+                        userName: { $arrayElemAt: ["$userInfo.fullName", 0] },
+                        userEmail: { $arrayElemAt: ["$userInfo.email", 0] },
+                        userPhone: { $arrayElemAt: ["$userInfo.phone", 0] },
+                        studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
+                        studioPricePerHour: { $arrayElemAt: ["$studioInfo.pricePerHour", 0] },
+                        studioAddress: { $arrayElemAt: ["$studioInfo.address", 0] },
+                        studioCity: { $arrayElemAt: ["$studioInfo.city", 0] },
+                        studioState: { $arrayElemAt: ["$studioInfo.state", 0] },
+                        
+                    }
+                },
+                {
+                    $project: {
+                        studioInfo: 0,
+                        userInfo: 0
+                    }
+                }
+                // {
+                //     $lookup: {
+                //         from: "users",
+                //         let: { userIdStr: "$userId" }, // define a variable to hold the string userId
+                //         pipeline: [
+                //             {
+                //                 $match: {
+                //                     $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] }
+                //                 }
+                //             }
+                //         ],
+                //         as: "userInfo"
+                //     }
+                // }
+        ]
+
+        
         
         // if(Object.keys(filter).length){
         //   pipeline.push(
@@ -2885,7 +2952,8 @@ exports.exportBookingData = async(req,res)=>{
         //     allBooking = await Booking.fetchAllBookings(0,0)
         //   }
           // console.log(JSON.stringify(pipeline))
-        let allBookings = await Booking.fetchAllBookings(0,0)
+        let allBookings = await Booking.aggregate(pipeline)
+        console.log(allBookings);
         const workbook = new excelJS.Workbook();
         const worksheet = workbook.addWorksheet("bookingData");
         const path = "./files";
