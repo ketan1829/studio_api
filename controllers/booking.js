@@ -2238,10 +2238,30 @@ exports.getAllBookings = async (req, res, next) => {
             pipeline_lane.push({
                 $project: {
                     studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
-                    userName: { $arrayElemAt: ["$userInfo.fullName", 0] },
-                    userEmail: { $arrayElemAt: ["$userInfo.email", 0] },
-                    userPhone: { $arrayElemAt: ["$userInfo.phone", 0] },
-                    userType: { $arrayElemAt: ["$userInfo.userType", 0] },
+                    userName: {
+                        $ifNull: [
+                            { $arrayElemAt: ["$userInfo.fullName", 0] },
+                            "Admin"
+                        ]
+                    },
+                    userEmail: {
+                        $ifNull: [
+                            { $arrayElemAt: ["$userInfo.email", 0] },
+                            "Admin"
+                        ]
+                    },
+                    userPhone: {
+                        $ifNull: [
+                            { $arrayElemAt: ["$userInfo.phone", 0] },
+                            "Admin"
+                        ]
+                    },
+                    userType: {
+                        $ifNull: [
+                            { $arrayElemAt: ["$userInfo.userType", 0] },
+                            "Admin"
+                        ]
+                    },
 
                     otherFields: "$$ROOT"
                 }
@@ -2251,7 +2271,7 @@ exports.getAllBookings = async (req, res, next) => {
                         newRoot: {
                             $mergeObjects: ["$otherFields", {
                                 studioName: "$studioName",
-                                userName: "$studioName",
+                                userName: "$userName",
                                 userEmail: "$userEmail",
                                 userPhone: "$userPhone",
                                 userType: "$userType",
