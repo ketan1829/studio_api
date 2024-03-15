@@ -212,7 +212,7 @@ exports.getStudios = async (req, res, next) => {
             totalResults: nearbyStudios.length,
             totalPages: totalPages,
         }
-        return res.json({ status: true, message: "All NearBy Studios fetched", nearYou: nearbyStudios.studios.results, paginate: paginateData });
+        return res.json({ status: true, message: "All NearBy Studios fetched", nearYou: nearbyStudios.studios, paginate: paginateData });
     }
 
     if (latitude?.length && longitude?.length) {
@@ -220,13 +220,14 @@ exports.getStudios = async (req, res, next) => {
         Studio.fetchAllStudios(0, 0)
             .then(studioData => {
                 const paginatedStudios = filterNearbySudios(studioData, latitude, longitude, options.page || 1, options.limit || 0, range ? range : 10);
-                return res.json({ status: true, message: paginatedStudios.message, nearYou: paginatedStudios.studios.results, paginate: paginatedStudios.paginate });
+                console.log(paginatedStudios)
+                return res.json({ status: true, message: paginatedStudios.message, studios: paginatedStudios.studios, paginate: paginatedStudios.paginate });
             })
     } else {
         console.log("not lattt");
 
         Studio.paginate(filter, options).then(studioData => {
-            return res.json({ status: true, message: "All studios returned", nearYou: studioData.results });
+            return res.json({ status: true, message: "All studios returned", studios: studioData.results });
         })
     }
 
