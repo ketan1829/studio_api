@@ -2872,25 +2872,85 @@ exports.exportBookingData = async(req,res)=>{
                     }
                 },
                 {
+                    $match: {
+                        $or: [
+                            { userName: { $exists: true, $ne: null } },
+                            { userEmail: { $exists: true, $ne: null } },
+                            { userPhone: { $exists: true, $ne: null } },
+                            { studioName: { $exists: true, $ne: null } },
+                            { studioPricePerHour: { $exists: true, $ne: null } },
+                            { studioAddress: { $exists: true, $ne: null } },
+                            { studioCity: { $exists: true, $ne: null } },
+                            { studioState: { $exists: true, $ne: null } },
+                        ]
+                    }
+                },
+                {
+                    $addFields: {
+                        userName: {
+                            $cond: {
+                                if: { $eq: [{ $type: { $arrayElemAt: ["$userInfo.fullName", 0] } }, "missing"] },
+                                then: "User Name Not Found",
+                                else: { $arrayElemAt: ["$userInfo.fullName", 0] }
+                            }
+                        },
+                        userEmail: {
+                            $cond: {
+                                if: { $eq: [{ $type: { $arrayElemAt: ["$userInfo.email", 0] } }, "missing"] },
+                                then: "User Email Not Found",
+                                else: { $arrayElemAt: ["$userInfo.email", 0] }
+                            }
+                        },
+                        userPhone: {
+                            $cond: {
+                                if: { $eq: [{ $type: { $arrayElemAt: ["$userInfo.phone", 0] } }, "missing"] },
+                                then: "User Phone Not Found",
+                                else: { $arrayElemAt: ["$userInfo.phone", 0] }
+                            }
+                        },
+                        studioName: {
+                            $cond: {
+                                if: { $eq: [{ $type: { $arrayElemAt: ["$studioInfo.fullName", 0] } }, "missing"] },
+                                then: "Studio Name Not Found",
+                                else: { $arrayElemAt: ["$studioInfo.fullName", 0] }
+                            }
+                        },
+                        studioPricePerHour: {
+                            $cond: {
+                                if: { $eq: [{ $type: { $arrayElemAt: ["$studioInfo.pricePerHour", 0] } }, "missing"] },
+                                then: "Studio Price Per Hour Not Found",
+                                else: { $arrayElemAt: ["$studioInfo.pricePerHour", 0] }
+                            }
+                        },
+                        studioAddress: {
+                            $cond: {
+                                if: { $eq: [{ $type: { $arrayElemAt: ["$studioInfo.address", 0] } }, "missing"] },
+                                then: "Studio Address Not Found",
+                                else: { $arrayElemAt: ["$studioInfo.address", 0] }
+                            }
+                        },
+                        studioCity: {
+                            $cond: {
+                                if: { $eq: [{ $type: { $arrayElemAt: ["$studioInfo.city", 0] } }, "missing"] },
+                                then: "Studio City Not Found",
+                                else: { $arrayElemAt: ["$studioInfo.city", 0] }
+                            }
+                        },
+                        studioState: {
+                            $cond: {
+                                if: { $eq: [{ $type: { $arrayElemAt: ["$studioInfo.state", 0] } }, "missing"] },
+                                then: "Studio State Not Found",
+                                else: { $arrayElemAt: ["$studioInfo.state", 0] }
+                            }
+                        }
+                    }
+                },                                
+                {
                     $project: {
                         studioInfo: 0,
                         userInfo: 0
                     }
                 }
-                // {
-                //     $lookup: {
-                //         from: "users",
-                //         let: { userIdStr: "$userId" }, // define a variable to hold the string userId
-                //         pipeline: [
-                //             {
-                //                 $match: {
-                //                     $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] }
-                //                 }
-                //             }
-                //         ],
-                //         as: "userInfo"
-                //     }
-                // }
         ]
 
         
@@ -2961,7 +3021,15 @@ exports.exportBookingData = async(req,res)=>{
           { header: "S no.", key: "s_no", width: 10 },
           { header: "_id.", key: "_id", width: 10 },
           { header: "userId", key: "userId", width: 10 },
+          { header: "User_Name", key: "userName", width: 10 },
+          { header: "User_Email", key: "userEmail", width: 10 },
+          { header: "User_No", key: "userPhone", width: 10 },
           { header: "studioId", key: "studioId", width: 10 },
+          { header: "Studio_Name", key: "studioName", width: 10 },
+          { header: "Studio_Price_PerHour", key: "studioPricePerHour", width: 10 },
+          { header: "Studio_Address", key: "studioAddress", width: 10 },
+          { header: "Studio_City", key: "studioCity", width: 10 },
+          { header: "Studio_State", key: "studioState", width: 10 },
           { header: "roomId", key: "roomId", width: 10 },
           { header: "bookingDate", key: "bookingDate", width: 10 },
           { header: "bookingTime", key: "bookingTime", width: 10 },
@@ -2984,10 +3052,10 @@ exports.exportBookingData = async(req,res)=>{
     
         // return res.status(200).json({status:true,"no_of_users":allUser.length,message:"All Users", All_User:allUser})
         const data = await workbook.xlsx
-      .writeFile(`C:/Users/Choira Dev 2/Desktop/studio_api/files/bookings.xlsx`)
+      .writeFile(`C:/Users/hiii/Desktop/studio_api/files/bookings.xlsx`)
       .then(() => {
     
-        res.header({"Content-disposition" : "attachment; filename=bookings.xlsx" ,"Content-Type" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}).sendFile("bookings.xlsx", {root: `C:/Users/Choira Dev 2/Desktop/studio_api/files`}, function (err) {
+        res.header({"Content-disposition" : "attachment; filename=bookings.xlsx" ,"Content-Type" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}).sendFile("bookings.xlsx", {root: `C:/Users/hiii/Desktop/studio_api/files`}, function (err) {
           if (err) {
               console.error('Error sending file:', err);
           } else {
