@@ -8,7 +8,6 @@ const AdminNotifications = require('../models/adminNotifications');
 const Admin = require('../models/admin');
 const SubAdmin = require('../models/subAdmin');
 const Owner = require('../models/owner');
-const excelJS = require('exceljs')
 
 const cron = require('node-cron');
 const axios = require('axios');
@@ -434,9 +433,6 @@ exports.createNewBooking2 = async (req, res, next) => {
 
 exports.createNewBooking = async (req, res, next) => {
     try {
-
-        console.log("req.body |", req.body)
-
         // Validate input
         // const errors = validationResult(req);
         // if (!errors.isEmpty()) {
@@ -522,21 +518,19 @@ exports.createServiceBooking = async (req, res, next) => {
         let userDeviceId = userData.deviceId || '';
 
         const serviceData = await Service.findServiceById(serviceId);
-
-
-        const ExistingServiceData = await Booking.findBooking({ userId, serviceId, planId });
+        const serData = { userId, serviceId, planId }
+        const ExistingServiceData = await Booking.findBooking(serData);
 
         if (!serviceData) {
             return res.status(200).json({ status: false, message: "Something went wrong, Try again later" });
         }
 
-        if (!ExistingServiceData) {
+        if (ExistingServiceData.length) {
+            console.log("ExistingServiceData:", ExistingServiceData);
             return res.status(200).json({ status: false, message: "Requested Package booking has been pre-booked already!" });
         }
 
-        console.log("ExistingServiceData:", ExistingServiceData);
-
-        const bookingObj = new Booking(userId, serviceId, parseInt(planId), bookingDate, bookingTime, parseFloat(totalPrice), parseInt(bookingStatus), serviceType);
+        const bookingObj = new Booking(userId, serviceId, parseInt(planId), bookingDate, bookingTime, parseFloat(totalPrice), bookingStatus, serviceType);
         const resultData = await bookingObj.save();
         const bookingData = resultData.ops[0];
         bookingData.totalPrice = bookingData.totalPrice.toFixed(2);
@@ -2146,38 +2140,56 @@ exports.getAllBookings3 = async (req, res, next) => {
 
 // only Studio Bookings
 exports.getAllBookings = async (req, res, next) => {
+
+    console.log("HITTTT")
+    console.log("data:", req.query)
     try {
         let skip = +req.query.skip || 0;
         let limit = +req.query.limit || 0;
-        let bookingType = +req.query.bookingType || -1;
+        let bookingType = [0, 1, 2].includes(+req.query.bookingType) ? +req.query.bookingType : -1;
+        let booking_category = req.query.category || "c1";
+
+        console.log({ booking_category, bookingType });
 
         if (isNaN(skip)) {
             skip = 0;
-            limit = 0;
+            // limit = 0;
         }
 
-        const pipeline = [];
+        const pipeline_lane = [];
 
         if (bookingType === -1) {
-            pipeline.push({ $skip: skip });
-            pipeline.push({ $limit: limit });
-            pipeline.push({
+            pipeline_lane.push({ $skip: skip });
+            pipeline_lane.push({ $limit: limit });
+            pipeline_lane.push({
                 $lookup: {
                     from: "studios",
-                    localField: "studioId",
-                    foreignField: "_id",
+                    let: { studioIdStr: "$studioId" }, // define a variable to hold the string serviceId
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] }
+                            }
+                        }
+                    ],
                     as: "studioInfo"
                 }
             });
-            pipeline.push({
+            pipeline_lane.push({
                 $lookup: {
                     from: "users",
-                    localField: "userId",
-                    foreignField: "_id",
+                    let: { userIdStr: "$userId" }, // define a variable to hold the string userId
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] }
+                            }
+                        }
+                    ],
                     as: "userInfo"
                 }
             });
-            pipeline.push({
+            pipeline_lane.push({
                 $addFields: {
                     studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
                     userName: { $arrayElemAt: ["$userInfo.fullName", 0] },
@@ -2186,54 +2198,115 @@ exports.getAllBookings = async (req, res, next) => {
                     userType: { $cond: [{ $eq: ["$userInfo", []] }, "", "USER"] }
                 }
             });
-            pipeline.push({
+            pipeline_lane.push({
                 $project: {
                     studioInfo: 0,
                     userInfo: 0
                 }
             });
         } else {
-            pipeline.push({ $match: { bookingStatus: bookingType } });
-            pipeline.push({
+            pipeline_lane.push({ $match: { bookingStatus: bookingType, $or: [{ type: "c1" }, { type: { $nin: ["c2", "c3"] } }] } });
+            pipeline_lane.push({
+
                 $lookup: {
                     from: "studios",
-                    localField: "studioId",
-                    foreignField: "_id",
+                    let: { studioIdStr: "$studioId" }, // define a variable to hold the string serviceId
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] }
+                            }
+                        }
+                    ],
                     as: "studioInfo"
                 }
             });
-            pipeline.push({
+            pipeline_lane.push({
                 $lookup: {
                     from: "users",
-                    localField: "userId",
-                    foreignField: "_id",
+                    let: { userIdStr: "$userId" }, // define a variable to hold the string userId
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] }
+                            }
+                        }
+                    ],
                     as: "userInfo"
                 }
             });
-            pipeline.push({
-                $addFields: {
-                    studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
-                    userName: { $arrayElemAt: ["$userInfo.fullName", 0] },
-                    userEmail: { $arrayElemAt: ["$userInfo.email", 0] },
-                    userPhone: { $arrayElemAt: ["$userInfo.phone", 0] },
-                    userType: { $cond: [{ $eq: ["$userInfo", []] }, "", "USER"] }
-                }
-            });
-            pipeline.push({
+            pipeline_lane.push({
                 $project: {
+                    studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
+                    userName: {
+                        $ifNull: [
+                            { $arrayElemAt: ["$userInfo.fullName", 0] },
+                            "Admin"
+                        ]
+                    },
+                    userEmail: {
+                        $ifNull: [
+                            { $arrayElemAt: ["$userInfo.email", 0] },
+                            "Admin"
+                        ]
+                    },
+                    userPhone: {
+                        $ifNull: [
+                            { $arrayElemAt: ["$userInfo.phone", 0] },
+                            "Admin"
+                        ]
+                    },
+                    userType: {
+                        $ifNull: [
+                            { $arrayElemAt: ["$userInfo.userType", 0] },
+                            "Admin"
+                        ]
+                    },
+
+                    otherFields: "$$ROOT"
+                }
+            },
+                {
+                    $replaceRoot: {
+                        newRoot: {
+                            $mergeObjects: ["$otherFields", {
+                                studioName: "$studioName",
+                                userName: "$userName",
+                                userEmail: "$userEmail",
+                                userPhone: "$userPhone",
+                                userType: "$userType",
+                                // Add more specific fields as needed
+                            }]
+                        }
+                    }
+                }
+            );
+
+            pipeline_lane.push({
+                $project: {
+
                     studioInfo: 0,
-                    userInfo: 0
+                    userInfo: 0,
+
                 }
             });
         }
+        const bookingsData = await Booking.aggregate(pipeline_lane);
+        console.log("bookingsData")
+        console.log(bookingsData.length)
+        console.log(bookingsData[0])
 
-        const bookingsData = await Booking.aggregate(pipeline);
 
         const activeBookings = bookingsData.filter(booking => booking.bookingStatus === 0);
         const completedBookings = bookingsData.filter(booking => booking.bookingStatus === 1);
         const cancelledBookings = bookingsData.filter(booking => booking.bookingStatus === 2);
 
-        return res.json({ status: true, message: "All booking(s) returned", data: { activeBookings, completedBookings, cancelledBookings } });
+        let bookingsstatus_wise = [];
+        bookingsstatus_wise = bookingsData.filter(booking => booking.bookingStatus === bookingType);
+
+
+        // return res.json({ status: true, message: "All booking(s) returned", data: bookingsstatus_wise, bookings: { activeBookings, completedBookings, cancelledBookings } });
+        return res.json({ status: true, message: "All booking(s) returned", data: bookingsstatus_wise });
     } catch (error) {
         console.error("Internal server error:", error);
         return res.status(500).json({ status: false, message: "Internal server error" });
@@ -2242,14 +2315,14 @@ exports.getAllBookings = async (req, res, next) => {
 
 // get All Packages/Service Bookings
 exports.getServiceBookings = async (req, res) => {
-    const { bookingType, userId, phoneNumber } = req.query; 
+    const { bookingType, userId, phoneNumber } = req.query;
     const matchStage = {};
 
     if (bookingType) {
         matchStage.type = bookingType;
     } else {
         matchStage.type = { $in: ["c2", "c3"] };
-    }    if (userId) matchStage.userId = userId;
+    } if (userId) matchStage.userId = userId;
     if (phoneNumber) {
         matchStage['user.phone'] = phoneNumber;
     }
@@ -2301,7 +2374,7 @@ exports.getServiceBookings = async (req, res) => {
         },
         {
             $project: {
-                
+
                 serviceId: { $arrayElemAt: ["$service._id", 0] },
                 service_id: { $arrayElemAt: ["$service.service_id", 0] },
                 planId: "$roomId",
@@ -2350,7 +2423,7 @@ exports.deleteBooking = async (req, res) => {
         return res.status(200).json({ status: false, message: "Booking ID, package ID, and user ID are required" });
     }
 
-    
+
     const bookingData = await getSingleBooking(bookingId);
     if (!bookingData) {
         return res.status(200).json({ status: false, message: "No Booking with this ID exists" });
@@ -2817,264 +2890,6 @@ exports.getAllBookingsGraphDetailsForParticularStudio = (req, res, next) => {
             }, 1000);
         })
 
-}
-
-
-exports.exportBookingData = async(req,res)=>{
-    // const allBookings = await Booking.fetchAllBookingByAggregate()
-    // return res.status(200).json({status:true,"no_of_bookings":allBookings.length,message:"All Bookings", All_Booking:allBookings})
-    try {
-        // const filter = pick(req.query, ['dateOfBirth', 'userType', 'role']); // {startDate: 2022-19-01}
-        // const options = pick(req.query, ['sort', 'limit', 'gender', 'startDate','endDate','page','sortfield','sortvalue']); // {}
-        const pipeline = [
-                {
-                  $match:{},
-                },
-                {
-                    $lookup: {
-                        from: "studios",
-                        let: { studioIdStr: "$studioId" }, // define a variable to hold the string serviceId
-                        pipeline: [
-                            {
-                                $match: {
-                                    $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] }
-                                }
-                            }
-                        ],
-                        as: "studioInfo"
-                    }
-                },
-                {
-                    $lookup: {
-                        from: "users",
-                        let: { userIdStr: "$userId" }, // define a variable to hold the string userId
-                        pipeline: [
-                            {
-                                $match: {
-                                    $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] }
-                                }
-                            }
-                        ],
-                        as: "userInfo"
-                    }
-                },
-                {
-                    $addFields: {
-                        userName: { $arrayElemAt: ["$userInfo.fullName", 0] },
-                        userEmail: { $arrayElemAt: ["$userInfo.email", 0] },
-                        userPhone: { $arrayElemAt: ["$userInfo.phone", 0] },
-                        studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
-                        studioPricePerHour: { $arrayElemAt: ["$studioInfo.pricePerHour", 0] },
-                        studioAddress: { $arrayElemAt: ["$studioInfo.address", 0] },
-                        studioCity: { $arrayElemAt: ["$studioInfo.city", 0] },
-                        studioState: { $arrayElemAt: ["$studioInfo.state", 0] },
-                        
-                    }
-                },
-                {
-                    $match: {
-                        $or: [
-                            { userName: { $exists: true, $ne: null } },
-                            { userEmail: { $exists: true, $ne: null } },
-                            { userPhone: { $exists: true, $ne: null } },
-                            { studioName: { $exists: true, $ne: null } },
-                            { studioPricePerHour: { $exists: true, $ne: null } },
-                            { studioAddress: { $exists: true, $ne: null } },
-                            { studioCity: { $exists: true, $ne: null } },
-                            { studioState: { $exists: true, $ne: null } },
-                        ]
-                    }
-                },
-                {
-                    $addFields: {
-                        userName: {
-                            $cond: {
-                                if: { $eq: [{ $type: { $arrayElemAt: ["$userInfo.fullName", 0] } }, "missing"] },
-                                then: "User Name Not Found",
-                                else: { $arrayElemAt: ["$userInfo.fullName", 0] }
-                            }
-                        },
-                        userEmail: {
-                            $cond: {
-                                if: { $eq: [{ $type: { $arrayElemAt: ["$userInfo.email", 0] } }, "missing"] },
-                                then: "User Email Not Found",
-                                else: { $arrayElemAt: ["$userInfo.email", 0] }
-                            }
-                        },
-                        userPhone: {
-                            $cond: {
-                                if: { $eq: [{ $type: { $arrayElemAt: ["$userInfo.phone", 0] } }, "missing"] },
-                                then: "User Phone Not Found",
-                                else: { $arrayElemAt: ["$userInfo.phone", 0] }
-                            }
-                        },
-                        studioName: {
-                            $cond: {
-                                if: { $eq: [{ $type: { $arrayElemAt: ["$studioInfo.fullName", 0] } }, "missing"] },
-                                then: "Studio Name Not Found",
-                                else: { $arrayElemAt: ["$studioInfo.fullName", 0] }
-                            }
-                        },
-                        studioPricePerHour: {
-                            $cond: {
-                                if: { $eq: [{ $type: { $arrayElemAt: ["$studioInfo.pricePerHour", 0] } }, "missing"] },
-                                then: "Studio Price Per Hour Not Found",
-                                else: { $arrayElemAt: ["$studioInfo.pricePerHour", 0] }
-                            }
-                        },
-                        studioAddress: {
-                            $cond: {
-                                if: { $eq: [{ $type: { $arrayElemAt: ["$studioInfo.address", 0] } }, "missing"] },
-                                then: "Studio Address Not Found",
-                                else: { $arrayElemAt: ["$studioInfo.address", 0] }
-                            }
-                        },
-                        studioCity: {
-                            $cond: {
-                                if: { $eq: [{ $type: { $arrayElemAt: ["$studioInfo.city", 0] } }, "missing"] },
-                                then: "Studio City Not Found",
-                                else: { $arrayElemAt: ["$studioInfo.city", 0] }
-                            }
-                        },
-                        studioState: {
-                            $cond: {
-                                if: { $eq: [{ $type: { $arrayElemAt: ["$studioInfo.state", 0] } }, "missing"] },
-                                then: "Studio State Not Found",
-                                else: { $arrayElemAt: ["$studioInfo.state", 0] }
-                            }
-                        }
-                    }
-                },                                
-                {
-                    $project: {
-                        studioInfo: 0,
-                        userInfo: 0
-                    }
-                }
-        ]
-
-        
-        
-        // if(Object.keys(filter).length){
-        //   pipeline.push(
-        //     {
-        //       $match: filter,
-        //     }
-        //   )
-        // }
-            
-    
-        //   console.log("this is pipe======>",pipeline);
-        //   if (options.startDate && options.endDate) {
-        //     let startDate=options.startDate
-        //     let endDate=options.endDate
-        //     pipeline.push({
-        //       $match: {
-        //         creationTimeStamp: {
-        //           $gte: new Date(startDate),
-        //           $lte: new Date(endDate)
-        //         },
-        //       },
-        //     });
-        //   }
-    
-    
-    
-        //   const sortobj = {[options.sortfield]:+options.sortvalue}
-    
-        //   if (options.sortfield) {
-        //     const sortStage = {
-        //       $sort: sortobj
-        //     };
-        //     pipeline.push(sortStage);
-        //   }
-         
-      
-        //   if (options.limit) {
-        //     const limitStage = {
-        //       $limit: parseInt(options.limit),
-        //     };
-        //     pipeline.push(limitStage);
-        //   }
-      
-        //   if (options.page) {
-        //     const skipStage = {
-        //       $skip: (parseInt(options.page) - 1
-        //       ) * parseInt(options.limit),
-        //     };
-        //     pipeline.push(skipStage);
-        //   }
-        //   console.log(JSON.stringify(pipeline))
-        // let allBooking;
-        //   if(filter || options) {
-        //     allBooking = await Booking.aggregate(pipeline)
-        //   }else {
-        //     allBooking = await Booking.fetchAllBookings(0,0)
-        //   }
-          // console.log(JSON.stringify(pipeline))
-        let allBookings = await Booking.aggregate(pipeline)
-        console.log(allBookings);
-        const workbook = new excelJS.Workbook();
-        const worksheet = workbook.addWorksheet("bookingData");
-        const path = "./files";
-        worksheet.columns = [
-          { header: "S no.", key: "s_no", width: 10 },
-          { header: "_id.", key: "_id", width: 10 },
-          { header: "userId", key: "userId", width: 10 },
-          { header: "User_Name", key: "userName", width: 10 },
-          { header: "User_Email", key: "userEmail", width: 10 },
-          { header: "User_No", key: "userPhone", width: 10 },
-          { header: "studioId", key: "studioId", width: 10 },
-          { header: "Studio_Name", key: "studioName", width: 10 },
-          { header: "Studio_Price_PerHour", key: "studioPricePerHour", width: 10 },
-          { header: "Studio_Address", key: "studioAddress", width: 10 },
-          { header: "Studio_City", key: "studioCity", width: 10 },
-          { header: "Studio_State", key: "studioState", width: 10 },
-          { header: "roomId", key: "roomId", width: 10 },
-          { header: "bookingDate", key: "bookingDate", width: 10 },
-          { header: "bookingTime", key: "bookingTime", width: 10 },
-          { header: "totalPrice", key: "totalPrice", width: 10 },
-          { header: "bookingStatus", key: "bookingStatus", width: 10 },
-          { header: "creationTimeStamp", key: "creationTimeStamp", width: 10 },
-          { header: "type", key: "type", width: 10 },
-        ];
-    
-        let counter = 1;
-        await allBookings.forEach((booking) => {
-          booking.s_no = counter;
-          worksheet.addRow(booking);
-          counter++;
-        });
-    
-        worksheet.getRow(1).eachCell((cell) => {
-          cell.font = { bold: true };
-        });
-    
-        // return res.status(200).json({status:true,"no_of_users":allUser.length,message:"All Users", All_User:allUser})
-        const data = await workbook.xlsx
-      .writeFile(`C:/Users/hiii/Desktop/studio_api/files/bookings.xlsx`)
-      .then(() => {
-    
-        res.header({"Content-disposition" : "attachment; filename=bookings.xlsx" ,"Content-Type" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}).sendFile("bookings.xlsx", {root: `C:/Users/hiii/Desktop/studio_api/files`}, function (err) {
-          if (err) {
-              console.error('Error sending file:', err);
-          } else {
-              console.log({
-                status: "success",
-                message: "file successfully downloaded",
-                path: `${path}/bookings.xlsx`
-              });
-          }
-      })
-      });
-      } catch (error) {
-        console.log(error)
-        res.send({
-          status: "error",
-          message: "Something went wrong",
-          error:error.message
-        });
-      }
 }
 
 
