@@ -3052,10 +3052,10 @@ exports.exportBookingData = async(req,res)=>{
     
         // return res.status(200).json({status:true,"no_of_users":allUser.length,message:"All Users", All_User:allUser})
         const data = await workbook.xlsx
-      .writeFile(`C:/Users/hiii/Desktop/studio_api/files/bookings.xlsx`)
+      .writeFile(`C:/Users/Choira Dev 2/Desktop/studio_api/files/bookings.xlsx`)
       .then(() => {
     
-        res.header({"Content-disposition" : "attachment; filename=bookings.xlsx" ,"Content-Type" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}).sendFile("bookings.xlsx", {root: `C:/Users/hiii/Desktop/studio_api/files`}, function (err) {
+        res.header({"Content-disposition" : "attachment; filename=bookings.xlsx" ,"Content-Type" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}).sendFile("bookings.xlsx", {root: `C:/Users/Choira Dev 2/Desktop/studio_api/files`}, function (err) {
           if (err) {
               console.error('Error sending file:', err);
           } else {
