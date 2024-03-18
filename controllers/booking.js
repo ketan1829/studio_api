@@ -2386,7 +2386,7 @@ exports.getServiceBookings = async (req, res) => {
                 type: "$type",
                 bookingDate: "$bookingDate",
                 package: { $arrayElemAt: ["$service.packages", 0] },
-                status: "$bookingStatus"
+                bookingStatus: "$bookingStatus"
             }
         }
     ];
@@ -2400,14 +2400,18 @@ exports.getServiceBookings = async (req, res) => {
 
 // update booking status of any category
 exports.updateServiceBooking = async (req, res) => {
-    const { bookingId, status } = req.body;
+    const { bookingId, bookingStatus } = req.body;
+    console.log(req.body);
     const bookingData = await getSingleBooking(bookingId);
     if (!bookingData || !bookingId) {
         return res.status(404).json({ status: false, message: "No Booking with this ID exists" });
     }
-    if (status) bookingData.bookingStatus = status;
+
+    console.log(">>>>>>>>>bbbbb:",+bookingStatus)
+    if ([0,1,2].includes(+bookingStatus)) bookingData.bookingStatus = +bookingStatus;
     const db = getDb();
     var o_id = new ObjectId(bookingId);
+    console.log(">>>>>>>>>>>>>.bookingData:",bookingData);
     db.collection('bookings').updateOne({ _id: o_id }, { $set: bookingData })
         .then(resultData => {
             res.status(200).json({ status: true, message: 'Bookings Status updated successfully' });

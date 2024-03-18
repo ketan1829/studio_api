@@ -105,7 +105,7 @@ class Booking
     static fetchAllBookingsByType(skipCount,limitCount,bType)
     {
         const db = getDb();
-        return db.collection('bookings').find({bookingStatus:bType}).sort({creationTimeStamp:-1}).skip(skipCount).limit(limitCount).toArray()
+        return db.collection('bookings').find({bookingStatus:bType,type:"c1"}).sort({creationTimeStamp:-1}).skip(skipCount).limit(limitCount).toArray()
             .then(bookingData=>{
                 // console.log("------bookingsData:::", bookingData[0]);
                 return bookingData;
