@@ -389,6 +389,15 @@ static async fetchAllStudiosByAggregate(pipeline) {
   }
 }
 
+static async findStudioByFilterAndOptions(filterAndOptions){
+  try {
+    const db = getDb(); 
+      return await db.collection("studios").findOne(filterAndOptions)
+  } catch (error) {
+    console.log(error);
+  }
+}
+
 }
 
 module.exports = Studio;

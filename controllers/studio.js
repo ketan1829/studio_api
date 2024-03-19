@@ -118,74 +118,80 @@ function filterNearbySudios(
 
 // ----------------- v2.2.3 ---------------------------
 
-exports.getStudios = (req, res, next) => {
-  console.log("body---", req.body);
-  const {
-    city,
-    state,
-    minArea,
-    minPricePerHour,
-    amenity,
-    availabilityDay,
-    latitude,
-    longitude,
-    range,
-    active,
-    studioId,
-  } = req.body;
-  const filter = pick(req.query, ["name", "role"]) || { isActive: 1 };
+exports.getStudios = async(req, res, next) => {
+  // console.log("body---", req.body);
+  // const {
+  //   city,
+  //   state,
+  //   minArea,
+  //   minPricePerHour,
+  //   amenity,
+  //   availabilityDay,
+  //   latitude,
+  //   longitude,
+  //   range,
+  //   active,
+  //   studioId,
+  // } = req.body;
+  const filter = pick(req.query, ["fullName", "role"]) || { isActive: 1 };
   const options = pick(req.query, ["sortBy", "limit", "page"]);
 
+  const studio_data = await Studio.findStudioByFilterAndOptions(filter)
   // const filter = { isActive: 1 };
 
-  if (active) filter.isActive = active;
-  if (studioId) {
-    var o_id = new ObjectId(studioId);
-    filter._id = o_id;
-  }
-  if (city) filter.city = city;
-  if (state) filter.state = state;
-  if (minArea) filter["area"] = { $gte: parseInt(minArea) };
-  if (minPricePerHour)
-    filter["roomsDetails.basePrice"] = { $gte: parseInt(minPricePerHour) };
-  if (amenity) filter["amenities.name"] = amenity;
-  if (availabilityDay) {
-    filter["roomsDetails.generalStartTime"] = availabilityDay.startTime;
-    filter["roomsDetails.generalEndTime"] = availabilityDay.endTime;
-  }
-  // const options = {
-  //     sortBy, // Sort criteria
-  //     limit, // Limit per page
-  //     page, // Page number
-  //     populate, // Fields to populate
-  // };
+  // if (active) filter.isActive = active;
+  // if (studioId) {
+  //   var o_id = new ObjectId(studioId);
+  //   filter._id = o_id;
+  // }
+  // if (city) filter.city = city;
+  // if (state) filter.state = state;
+  // if (minArea) filter["area"] = { $gte: parseInt(minArea) };
+  // if (minPricePerHour)
+  //   filter["roomsDetails.basePrice"] = { $gte: parseInt(minPricePerHour) };
+  // if (amenity) filter["amenities.name"] = amenity;
+  // if (availabilityDay) {
+  //   filter["roomsDetails.generalStartTime"] = availabilityDay.startTime;
+  //   filter["roomsDetails.generalEndTime"] = availabilityDay.endTime;
+  // }
+  // // const options = {
+  // //     sortBy, // Sort criteria
+  // //     limit, // Limit per page
+  // //     page, // Page number
+  // //     populate, // Fields to populate
+  // // };
 
-  if (latitude && longitude) {
-    Studio.fetchAllStudios(0, 0).then((studioData) => {
-      const paginatedStudios = filterNearbySudios(
-        studioData,
-        latitude,
-        longitude,
-        options.page || 1,
-        options.limit || 10,
-        range ? range : 10
-      );
-      return res.json({
-        status: true,
-        message: paginatedStudios.message,
-        nearYou: paginatedStudios.studios,
-        paginate: paginatedStudios.paginate,
-      });
-    });
-  } else {
-    Studio.paginate(filter, options).then((studioData) => {
-      return res.json({
-        status: true,
-        message: "All studios returned",
-        studios: studioData,
-      });
-    });
-  }
+  // if (latitude && longitude) {
+  //   Studio.fetchAllStudios(0, 0).then((studioData) => {
+  //     const paginatedStudios = filterNearbySudios(
+  //       studioData,
+  //       latitude,
+  //       longitude,
+  //       options.page || 1,
+  //       options.limit || 10,
+  //       range ? range : 10
+  //     );
+  //     return res.json({
+  //       status: true,
+  //       message: paginatedStudios.message,
+  //       nearYou: paginatedStudios.studios,
+  //       paginate: paginatedStudios.paginate,
+  //     });
+  //   });
+  // } else {
+  //   Studio.paginate(filter, options).then((studioData) => {
+  //     return res.json({
+  //       status: true,
+  //       message: "All studios returned",
+  //       studios: studioData,
+  //     });
+  //   });
+  // }
+
+  res.status(200).json({
+    success:true,
+    studio_data
+  })
 };
 
 exports.getStudiosOptimized = (req, res, next) => {
