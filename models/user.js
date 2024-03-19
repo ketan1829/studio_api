@@ -87,7 +87,7 @@ class User
     {
         const db = getDb();
                             
-        return db.collection('users').findOne({ phone:phone })
+        return db.collection('users').findOne({ phone:phone,status:1 })
             .then(userData=>{
                 return userData;  
             })

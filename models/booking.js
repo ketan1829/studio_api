@@ -29,6 +29,11 @@ class Booking
         const db = getDb();
         return db.collection('bookings').aggregate(aggregatePipeline).toArray();
     }
+    static AggregateForServiceData(aggregate_Pipeline)
+    {
+        const db = getDb();
+        return db.collection('bookings').aggregate(aggregate_Pipeline).toArray();
+    }
 
     static findBookingById(bId)
     {
