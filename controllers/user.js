@@ -1186,7 +1186,7 @@ exports.deleteParticularUser = (req, res, next) => {
     var o_id = new ObjectId(userId);
 
     db.collection("users")
-      .deleteOne({ _id: o_id })
+      .updateOne({ _id: o_id },{ $set: { status: 0 }})
       .then((resultData) => {
         return res.json({ status: true, message: "User deleted successfully" });
       })
@@ -1459,103 +1459,16 @@ exports.exportUserData = async (req, res) => {
 };
 
 
-// exports.exportUserData = async (req, res) => {
-//     try {
-//       const filter = pick(req.query, ['dateOfBirth', 'userType', 'gender', 'startDate', 'endDate', 'role']); // {userType: "NUMBER"}
-//       let options = pick(req.query, ['sort', 'limit', 'page','sortfield','sortvalue']); // {}
-
-//       console.log(options);
-  
-//       let query = filter;
-
-  
-//       if (filter.startDate && filter.endDate) {
-//         query.creationTimeStamp = {
-//           $gte: new Date(filter.startDate),
-//           $lte: new Date(filter.endDate),
-//         };
-//         delete query.startDate
-//         delete query.endDate
-//       }
-
-//       console.log(query);
-
-//       const srtobj = {[options.sortfield]:+options.sortvalue}
-
-//       console.log(srtobj);
-
-  
-//       // let sort = options.sort;
-//       options.sort = srtobj
-//       const limit = parseInt(options.limit) || 0;
-//       options.limit = limit;
-//       const skip = (parseInt(options.page) - 1) * limit || 0;
-//       options.skip = skip;
-
-//       console.log(options);
-
-  
-//       let allUser;
-  
-//       if (Object.keys(query).length > 0) {
-//         allUser = await User.find(query,options)
-        
-//       } else {
-//         allUser = await User.fetchAllUsers(0, 0);
-//       }
-      
-//       console.log(allUser.length)
-//       // console.log(allUser)
-//       const workbook = new excelJS.Workbook();
-//       const worksheet = workbook.addWorksheet("userData");
-//       const path = "./files";
-//       worksheet.columns = [
-//         { header: "S no.", key: "s_no", width: 10 },
-//         //   { headers: "Id", key: "_id", width: 10 },
-//           { header: "fullName", key: "fullName", width: 10 },
-//           { header: "dateOfBirth", key: "dateOfBirth", width: 10 },
-//           { header: "email", key: "email", width: 10 },
-//           { header: "phone", key: "phone", width: 10 },
-//         //   { header: "password", key: "password", width: 10 },
-//         //   { header: "latitude", key: "latitude", width: 10 },
-//         //   { header: "longitude", key: "longitude", width: 10 },
-//         //   { header: "city", key: "city", width: 10 },
-//         //   { header: "state", key: "state", width: 10 },
-//           { header: "profileUrl", key: "profileUrl", width: 10 },
-//           { header: "gender", key: "gender", width: 10 },
-//           { header: "userType", key: "userType", width: 10 },
-//           { header: "favourites", key: "favourites", width: 10 },
-//         //   { header: "deviceId", key: "deviceId", width: 10 },
-//           { header: "creationTimeStamp", key: "creationTimeStamp", width: 10 },
-//       ];
-  
-//       let counter = 1;
-//       allUser.forEach((user) => {
-//         user.s_no = counter;
-//         worksheet.addRow(user);
-//         counter++;
-//       });
-  
-//       worksheet.getRow(1).eachCell((cell) => {
-//         cell.font = { bold: true };
-//       });
-  
-//       const data = await workbook.xlsx
-//         .writeFile(`${path}/users.xlsx`)
-//         .then(() => {
-//           res.send({
-//             status: "success",
-//             message: "file successfully downloaded",
-//             path: `${path}/users.xlsx`,
-//           });
-//         });
-//     } catch (error) {
-//       console.log(error);
-//       res.send({
-//         status: "error",
-//         message: "Something went wrong",
-//         error: error.message,
-//       });
-//     }
-//   };
-  
+// exports.updateAllUser=async(req,res)=>{
+// try {
+//   const db = getDb();
+//     db.collection("users")
+//       .updateMany({},{ $set: { status: 1 }})
+//       .then((resultData) => {
+//         return res.json({ status: true, message: "all User updated successfully" });
+//       })
+//       .catch((err) => console.log(err));
+// } catch (error) {
+//   console.log(error);
+// }
+// }

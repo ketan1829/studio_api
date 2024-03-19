@@ -21,6 +21,7 @@ class User
         userType = "NUMBER",
         favourites = [],
         deviceId,
+        status="",
     ) 
     
     {
@@ -39,6 +40,7 @@ class User
         this.userType = userType;
         this.favourites = favourites;
         this.deviceId = deviceId;
+        this.status=1;
         this.creationTimeStamp = new Date();
     }
 
