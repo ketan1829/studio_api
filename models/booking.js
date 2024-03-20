@@ -29,6 +29,11 @@ class Booking
         const db = getDb();
         return db.collection('bookings').aggregate(aggregatePipeline).toArray();
     }
+    static AggregateForServiceData(aggregate_Pipeline)
+    {
+        const db = getDb();
+        return db.collection('bookings').aggregate(aggregate_Pipeline).toArray();
+    }
 
     static findBookingById(bId)
     {
@@ -118,6 +123,7 @@ class Booking
         const db = getDb();
         return db.collection('bookings').find().sort({creationTimeStamp:-1}).skip(skipCount).limit(limitCount).toArray()
             .then(bookingData=>{
+                console.log(bookingData);
                 return bookingData;
             })
             .catch(err=>console.log(err));
@@ -147,6 +153,17 @@ class Booking
             })
             .catch(err => console.error(err));
     }
+
+    // static async fetchAllBookingByAggregate() {
+    //     try {
+    //         const db = getDb();
+    //         const bookingData = await db.collection('bookings').aggregate([{$match:{}}]).toArray();
+    //         return bookingData;
+    //     } catch (err) {
+    //         console.error("Error in fetchAllBookingByAggregate:", err);
+    //         throw err; 
+    //     }
+    // }
 
 }
 

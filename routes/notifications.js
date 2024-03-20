@@ -112,6 +112,42 @@ router.post('/notifications/users',notiController.sendNotificationsToAllUsers);
 router.post('/notifications/multiple-users',auth.isAdmin,notiController.sendNotificationsToMultipleUsers);
 
 //Send notification to particular user
+
+// added by me
+
+/**
+* @swagger
+*
+ /notifications/users/:{userId}:
+*   post:
+*     summary: Send Notifications to Single User--
+*     tags: [Notifications]
+*     requestBody:
+*       description: Endpoint to send notifications to a single user.
+*       
+*       content:
+*         application/json:
+*           schema:
+*             id: string
+*           example : 
+*             title: "Test title"
+*             message: "Test message"
+*             usersList: ["631f70ca99e1ca806de2e659"]
+*     responses:
+*       200:
+*         description: Notification Sent
+*         content:
+*           application/json:
+*               example : 
+*                 status : true
+*                 message : "Notification Sent"
+*       400:
+*         description: Bad Request, check request body
+*       401:
+*         description: Unauthorized, enter valid token
+*       500:
+*         description: Internal server error
+*/
 router.post('/notifications/users/:userId',auth.isAdmin,notiController.sendNotificationsToSingleUser);
 
 

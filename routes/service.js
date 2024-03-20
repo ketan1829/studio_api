@@ -20,6 +20,9 @@ router.put('/services/update/:serviceId',auth.isAdmin,controller.updateService);
 
 router.delete('/services/delete/:serviceId',auth.isAdmin,controller.deleteService);
 
+router.get('/exportServicesData',auth.isAdmin,controller.exportServicesData)
+
+
 
 /**
  * @swagger

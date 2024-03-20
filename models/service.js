@@ -2,6 +2,7 @@ const mongodb = require('mongodb');
 const ObjectId = mongodb.ObjectId;
 const { getDB } = require('../util/database');
 
+
 const collectionName = 'services';
 
 class Service {
@@ -68,11 +69,43 @@ class Service {
     
         try {            
              const updatedResult = await db.collection(collectionName).findOneAndUpdate({ _id: new ObjectId(sId) },{$set: newData},{new:true});                
+            //  console.log(updatedResult)
+            return { status: true, message: "Service updated successfully", updatedService:updatedResult };
+
+        } catch (error) {
+            console.error("Error deleting service:", error);
+            return{ status: false, message: "Internal Server Error" };
+        }
+    }
+    static async updateServicePackageById(pId,newData) {
+        const db = getDB();
+    
+        try {            
+             const updatedResult = await db.collection(collectionName).findOneAndUpdate({ _id: new ObjectId(pId) },{$set: newData},{new:true});                
             return{ status: true, message: "Service updated successfully", updatedService:updatedResult };
         } catch (error) {
             console.error("Error deleting service:", error);
             return{ status: false, message: "Internal Server Error" };
         }
+    }
+
+    static filterEmptyFields(service_obj) {
+        const filteredObject = {};
+      
+        for (const key in service_obj) {
+          if (service_obj[key] || service_obj[key] === 0){
+            filteredObject[key] = service_obj[key];
+          }
+        }
+
+        // console.log("filteredObject",filteredObject); 
+      
+        return filteredObject;
+      }
+      
+
+    static async updateServiceByPackageId(pId,newData) {
+                
     }
 
     static async findServiceById(sId) {
@@ -87,6 +120,28 @@ class Service {
         }
     }
 
+    static fetchAllService()
+    {
+        const db = getDB();
+        return db.collection(collectionName).find().toArray()
+            .then(serviceData=>{
+                return serviceData;
+            })
+            .catch(err=>console.log(err));
+    }
+
+
+    static async fetchAllServicesByAggregate(pipeline) {
+        try {
+            const db = getDB();
+            const serviceData = await db.collection(collectionName).aggregate(pipeline).toArray();
+            console.log(serviceData)
+            return serviceData;
+        } catch (err) {
+            console.error("Error in fetchAllServicesByAggregate:", err);
+            throw err; 
+        }
+    }
 }
 
 module.exports = Service;

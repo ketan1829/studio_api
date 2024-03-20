@@ -55,6 +55,9 @@ const options = {
         },
         {
           url: "http://studiotest.choira.io/api/",
+        },
+        {
+          url: "http://localhost:4000/api/",
         }
       ],
       components: {
