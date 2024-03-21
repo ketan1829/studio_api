@@ -31,3 +31,8 @@ exports.AddKeyDoc = async(req,res,next)=>{
          })  
      }
  }
+
+ exports.createIndexForStudioName= async(req,res)=>{
+    const db = getDb(); 
+    return await db.collection("studios").createIndex({ fullName: "text" });
+ }

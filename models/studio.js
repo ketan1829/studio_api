@@ -155,6 +155,13 @@ class Studio {
     }
   }
 
+
+ static async searchStudioWithFilters_Aggregation(filter){
+  const db = getDb();
+  console.log(JSON.stringify(filter));
+  return db.collection("studios").aggregate(filter).toArray()
+ }
+
   static async updateDocumentsWithGeoLocation() {
     const db = getDb();
     return db
@@ -386,15 +393,6 @@ static async fetchAllStudiosByAggregate(pipeline) {
   } catch (err) {
       console.error("Error in fetchAllStudioByAggregate:", err);
       throw err; 
-  }
-}
-
-static async findStudioByFilterAndOptions(filterAndOptions){
-  try {
-    const db = getDb(); 
-      return await db.collection("studios").findOne(filterAndOptions)
-  } catch (error) {
-    console.log(error);
   }
 }
 

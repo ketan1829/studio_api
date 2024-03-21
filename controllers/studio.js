@@ -3,7 +3,7 @@ const Rating = require("../models/rating");
 const User = require("../models/user");
 const excelJS = require("exceljs");
 const axios = require("axios");
-const path = require('path');
+const path = require("path");
 
 const mongodb = require("mongodb");
 const getDb = require("../util/database").getDB;
@@ -118,80 +118,195 @@ function filterNearbySudios(
 
 // ----------------- v2.2.3 ---------------------------
 
-exports.getStudios = async(req, res, next) => {
-  // console.log("body---", req.body);
-  // const {
-  //   city,
-  //   state,
-  //   minArea,
-  //   minPricePerHour,
-  //   amenity,
-  //   availabilityDay,
-  //   latitude,
-  //   longitude,
-  //   range,
-  //   active,
-  //   studioId,
-  // } = req.body;
-  const filter = pick(req.query, ["fullName", "role"]) || { isActive: 1 };
-  const options = pick(req.query, ["sortBy", "limit", "page"]);
+// exports.getStudios = async(req, res, next) => {
+//   // console.log("body---", req.body);
+//   // const {
+//   //   city,
+//   //   state,
+//   //   minArea,
+//   //   minPricePerHour,
+//   //   amenity,
+//   //   availabilityDay,
+//   //   latitude,
+//   //   longitude,
+//   //   range,
+//   //   active,
+//   //   studioId,
+//   // } = req.body;
+//   const filter = pick(req.query, ["fullName"]) || { isActive: 1 };
+//   const options = pick(req.query, ["sortBy", "limit", "page"]);
 
-  const studio_data = await Studio.findStudioByFilterAndOptions(filter)
-  // const filter = { isActive: 1 };
+//   const studio_data = await Studio.findStudioByFilterAndOptions(filter,options.limit)
+//   // Studio.paginate(filter,options)
 
-  // if (active) filter.isActive = active;
-  // if (studioId) {
-  //   var o_id = new ObjectId(studioId);
-  //   filter._id = o_id;
-  // }
-  // if (city) filter.city = city;
-  // if (state) filter.state = state;
-  // if (minArea) filter["area"] = { $gte: parseInt(minArea) };
-  // if (minPricePerHour)
-  //   filter["roomsDetails.basePrice"] = { $gte: parseInt(minPricePerHour) };
-  // if (amenity) filter["amenities.name"] = amenity;
-  // if (availabilityDay) {
-  //   filter["roomsDetails.generalStartTime"] = availabilityDay.startTime;
-  //   filter["roomsDetails.generalEndTime"] = availabilityDay.endTime;
-  // }
-  // // const options = {
-  // //     sortBy, // Sort criteria
-  // //     limit, // Limit per page
-  // //     page, // Page number
-  // //     populate, // Fields to populate
-  // // };
+//   // const filter = { isActive: 1 };
 
-  // if (latitude && longitude) {
-  //   Studio.fetchAllStudios(0, 0).then((studioData) => {
-  //     const paginatedStudios = filterNearbySudios(
-  //       studioData,
-  //       latitude,
-  //       longitude,
-  //       options.page || 1,
-  //       options.limit || 10,
-  //       range ? range : 10
-  //     );
-  //     return res.json({
-  //       status: true,
-  //       message: paginatedStudios.message,
-  //       nearYou: paginatedStudios.studios,
-  //       paginate: paginatedStudios.paginate,
-  //     });
-  //   });
-  // } else {
-  //   Studio.paginate(filter, options).then((studioData) => {
-  //     return res.json({
-  //       status: true,
-  //       message: "All studios returned",
-  //       studios: studioData,
-  //     });
-  //   });
-  // }
+//   // if (active) filter.isActive = active;
+//   // if (studioId) {
+//   //   var o_id = new ObjectId(studioId);
+//   //   filter._id = o_id;
+//   // }
+//   // if (city) filter.city = city;
+//   // if (state) filter.state = state;
+//   // if (minArea) filter["area"] = { $gte: parseInt(minArea) };
+//   // if (minPricePerHour)
+//   //   filter["roomsDetails.basePrice"] = { $gte: parseInt(minPricePerHour) };
+//   // if (amenity) filter["amenities.name"] = amenity;
+//   // if (availabilityDay) {
+//   //   filter["roomsDetails.generalStartTime"] = availabilityDay.startTime;
+//   //   filter["roomsDetails.generalEndTime"] = availabilityDay.endTime;
+//   // }
+//   // // const options = {
+//   // //     sortBy, // Sort criteria
+//   // //     limit, // Limit per page
+//   // //     page, // Page number
+//   // //     populate, // Fields to populate
+//   // // };
 
-  res.status(200).json({
-    success:true,
-    studio_data
+//   // if (latitude && longitude) {
+//   //   Studio.fetchAllStudios(0, 0).then((studioData) => {
+//   //     const paginatedStudios = filterNearbySudios(
+//   //       studioData,
+//   //       latitude,
+//   //       longitude,
+//   //       options.page || 1,
+//   //       options.limit || 10,
+//   //       range ? range : 10
+//   //     );
+//   //     return res.json({
+//   //       status: true,
+//   //       message: paginatedStudios.message,
+//   //       nearYou: paginatedStudios.studios,
+//   //       paginate: paginatedStudios.paginate,
+//   //     });
+//   //   });
+//   // } else {
+//   //   Studio.paginate(filter, options).then((studioData) => {
+//   //     return res.json({
+//   //       status: true,
+//   //       message: "All studios returned",
+//   //       studios: studioData,
+//   //     });
+//   //   });
+//   // }
+
+//   res.status(200).json({
+//     success:true,
+//     studio_data
+//   })
+// };
+
+exports.getStudios = async (req, res, next) => {// complite controler overWritten by Uday
+  const filter = pick(req.query, [
+    "fullName",
+    "city",
+    "totalRooms",
+    "isActive",
+    "creationTimeStamp",
+    "startPricePerHour",
+    "endPricePerHour",
+  ]); // || { isActive: 1 };
+  console.log(filter);
+  const options = pick(req.query, [
+    "sortfield",
+    "sortvalue",
+    "limit",
+    "page",
+    "populate",
+    "pageNumber",
+    "pageSize"
+  ]);
+  let pipeline = [];
+  if (filter.fullName) {
+    pipeline.push({
+      $match: { $text: { $search: filter.fullName } },
+    });
+  }
+  if (filter.city) {
+    const regex = new RegExp(filter.city, "i");
+    pipeline.push({
+      $match: { city: { $regex: regex } },
+    });
+  }
+  if (filter.totalRooms) {
+    filter.totalRooms = +filter.totalRooms;
+    pipeline.push({
+      $match: { totalRooms: filter.totalRooms },
+    });
+  }
+  if (filter.isActive) {
+    filter.isActive = +filter.isActive;
+    pipeline.push({
+      $match: { isActive: filter.isActive },
+    });
+  }
+  if (filter.creationTimeStamp) {
+    const userInputDate = filter.creationTimeStamp;
+    const startDate = new Date(userInputDate);
+    startDate.setUTCHours(0, 0, 0, 0); 
+    const endDate = new Date(userInputDate);
+    endDate.setUTCHours(23, 59, 59, 999); 
+    pipeline.push({
+      $match: {
+        creationTimeStamp: {
+          $gte: startDate,
+          $lt: endDate     
+        }
+      }
+    }
+    );
+  }
+
+  if (filter.startPricePerHour && filter.endPricePerHour) {
+    let startPricePerHour = +filter.startPricePerHour;
+    let endPricePerHour = +filter.endPricePerHour;
+    pipeline.push({
+      $match: {
+        pricePerHour: { $gte: startPricePerHour, $lte: endPricePerHour },
+      },
+    });
+  }
+
+  const sortobj = { [options.sortfield]: +options.sortvalue };
+
+  if (options.sortfield) {
+    const sortStage = {
+      $sort: sortobj,
+    };
+    pipeline.push(sortStage);
+  }
+
+
+  const pageNumber = +options.pageNumber || 1;
+  const pageSize = +options.pageSize || 10;
+  const skipValue = (pageNumber - 1) * pageSize;
+
+ if(pageNumber || pageSize){
+  pipeline.push( {
+    $skip: skipValue
+  },
+  {
+    $limit: pageSize
   })
+ }
+  // 1,2,3,4,5,6,7,8,98,0,
+  // size = 2
+  // page = 2
+
+//  if (options.limit) {
+//   const limitStage = {
+//     $limit: parseInt(options.limit),
+//   };
+//   pipeline.push(limitStage);
+// }
+
+
+  const data = await Studio.searchStudioWithFilters_Aggregation(pipeline);
+  res.status(200).json({
+    success: true,
+    no_of_studios: data.length,
+    studios: data,
+  });
 };
 
 exports.getStudiosOptimized = (req, res, next) => {
@@ -631,15 +746,13 @@ exports.getDashboardStudios = (req, res, next) => {
       studiosData = resData;
       if (studiosData.length == 0) {
         console.log("availableStudios1:");
-        return res
-          .status(404)
-          .json({
-            status: false,
-            message: "No studio exist",
-            nearYou: [],
-            topRated: [],
-            forYou: [],
-          });
+        return res.status(404).json({
+          status: false,
+          message: "No studio exist",
+          nearYou: [],
+          topRated: [],
+          forYou: [],
+        });
       } else {
         if (latitude == undefined || latitude.length == 0) {
           console.log("Default filter");
@@ -1254,67 +1367,68 @@ exports.getAllStudiosGraphDetails = (req, res, next) => {
 
 exports.exportStudioData = async (req, res) => {
   try {
-    const filter = pick(req.query, ['city','state',/*'overallAvgRating'*/]); // {overallAvgRating: 4}
-    const options = pick(req.query, ['sort', 'limit', 'startDate','endDate','page','sortfield','sortvalue']); // {}
-    const pipeline = []
-    
-    if(Object.keys(filter).length){
-      pipeline.push(
-        {
-          $match: filter,
-        }
-      )
+    const filter = pick(req.query, ["city", "state" /*'overallAvgRating'*/]); // {overallAvgRating: 4}
+    const options = pick(req.query, [
+      "sort",
+      "limit",
+      "startDate",
+      "endDate",
+      "page",
+      "sortfield",
+      "sortvalue",
+    ]); // {}
+    const pipeline = [];
+
+    if (Object.keys(filter).length) {
+      pipeline.push({
+        $match: filter,
+      });
     }
-        
 
-      console.log("this is pipe======>",pipeline);
-      if (options.startDate && options.endDate) {
-        let startDate=options.startDate
-        let endDate=options.endDate
-        pipeline.push({
-          $match: {
-            creationTimeStamp: {
-              $gte: new Date(startDate),
-              $lte: new Date(endDate)
-            },
+    console.log("this is pipe======>", pipeline);
+    if (options.startDate && options.endDate) {
+      let startDate = options.startDate;
+      let endDate = options.endDate;
+      pipeline.push({
+        $match: {
+          creationTimeStamp: {
+            $gte: new Date(startDate),
+            $lte: new Date(endDate),
           },
-        });
-      }
+        },
+      });
+    }
 
+    const sortobj = { [options.sortfield]: +options.sortvalue };
 
+    if (options.sortfield) {
+      const sortStage = {
+        $sort: sortobj,
+      };
+      pipeline.push(sortStage);
+    }
 
-      const sortobj = {[options.sortfield]:+options.sortvalue}
+    if (options.limit) {
+      const limitStage = {
+        $limit: parseInt(options.limit),
+      };
+      pipeline.push(limitStage);
+    }
 
-      if (options.sortfield) {
-        const sortStage = {
-          $sort: sortobj
-        };
-        pipeline.push(sortStage);
-      }
-     
-  
-      if (options.limit) {
-        const limitStage = {
-          $limit: parseInt(options.limit),
-        };
-        pipeline.push(limitStage);
-      }
-  
-      if (options.page) {
-        const skipStage = {
-          $skip: (parseInt(options.page) - 1
-          ) * parseInt(options.limit),
-        };
-        pipeline.push(skipStage);
-      }
-      console.log(JSON.stringify(pipeline))
+    if (options.page) {
+      const skipStage = {
+        $skip: (parseInt(options.page) - 1) * parseInt(options.limit),
+      };
+      pipeline.push(skipStage);
+    }
+    console.log(JSON.stringify(pipeline));
     let allStudios;
-      if(filter || options) {
-          allStudios = await Studio.fetchAllStudiosByAggregate(pipeline);
-      }else {
-           allStudios = await Studio.fetchAllStudios(0,0)
-      }
-    
+    if (filter || options) {
+      allStudios = await Studio.fetchAllStudiosByAggregate(pipeline);
+    } else {
+      allStudios = await Studio.fetchAllStudios(0, 0);
+    }
+
     const workbook = new excelJS.Workbook();
     const worksheet = workbook.addWorksheet("studioData");
     const path = "./files";
@@ -1348,29 +1462,39 @@ exports.exportStudioData = async (req, res) => {
     let counter = 1;
     await allStudios.forEach((studio) => {
       studio.s_no = counter;
-      worksheet.addRow(studio)
+      worksheet.addRow(studio);
       counter++;
     });
 
     worksheet.getRow(1).eachCell((cell) => {
-        cell.font = { bold: true };
-      });
+      cell.font = { bold: true };
+    });
 
-      const data = await workbook.xlsx
+    const data = await workbook.xlsx
       .writeFile(`C:/Users/Choira Dev 2/Desktop/studio_api/files/studios.xlsx`)
       .then(() => {
         console.log(__dirname);
-        res.header({"Content-disposition" : "attachment; filename=studios.xlsx" ,"Content-Type" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}).sendFile("studios.xlsx", {root: `C:/Users/Choira Dev 2/Desktop/studio_api/files`}, function (err) {
-          if (err) {
-              console.error('Error sending file:', err);
-          } else {
-              console.log({
-                status: "success",
-                message: "file successfully downloaded",
-                path: `${path}/studios.xlsx`
-              });
-          }
-      })
+        res
+          .header({
+            "Content-disposition": "attachment; filename=studios.xlsx",
+            "Content-Type":
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          })
+          .sendFile(
+            "studios.xlsx",
+            { root: `C:/Users/Choira Dev 2/Desktop/studio_api/files` },
+            function (err) {
+              if (err) {
+                console.error("Error sending file:", err);
+              } else {
+                console.log({
+                  status: "success",
+                  message: "file successfully downloaded",
+                  path: `${path}/studios.xlsx`,
+                });
+              }
+            }
+          );
       });
     console.log(data);
   } catch (error) {
