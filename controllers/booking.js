@@ -18,7 +18,7 @@ const ObjectId = mongodb.ObjectId;
 
 const jwt = require('jsonwebtoken');
 
-const send_mail = require("../util/mail.js");
+const { send_mail } = require("../util/mail.js");
 const pick = require('../util/pick')
 const { getLogger } = require('nodemailer/lib/shared');
 
@@ -461,6 +461,7 @@ exports.createNewBooking = async (req, res, next) => {
 
         const bookingObj = new Booking(userId, studioId, roomId, bookingDate, bookingTime, totalPrice, bookingStatus, "c1");
         const resultData = await bookingObj.save();
+        sendMailToUserAndAdmin({ userId, studioId, roomId, bookingDate, bookingTime, totalPrice })
         const bookingData = resultData.ops[0];
         bookingData.totalPrice = bookingData.totalPrice.toFixed(2);
 
@@ -491,11 +492,69 @@ exports.createNewBooking = async (req, res, next) => {
         } else {
             return res.json({ status: true, message: "Booking created successfully(Notification not sent)", booking: bookingData });
         }
+
     } catch (error) {
         console.error(error);
         return res.status(500).json({ status: false, message: "Internal Server Error" });
     }
 };
+
+
+async function sendMailToUserAndAdmin(datas) {
+
+
+    const { userId, studioId, roomId, bookingDate, bookingTime, totalPrice } = datas
+
+    const bookingDetails = { userName: "", userNumber: "", studioName: "", studioLocation: "", bookingDateTime: "", totalPrice: "" }
+
+    bookingDetails.bookingDateTime = `${bookingDate} at ${bookingTime.startTime}-${bookingTime.endTime}`;
+    bookingDetails.totalPrice = totalPrice
+    const user_data = await User.findUserByUserId(userId);
+    if (user_data) {
+
+        bookingDetails.userName = user_data.fullName
+        bookingDetails.userNumber = user_data.phone
+
+    } else {
+        const subAdmin_data = await SubAdmin.findSubAdminById(userId)
+        if (subAdmin_data) {
+            bookingDetails.userName = `"${subAdmin_data.firstName} ${subAdmin_data.lastName}`
+            bookingDetails.adminEmail = subAdmin_data.email
+
+        } else {
+
+            const admin_data = await Admin.findAdminById(userId)
+            if (admin_data) {
+                bookingDetails.userName = `"${admin_data.firstName} ${admin_data.lastName}`
+                bookingDetails.adminEmail = admin_data.email
+            } else {
+
+                const owner_data = await Owner.findOwnerByOwnerId(userId)
+                if (owner_data) {
+                    bookingDetails.ownerName = `"${owner_data.firstName} ${owner_data.lastName}`
+                    bookingDetails.ownerEmail = owner_data.email
+                } else {
+                    bookingDetails.userName = "Admin"
+                }
+            }
+
+        }
+    }
+    const studioData = await Studio.findStudioById(studioId)
+    if (studioData) {
+        bookingDetails.studioName = studioData.fullName;
+        bookingDetails.studioLocation = studioData.address;
+
+        studioData.roomsDetails.map(room => {
+            if (room.roomId === roomId) {
+                bookingDetails.roomName = room.roomName
+                bookingDetails.area = room.area
+                bookingDetails.priceperhour = room.pricePerHour
+            }
+        })
+    }
+    send_mail(bookingDetails)
+}
 
 exports.createServiceBooking = async (req, res, next) => {
     try {
@@ -526,7 +585,7 @@ exports.createServiceBooking = async (req, res, next) => {
         }
 
         if (ExistingServiceData.length) {
-            console.log("ExistingServiceData:", ExistingServiceData);
+            // console.log("ExistingServiceData:", ExistingServiceData);
             return res.status(200).json({ status: false, message: "Requested Package booking has been pre-booked already!" });
         }
 
@@ -551,7 +610,7 @@ exports.createServiceBooking = async (req, res, next) => {
             }
         });
 
-        console.log("oneSignal result:", result.status);
+        // console.log("oneSignal result:", result.status);
 
         if (result.status === 1) {
             const notification = new Notifications(userId, title, message);
@@ -1570,7 +1629,8 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
 
 }
 
-// 
+//
+
 
 function getCompletedBookings(allBookings, _callback) {
     var currDate = new Date();
@@ -2168,6 +2228,7 @@ exports.getAllBookings = async (req, res, next) => {
                     pipeline: [
                         {
                             $match: {
+
                                 $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] }
                             }
                         }
@@ -2206,6 +2267,7 @@ exports.getAllBookings = async (req, res, next) => {
             });
         } else {
             pipeline_lane.push({ $match: { bookingStatus: bookingType, $or: [{ type: "c1" }, { type: { $nin: ["c2", "c3"] } }] } });
+            pipeline_lane.push({ $sort: { _id: -1 } })
             pipeline_lane.push({
 
                 $lookup: {
@@ -2335,6 +2397,10 @@ exports.getServiceBookings = async (req, res) => {
 
         },
         {
+            $sort: { _id: -1 }
+
+        },
+        {
             $lookup: {
                 from: "services",
                 let: { serviceIdStr: "$studioId", roomIdint: "$roomId" },
@@ -2407,11 +2473,11 @@ exports.updateServiceBooking = async (req, res) => {
         return res.status(404).json({ status: false, message: "No Booking with this ID exists" });
     }
 
-    console.log(">>>>>>>>>bbbbb:",+bookingStatus)
-    if ([0,1,2].includes(+bookingStatus)) bookingData.bookingStatus = +bookingStatus;
+    console.log(">>>>>>>>>bbbbb:", +bookingStatus)
+    if ([0, 1, 2].includes(+bookingStatus)) bookingData.bookingStatus = +bookingStatus;
     const db = getDb();
     var o_id = new ObjectId(bookingId);
-    console.log(">>>>>>>>>>>>>.bookingData:",bookingData);
+    console.log(">>>>>>>>>>>>>.bookingData:", bookingData);
     db.collection('bookings').updateOne({ _id: o_id }, { $set: bookingData })
         .then(resultData => {
             res.status(200).json({ status: true, message: 'Bookings Status updated successfully' });
