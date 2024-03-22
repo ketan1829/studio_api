@@ -157,53 +157,40 @@ exports.createNewService = async (req, res, next) => {
 };
 
 exports.getServices = (req, res, next) => {
+
   console.log("body---", req.query);
   // const { serviceName, startingPrice, offerings, TotalServices, avgReview, serviceId } = req.query;
-  const filter = pick(req.query, [
-    "serviceType",
-    "active",
-    "serviceName",
-    "startingPrice",
-    "planId",
-  ]);
-  const options = pick(req.query, ["sortBy", "limit", "page"]);
+  const filter = pick(req.query, ['serviceType', 'active', 'serviceName', 'startingPrice', 'planId'])
+  const options = pick(req.query, ['sortBy', 'limit', 'page']);
 
-  let mappedFilter = {};
+  let mappedFilter = {}
 
-  const collectionName = homeScreen.category?.[filter.serviceType]?.coll;
+  const collectionName = homeScreen.category?.[filter.serviceType]?.coll
 
-  if (filter.serviceType) mappedFilter.type = filter.serviceType; //: filter.catId = 1;
-  filter.active
-    ? (mappedFilter.isActive = parseInt(filter.active))
-    : (mappedFilter.isActive = 1);
+  if (filter.serviceType) mappedFilter.type = filter.serviceType //: filter.catId = 1;
+  filter.active ? mappedFilter.isActive = parseInt(filter.active) : mappedFilter.isActive = 1;
 
   if (filter.planId) {
-    var o_id = new ObjectId(filter.planId);
-    filter._id = o_id;
+      var o_id = new ObjectId(filter.planId);
+      filter._id = o_id
   }
   if (filter.serviceName) mappedFilter.fullName = serviceName;
   if (filter.startingPrice) mappedFilter.price = startingPrice;
   if (filter.TotalServices) mappedFilter.totalPlans = TotalServices;
-  if (filter.avgReview)
-    mappedFilter.featuredReviews.avgService = parseFloat(avgReview);
+  if (filter.avgReview) mappedFilter.featuredReviews.avgService = parseFloat(avgReview);
 
   console.log("collectionName----", collectionName, mappedFilter, options);
 
   const { error } = validateFilterSchema(filter);
   if (error) {
-    return res
-      .status(400)
-      .json({ status: false, message: error.details[0].message });
+      return res.status(400).json({ status: false, message: error.details[0].message });
   }
 
   paginate(collectionName, mappedFilter, options).then((ServiceData) => {
-    return res.json({
-      status: true,
-      message: `Page ${ServiceData.page} of ${ServiceData.totalPages} - ${ServiceData.totalResults} services returned`,
-      services: ServiceData,
-    });
-  });
-};
+      return res.json({ status: true, message: `Page ${ServiceData.page} of ${ServiceData.totalPages} - ${ServiceData.totalResults} services returned`, services: ServiceData });
+  })
+
+}
 
 exports.getServiceBookings = (req, res, next) => {
   console.log("body---", req.query);

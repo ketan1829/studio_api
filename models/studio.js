@@ -155,11 +155,6 @@ class Studio {
     }
   }
 
-<<<<<<< HEAD
-    static aggregate(Data) {
-        const db = getDb();
-        return db.collection('studios').aggregate(Data).toArray();
-=======
   static async updateDocumentsWithGeoLocation() {
     const db = getDb();
     return db
@@ -190,79 +185,68 @@ class Studio {
       .catch((err) => console.log(err));
   }
 
-  static async paginateNearbyLoc(
-    filter,
-    options,
-    userCoordinates,
-    rangeInKilometers
-  ) {
+  static async paginateNearbyLoc(filter, options, userCoordinates, rangeInKilometers) {
     try {
-      const db = getDb();
-      let sort = {};
-      console.log("options", options);
-      if (options.sortBy) {
-        const sortingCriteria = options.sortBy.split(",").map((sortOption) => {
-          const [key, order] = sortOption.split(":");
-          return { [key]: order === "desc" ? -1 : 1 };
-        });
-        sortingCriteria.forEach((criteria) => {
-          sort = { ...sort, ...criteria };
-        });
-      } else {
-        // If sortBy is not provided, provide a default sorting criterion
-        sort = { distance: 1 }; // Sort by distance in ascending order
-      }
+        const db = getDb();
+        let sort = {};
+        console.log("options", options);
+        if (options.sortBy) {
+            const sortingCriteria = options.sortBy.split(',').map(sortOption => {
+                const [key, order] = sortOption.split(':');
+                return { [key]: order === 'desc' ? -1 : 1 };
+            });
+            sortingCriteria.forEach(criteria => {
+                sort = { ...sort, ...criteria };
+            });
+        } else {
+            // If sortBy is not provided, provide a default sorting criterion
+            sort = { distance: 1 }; // Sort by distance in ascending order
+        }
 
-      const limit = parseInt(options.limit, 10) || 10;
-      const page = parseInt(options.page, 10) || 1;
-      const skip = (page - 1) * limit;
+        const limit = parseInt(options.limit, 10) || 10;
+        const page = parseInt(options.page, 10) || 1;
+        const skip = (page - 1) * limit;
 
-      // await db.collection('studios').createIndex({ "latitude": "2dsphere", "longitude": "2dsphere" })
+        // await db.collection('studios').createIndex({ "latitude": "2dsphere", "longitude": "2dsphere" })
 
-      const countPromise = db.collection("studios").countDocuments(filter);
 
-      // Calculate the distance from user coordinates and filter by range
-      const docsPromise = db.collection("studios").aggregate([
-        {
-          $geoNear: {
-            near: {
-              type: "Point",
-              coordinates: [
-                parseFloat(userCoordinates.longitude),
-                parseFloat(userCoordinates.latitude),
-              ],
+        const countPromise = db.collection('studios').countDocuments(filter);
+
+        // Calculate the distance from user coordinates and filter by range
+        const docsPromise = db.collection('studios').aggregate([
+            {
+                $geoNear: {
+                    near: {
+                        type: "Point",
+                        coordinates: [parseFloat(userCoordinates.longitude), parseFloat(userCoordinates.latitude)]
+                    },
+                    distanceField: "distance",
+                    spherical: true,
+                    maxDistance: rangeInKilometers * 1000 // Convert to meters
+                }
             },
-            distanceField: "distance",
-            spherical: true,
-            maxDistance: rangeInKilometers * 1000, // Convert to meters
-          },
-        },
-        { $sort: sort },
-        { $skip: skip },
-        { $limit: limit },
-      ]);
+            { $sort: sort },
+            { $skip: skip },
+            { $limit: limit }
+        ]);
 
-      console.log("docsPromise----", docsPromise.toArray().results);
+        console.log("docsPromise----", docsPromise.toArray().results)
 
-      const [totalResults, results] = await Promise.all([
-        countPromise,
-        docsPromise.toArray(),
-      ]);
-      const totalPages = Math.ceil(totalResults / limit);
+        const [totalResults, results] = await Promise.all([countPromise, docsPromise.toArray()]);
+        const totalPages = Math.ceil(totalResults / limit);
 
-      return {
-        results,
-        page,
-        limit,
-        totalPages,
-        totalResults,
-      };
+        return {
+            results,
+            page,
+            limit,
+            totalPages,
+            totalResults,
+        };
     } catch (error) {
-      // Handle errors appropriately
-      throw new Error("Pagination failed: " + error.message);
->>>>>>> uday_branch
+        // Handle errors appropriately
+        throw new Error('Pagination failed: ' + error.message);
     }
-  }
+}
 
   static async fetchAllStudio(filter, options) {
     try {

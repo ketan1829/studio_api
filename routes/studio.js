@@ -267,7 +267,9 @@ router.post('/studios/dashboard-filter',controller.getDashboardStudios);
 
 // api/studios                       --  Get all studios
 // api/studios?skip=0&limit=50       --  Get particular range of studios based on skip and limit
-router.get('/studios-all',auth.isBoth,controller.getAllStudios);
+
+// get studios (location, filters, sorting)
+router.get('/studios-all',auth.isBoth,controller.getStudios);
 
 /**
  * @swagger
@@ -316,7 +318,7 @@ router.get('/studios-all',auth.isBoth,controller.getAllStudios);
  *         description: Some server error, enter valid mongo object ID
  */
 
-router.get('/studios',auth.isBoth,controller.getStudios);
+router.get('/studios',auth.isBoth,controller.getAllStudios);
 
 // router.get('/all-states',controller.getAllStates);
 
