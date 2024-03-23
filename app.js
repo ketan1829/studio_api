@@ -38,7 +38,7 @@ const options = {
       openapi: "3.0.1",
       info: {
         title: "Choira Studio - API",
-        version: "2.2.3",
+        version: "2.4.0",
       },
       servers: [
         {
