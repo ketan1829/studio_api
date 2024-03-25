@@ -1160,9 +1160,63 @@ exports.getAllStudios = (req, res, next) => {
   });
 };
 
-exports.editStudioDetails = (req, res, next) => {
-  const studioId = req.params.studioId;
+// exports.editStudioDetails = (req, res, next) => {
+//   const studioId = req.params.studioId;
+//   const fullName = req.body.fullName.trim();
+//   const address = req.body.address;
+//   const mapLink = req.body.mapLink;
+//   const city = req.body.city;
+//   const state = req.body.state;
+//   const area = parseFloat(req.body.area);
+//   const pincode = req.body.pincode;
+//   const amenities = req.body.amenities;
+//   const totalRooms = +req.body.totalRooms;
+//   const roomsDetails = req.body.roomsDetails;
+//   const maxGuests = req.body.maxGuests;
+//   const studioPhotos = req.body.studioPhotos;
+//   const aboutUs = req.body.aboutUs;
+//   const teamDetails = req.body.teamDetails;
 
+//   Studio.findStudioById(studioId).then((studioData) => {
+//     if (!studioData) {
+//       return res
+//         .status(404)
+//         .json({ status: false, message: "No Studio with this ID exists" });
+//     }
+//     studioData.fullName = fullName;
+//     studioData.address = address;
+//     studioData.mapLink = mapLink;
+//     studioData.city = city;
+//     studioData.state = state;
+//     studioData.area = area;
+//     studioData.pincode = pincode;
+//     studioData.amenities = amenities;
+//     studioData.totalRooms = totalRooms;
+//     studioData.roomsDetails = roomsDetails;
+//     studioData.maxGuests = maxGuests;
+//     studioData.studioPhotos = studioPhotos;
+//     studioData.aboutUs = aboutUs;
+//     studioData.teamDetails = teamDetails;
+//     console.log("update is running");
+//     const db = getDb();
+//     var o_id = new ObjectId(studioId);
+// console.log(o_id);
+//     db.collection("studios")
+//       .updateOne({ _id: o_id }, { $set: studioData })
+//       .then((resultData) => {
+//         return res.json({
+//           status: true,
+//           message: "Studio details updated successfully",
+//           studio: studioData,
+//         });
+//       })
+//       .catch((err) => console.log(err));
+//   });
+// };
+
+
+exports.editStudioDetails = async(req, res, next) => {// Overwritten by Uday
+  const studioId = req.params.studioId;
   const fullName = req.body.fullName.trim();
   const address = req.body.address;
   const mapLink = req.body.mapLink;
@@ -1177,43 +1231,42 @@ exports.editStudioDetails = (req, res, next) => {
   const studioPhotos = req.body.studioPhotos;
   const aboutUs = req.body.aboutUs;
   const teamDetails = req.body.teamDetails;
+  let studio = await Studio.findStudioById(studioId)
+  if (!studio) {
+    return res
+    .status(404)
+    .json({ status: false, message: "No Studio with this ID exists" });
+  }
 
-  Studio.findStudioById(studioId).then((studioData) => {
-    if (!studioData) {
-      return res
-        .status(404)
-        .json({ status: false, message: "No Studio with this ID exists" });
-    }
-    studioData.fullName = fullName;
-    studioData.address = address;
-    studioData.mapLink = mapLink;
-    studioData.city = city;
-    studioData.state = state;
-    studioData.area = area;
-    studioData.pincode = pincode;
-    studioData.amenities = amenities;
-    studioData.totalRooms = totalRooms;
-    studioData.roomsDetails = roomsDetails;
-    studioData.maxGuests = maxGuests;
-    studioData.studioPhotos = studioPhotos;
-    studioData.aboutUs = aboutUs;
-    studioData.teamDetails = teamDetails;
+  let studioObj={
+    fullName,
+    address,
+    mapLink,
+    city,
+    state,
+    area,
+    pincode,
+    amenities,
+    totalRooms,
+    roomsDetails,
+    maxGuests,
+    studioPhotos,
+    aboutUs,
+    teamDetails,
+  }
 
-    const db = getDb();
-    var o_id = new ObjectId(studioId);
+  let newStudioData = await Studio.filterEmptyFields(studioObj)
 
-    db.collection("studios")
-      .updateOne({ _id: o_id }, { $set: studioData })
-      .then((resultData) => {
-        return res.json({
-          status: true,
-          message: "Studio details updated successfully",
-          studio: studioData,
-        });
-      })
-      .catch((err) => console.log(err));
+  const updated_result = await Studio.updateStudioById(studioId, newStudioData);
+  
+  res.send({
+    status: true,
+    message: "Studio details updated successfully",
+    studio: updated_result,
   });
-};
+ 
+}
+
 
 exports.getStudiosByDate = (req, res, next) => {
   let creationDate = req.body.creationDate;

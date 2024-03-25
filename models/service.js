@@ -40,7 +40,7 @@ class Service {
     
             const result = await db.collection(collectionName).insertOne(this);
             return result.ops[0];
-        } catch (error) {
+        } catch (error) { 
             console.error('Error saving service:', error);
             throw error;
         }
@@ -101,7 +101,7 @@ class Service {
         // console.log("filteredObject",filteredObject); 
       
         return filteredObject;
-      }
+    }
       
 
     static async updateServiceByPackageId(pId,newData) {
