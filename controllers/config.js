@@ -36,3 +36,19 @@ exports.AddKeyDoc = async(req,res,next)=>{
     const db = getDb(); 
     return await db.collection("studios").createIndex({ fullName: "text" });
  }
+
+
+
+ exports.updateAllUser=async(req,res)=>{
+try {
+  const db = getDb();
+    db.collection("users")
+      .updateMany({},{ $set: { status: 1 }})
+      .then((resultData) => {
+        return res.json({ status: true, message: "all User updated successfully" });
+      })
+      .catch((err) => console.log(err));
+} catch (error) {
+  console.log(error);
+}
+}

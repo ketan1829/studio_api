@@ -205,6 +205,8 @@ exports.getStudios = async (req, res, next) => {// complite controler overWritte
     "creationTimeStamp",
     "startPricePerHour",
     "endPricePerHour",
+    "amenities",
+    'discountPercentage'
   ]); // || { isActive: 1 };
   console.log(filter);
   const options = pick(req.query, [
@@ -214,7 +216,8 @@ exports.getStudios = async (req, res, next) => {// complite controler overWritte
     "page",
     "populate",
     "pageNumber",
-    "pageSize"
+    "pageSize",
+    'discountPercentage'
   ]);
   let pipeline = [];
   if (filter.fullName) {
@@ -266,7 +269,40 @@ exports.getStudios = async (req, res, next) => {// complite controler overWritte
       },
     });
   }
-
+    
+if(filter.amenities){
+  const amenities = filter.amenities.split(',').map(amenity => amenity.trim());
+  const regexAmenities = amenities.map(amenity => new RegExp(amenity, 'i'));
+  console.log(regexAmenities);
+  
+  pipeline.push(
+    {
+      $match: {
+        amenities: {
+          $elemMatch: {
+            name: { $in: regexAmenities }
+          }
+        }
+      }
+    }
+  )
+}
+console.log(filter.discountPercentage);
+if(filter.discountPercentage){
+  const discountPercentage = +filter.discountPercentage;
+  console.log(typeof discountPercentage);
+  pipeline.push(
+    {
+      $match: {
+        roomsDetails: {
+          $elemMatch: {
+            discountPercentage: discountPercentage
+          }
+        }
+      }
+    }
+  )
+}
   const sortobj = { [options.sortfield]: +options.sortvalue };
 
   if (options.sortfield) {
