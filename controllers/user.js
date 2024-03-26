@@ -440,7 +440,7 @@ exports.loginUser = (req, res, next) => {
     db.collection("users")
       .updateOne({ email: email }, { $set: userData })
       .then((resultData) => {
-        jwt.sign({ user: userData }, secretKey, (err, token) => {
+        jwt.sign({ user: userData }, 'myAppSecretKey', (err, token) => {
           res.json({
             status: true,
             message: "Successfully Logged In",

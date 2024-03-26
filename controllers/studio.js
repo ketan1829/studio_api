@@ -1253,13 +1253,16 @@ exports.getAllStudios = (req, res, next) => {
 
 exports.editStudioDetails = async(req, res, next) => {// Overwritten by Uday
   const studioId = req.params.studioId;
-  const fullName = req.body.fullName.trim();
+  const fullName = req.body.fullName;
   const address = req.body.address;
+  const latitude =  parseFloat(req.body.latitude);
+  const longitude =  parseFloat(req.body.longitude);
   const mapLink = req.body.mapLink;
   const city = req.body.city;
   const state = req.body.state;
-  const area = parseFloat(req.body.area);
+  const area = +req.body.area;
   const pincode = req.body.pincode;
+  const pricePerHour = +req.body.pricePerHour;
   const amenities = req.body.amenities;
   const totalRooms = +req.body.totalRooms;
   const roomsDetails = req.body.roomsDetails;
@@ -1274,21 +1277,66 @@ exports.editStudioDetails = async(req, res, next) => {// Overwritten by Uday
     .json({ status: false, message: "No Studio with this ID exists" });
   }
 
+
+
+
+  // const updatedAminities = amenities.map((a_key, j) => {
+  //   return studio.amenities.map((ame, i) => {
+  //     console.log(ame.id);
+  //     console.log(a_key.id);
+  //     if (ame.id === a_key.id) {
+  //       console.log(ame.id === a_key.id);
+  //       let upadated_ame = studio.amenities[i];
+  //       upadated_ame = { ...upadated_ame, ...amenities[j] };
+  //       console.log(upadated_ame);
+  //       return upadated_ame;
+  //     }
+  //     return ame;
+  //   });
+  // });
+
+ 
+const updatedAminities = studio.amenities.map((ame, i) => {
+  const matchingAmenity = amenities?.find(a_key => a_key.id === ame.id);
+  if (matchingAmenity) {
+    return { ...ame, ...matchingAmenity };
+  }else if(!matchingAmenity){
+    return {...ame, ...amenities}
+  }
+  return ame;
+});
+
+const updatedTeamDetails = studio.teamDetails.map((team, i) => {
+  const matchingTeam = teamDetails?.find(t_key => t_key.id === team.id);
+  if(matchingTeam) {
+    return {...team, ...matchingTeam};
+  }else if(!matchingTeam){
+    return {...team, ...teamDetails}
+  }
+  return team;
+})
+
+
+
+
   let studioObj={
     fullName,
     address,
+    latitude,
+    longitude,
     mapLink,
     city,
     state,
     area,
     pincode,
-    amenities,
+    pricePerHour,
+    amenities : updatedAminities,
     totalRooms,
     roomsDetails,
     maxGuests,
     studioPhotos,
     aboutUs,
-    teamDetails,
+    teamDetails: updatedTeamDetails
   }
 
   let newStudioData = await Studio.filterEmptyFields(studioObj)
