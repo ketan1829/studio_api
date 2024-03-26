@@ -521,9 +521,9 @@ exports.createNewStudio = async (req, res, next) => {
                     let longitude = res_data.lng.toString();
 
                     console.log(latitude,longitude)
-
+                    const location = { type: "Point", coordinates: [longitude, latitude] }
                     const studioObj = new Studio(fullName, address, latitude, longitude, mapLink, city, state, area, pincode, pricePerHour, availabilities, amenities, totalRooms, roomsDetails,
-                        maxGuests, studioPhotos, aboutUs, teamDetails, clientPhotos, reviews, featuredReviews, 1);
+                        maxGuests, studioPhotos, aboutUs, teamDetails, clientPhotos, reviews, featuredReviews, 1, location);
 
                     // saving in database
                     return studioObj.save()
@@ -1072,17 +1072,69 @@ exports.getAllStudios = (req, res, next) => {
 
 }
 
-exports.editStudioDetails = (req, res, next) => {
+// exports.editStudioDetails = (req, res, next) => {
 
+//   const studioId = req.params.studioId;
+
+//   const fullName = req.body.fullName.trim();
+//   const address = req.body.address;
+//   const mapLink = req.body.mapLink;
+//   const city = req.body.city;
+//   const state = req.body.state;
+//   const area = parseFloat(req.body.area);
+//   const pincode = req.body.pincode;
+//   const amenities = req.body.amenities;
+//   const totalRooms = +req.body.totalRooms;
+//   const roomsDetails = req.body.roomsDetails;
+//   const maxGuests = req.body.maxGuests;
+//   const studioPhotos = req.body.studioPhotos;
+//   const aboutUs = req.body.aboutUs;
+//   const teamDetails = req.body.teamDetails;
+
+//   Studio.findStudioById(studioId)
+//       .then(studioData => {
+//           if (!studioData) {
+//               return res.status(404).json({ status: false, message: "No Studio with this ID exists" });
+//           }
+//           studioData.fullName = fullName;
+//           studioData.address = address;
+//           studioData.mapLink = mapLink;
+//           studioData.city = city;
+//           studioData.state = state;
+//           studioData.area = area;
+//           studioData.pincode = pincode;
+//           studioData.amenities = amenities;
+//           studioData.totalRooms = totalRooms;
+//           studioData.roomsDetails = roomsDetails;
+//           studioData.maxGuests = maxGuests;
+//           studioData.studioPhotos = studioPhotos;
+//           studioData.aboutUs = aboutUs;
+//           studioData.teamDetails = teamDetails;
+
+//           const db = getDb();
+//           var o_id = new ObjectId(studioId);
+
+//           db.collection('studios').updateOne({ _id: o_id }, { $set: studioData })
+//               .then(resultData => {
+//                   return res.json({ status: true, message: 'Studio details updated successfully', studio: studioData });
+//               })
+//               .catch(err => console.log(err));
+//       })
+
+// }
+
+exports.editStudioDetails = async(req, res, next) => {// Overwritten by Uday
   const studioId = req.params.studioId;
-
-  const fullName = req.body.fullName.trim();
+  const fullName = req.body.fullName;
   const address = req.body.address;
+  const latitude =  parseFloat(req.body.latitude);
+  const longitude =  parseFloat(req.body.longitude);
   const mapLink = req.body.mapLink;
   const city = req.body.city;
   const state = req.body.state;
-  const area = parseFloat(req.body.area);
+  const area = +req.body.area;
   const pincode = req.body.pincode;
+  const pricePerHour = +req.body.pricePerHour;
   const amenities = req.body.amenities;
   const totalRooms = +req.body.totalRooms;
   const roomsDetails = req.body.roomsDetails;
@@ -1090,37 +1142,81 @@ exports.editStudioDetails = (req, res, next) => {
   const studioPhotos = req.body.studioPhotos;
   const aboutUs = req.body.aboutUs;
   const teamDetails = req.body.teamDetails;
+  let studio = await Studio.findStudioById(studioId)
+  if (!studio) {
+    return res
+    .status(404)
+    .json({ status: false, message: "No Studio with this ID exists" });
+  }
 
-  Studio.findStudioById(studioId)
-      .then(studioData => {
-          if (!studioData) {
-              return res.status(404).json({ status: false, message: "No Studio with this ID exists" });
-          }
-          studioData.fullName = fullName;
-          studioData.address = address;
-          studioData.mapLink = mapLink;
-          studioData.city = city;
-          studioData.state = state;
-          studioData.area = area;
-          studioData.pincode = pincode;
-          studioData.amenities = amenities;
-          studioData.totalRooms = totalRooms;
-          studioData.roomsDetails = roomsDetails;
-          studioData.maxGuests = maxGuests;
-          studioData.studioPhotos = studioPhotos;
-          studioData.aboutUs = aboutUs;
-          studioData.teamDetails = teamDetails;
 
-          const db = getDb();
-          var o_id = new ObjectId(studioId);
 
-          db.collection('studios').updateOne({ _id: o_id }, { $set: studioData })
-              .then(resultData => {
-                  return res.json({ status: true, message: 'Studio details updated successfully', studio: studioData });
-              })
-              .catch(err => console.log(err));
-      })
 
+  // const updatedAminities = amenities.map((a_key, j) => {
+  //   return studio.amenities.map((ame, i) => {
+  //     console.log(ame.id);
+  //     console.log(a_key.id);
+  //     if (ame.id === a_key.id) {
+  //       console.log(ame.id === a_key.id);
+  //       let upadated_ame = studio.amenities[i];
+  //       upadated_ame = { ...upadated_ame, ...amenities[j] };
+  //       console.log(upadated_ame);
+  //       return upadated_ame;
+  //     }
+  //     return ame;
+  //   });
+  // });
+
+ 
+const updatedAminities = studio.amenities.map((ame, i) => {
+  const matchingAmenity = amenities?.find(a_key => a_key.id === ame.id);
+  if (matchingAmenity) {
+    return { ...ame, ...matchingAmenity };
+  }
+  return ame;
+});
+
+const updatedTeamDetails = studio.teamDetails.map((team, i) => {
+  const matchingTeam = teamDetails?.find(t_key => t_key.id === team.id);
+  if(matchingTeam) {
+    return {...team, ...matchingTeam};
+  }
+  return team;
+})
+
+
+
+
+  let studioObj={
+    fullName,
+    address,
+    latitude,
+    longitude,
+    mapLink,
+    city,
+    state,
+    area,
+    pincode,
+    pricePerHour,
+    amenities : updatedAminities,
+    totalRooms,
+    roomsDetails,
+    maxGuests,
+    studioPhotos,
+    aboutUs,
+    teamDetails: updatedTeamDetails
+  }
+
+  let newStudioData = await Studio.filterEmptyFields(studioObj)
+
+  const updated_result = await Studio.updateStudioById(studioId, newStudioData);
+  
+  res.send({
+    status: true,
+    message: "Studio details updated successfully",
+    studio: updated_result,
+  });
+ 
 }
 
 exports.getStudiosByDate = (req, res, next) => {

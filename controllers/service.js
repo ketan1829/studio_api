@@ -49,9 +49,9 @@ exports.createNewService = async (req, res, next) => {
 
       const packages = serviceData.packages;
       
-      packages.map((pack, index)=>{
+      packages?.map((pack, index)=>{
           const amenities = []
-          pack.amenites.split(",").map((amm, index)=>{
+          pack?.amenites.split(",").map((amm, index)=>{
               amenities.push({name:amm, id: index+1})
           })
           pack.amenites = amenities
@@ -61,7 +61,7 @@ exports.createNewService = async (req, res, next) => {
 
 
       const amenities = []
-      amenitiesData.split(",").map((amm, index)=>{
+      amenitiesData?.split(",").map((amm, index)=>{
           amenities.push({name:amm, id: index+1})
       })
       // console.log("amenities ---", amenities);

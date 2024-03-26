@@ -26,7 +26,8 @@ class Studio {
     clientPhotos,
     reviews,
     featuredReviews,
-    isActive
+    isActive,
+    location
   ) {
     this.fullName = fullName;
     this.address = address;
@@ -51,6 +52,7 @@ class Studio {
     this.featuredReviews = featuredReviews; // Array of Objects
     this.isActive = isActive; // 0-> No, 1-> Yes
     this.creationTimeStamp = new Date();
+    this.location = location;
   }
 
   save() {
@@ -63,14 +65,14 @@ class Studio {
     return db.collection("studios").aggregate(Data);
   }
 
-  static async getNearByStudios(longitude, latitude,range) {
+  static async getNearByStudios(longitude, latitude, range) {
     try {
       const db = getDb();
       const nearByStudiosCursor = await db.collection("studios").find({
         location: {
           $nearSphere: {
             $geometry: { type: "Point", coordinates: [longitude, latitude] },
-            $maxDistance: range * 1000
+            $maxDistance: range * 1000,
           },
         },
       });
@@ -78,10 +80,9 @@ class Studio {
       return nearByStudios;
     } catch (error) {
       console.log(error);
-      throw error; 
+      throw error;
     }
   }
-  
 
   static findStudioById(sId) {
     var o_id = new ObjectId(sId);
@@ -185,68 +186,78 @@ class Studio {
       .catch((err) => console.log(err));
   }
 
-  static async paginateNearbyLoc(filter, options, userCoordinates, rangeInKilometers) {
+  static async paginateNearbyLoc(
+    filter,
+    options,
+    userCoordinates,
+    rangeInKilometers
+  ) {
     try {
-        const db = getDb();
-        let sort = {};
-        console.log("options", options);
-        if (options.sortBy) {
-            const sortingCriteria = options.sortBy.split(',').map(sortOption => {
-                const [key, order] = sortOption.split(':');
-                return { [key]: order === 'desc' ? -1 : 1 };
-            });
-            sortingCriteria.forEach(criteria => {
-                sort = { ...sort, ...criteria };
-            });
-        } else {
-            // If sortBy is not provided, provide a default sorting criterion
-            sort = { distance: 1 }; // Sort by distance in ascending order
-        }
+      const db = getDb();
+      let sort = {};
+      console.log("options", options);
+      if (options.sortBy) {
+        const sortingCriteria = options.sortBy.split(",").map((sortOption) => {
+          const [key, order] = sortOption.split(":");
+          return { [key]: order === "desc" ? -1 : 1 };
+        });
+        sortingCriteria.forEach((criteria) => {
+          sort = { ...sort, ...criteria };
+        });
+      } else {
+        // If sortBy is not provided, provide a default sorting criterion
+        sort = { distance: 1 }; // Sort by distance in ascending order
+      }
 
-        const limit = parseInt(options.limit, 10) || 10;
-        const page = parseInt(options.page, 10) || 1;
-        const skip = (page - 1) * limit;
+      const limit = parseInt(options.limit, 10) || 10;
+      const page = parseInt(options.page, 10) || 1;
+      const skip = (page - 1) * limit;
 
-        // await db.collection('studios').createIndex({ "latitude": "2dsphere", "longitude": "2dsphere" })
+      // await db.collection('studios').createIndex({ "latitude": "2dsphere", "longitude": "2dsphere" })
 
+      const countPromise = db.collection("studios").countDocuments(filter);
 
-        const countPromise = db.collection('studios').countDocuments(filter);
-
-        // Calculate the distance from user coordinates and filter by range
-        const docsPromise = db.collection('studios').aggregate([
-            {
-                $geoNear: {
-                    near: {
-                        type: "Point",
-                        coordinates: [parseFloat(userCoordinates.longitude), parseFloat(userCoordinates.latitude)]
-                    },
-                    distanceField: "distance",
-                    spherical: true,
-                    maxDistance: rangeInKilometers * 1000 // Convert to meters
-                }
+      // Calculate the distance from user coordinates and filter by range
+      const docsPromise = db.collection("studios").aggregate([
+        {
+          $geoNear: {
+            near: {
+              type: "Point",
+              coordinates: [
+                parseFloat(userCoordinates.longitude),
+                parseFloat(userCoordinates.latitude),
+              ],
             },
-            { $sort: sort },
-            { $skip: skip },
-            { $limit: limit }
-        ]);
+            distanceField: "distance",
+            spherical: true,
+            maxDistance: rangeInKilometers * 1000, // Convert to meters
+          },
+        },
+        { $sort: sort },
+        { $skip: skip },
+        { $limit: limit },
+      ]);
 
-        console.log("docsPromise----", docsPromise.toArray().results)
+      console.log("docsPromise----", docsPromise.toArray().results);
 
-        const [totalResults, results] = await Promise.all([countPromise, docsPromise.toArray()]);
-        const totalPages = Math.ceil(totalResults / limit);
+      const [totalResults, results] = await Promise.all([
+        countPromise,
+        docsPromise.toArray(),
+      ]);
+      const totalPages = Math.ceil(totalResults / limit);
 
-        return {
-            results,
-            page,
-            limit,
-            totalPages,
-            totalResults,
-        };
+      return {
+        results,
+        page,
+        limit,
+        totalPages,
+        totalResults,
+      };
     } catch (error) {
-        // Handle errors appropriately
-        throw new Error('Pagination failed: ' + error.message);
+      // Handle errors appropriately
+      throw new Error("Pagination failed: " + error.message);
     }
-}
+  }
 
   static async fetchAllStudio(filter, options) {
     try {
@@ -367,27 +378,64 @@ class Studio {
       .toArray();
   }
 
-static async fetchAllStudiosByAggregate(pipeline) {
-  try {
+  static async fetchAllStudiosByAggregate(pipeline) {
+    try {
       const db = getDb();
-      const studioData = await db.collection("studios").aggregate(pipeline).toArray();
+      const studioData = await db
+        .collection("studios")
+        .aggregate(pipeline)
+        .toArray();
       console.log(studioData);
       return studioData;
-  } catch (err) {
+    } catch (err) {
       console.error("Error in fetchAllStudioByAggregate:", err);
-      throw err; 
+      throw err;
+    }
   }
-}
 
-static async findStudioByFilterAndOptions(filterAndOptions){
-  try {
-    const db = getDb(); 
-      return await db.collection("studios").findOne(filterAndOptions)
-  } catch (error) {
-    console.log(error);
+  static async findStudioByFilterAndOptions(filterAndOptions) {
+    try {
+      const db = getDb();
+      return await db.collection("studios").findOne(filterAndOptions);
+    } catch (error) {
+      console.log(error);
+    }
   }
-}
 
+  static filterEmptyFields(studioObj) {
+    // added by Uday
+    const filteredObject = {};
+
+    for (const key in studioObj) {
+      if (studioObj[key] || studioObj[key] === 0) {
+        filteredObject[key] = studioObj[key];
+      }
+    }
+
+    // console.log("filteredObject",filteredObject);
+
+    return filteredObject;
+  }
+
+  static async updateStudioById(studioId, newStudioData) {
+    // added by Uday
+    const db = getDb();
+
+    try {
+      const updatedResult = await db
+        .collection("studios")
+        .findOneAndUpdate(
+          { _id: new ObjectId(studioId) },
+          { $set: newStudioData },
+          { new: true }
+        );
+      //  console.log(updatedResult)
+      return updatedResult;
+    } catch (error) {
+      console.error("Error deleting service:", error);
+      return { status: false, message: "Internal Server Error" };
+    }
+  }
 }
 
 module.exports = Studio;
