@@ -26,7 +26,8 @@ class Studio {
     clientPhotos,
     reviews,
     featuredReviews,
-    isActive
+    isActive,
+    location,
   ) {
     this.fullName = fullName;
     this.address = address;
@@ -51,6 +52,7 @@ class Studio {
     this.featuredReviews = featuredReviews; // Array of Objects
     this.isActive = isActive; // 0-> No, 1-> Yes
     this.creationTimeStamp = new Date();
+    this.location = location;
   }
 
   save() {

@@ -600,7 +600,7 @@ exports.createNewStudio = async (req, res, next) => {
           let longitude = res_data.lng.toString();
 
           console.log(latitude, longitude);
-
+          const location = {type:"Point", coordinates:[+longitude,+latitude]};
           const studioObj = new Studio(
             fullName,
             address,
@@ -623,7 +623,8 @@ exports.createNewStudio = async (req, res, next) => {
             clientPhotos,
             reviews,
             featuredReviews,
-            1
+            1,
+            location
           );
 
           // saving in database
