@@ -396,6 +396,34 @@ static async fetchAllStudiosByAggregate(pipeline) {
   }
 }
 
+static filterEmptyFields(studioObj) {// added by Uday
+  const filteredObject = {};
+
+  for (const key in studioObj) {
+    if (studioObj[key] || studioObj[key] === 0){
+      filteredObject[key] = studioObj[key];
+    }
+  }
+
+  // console.log("filteredObject",filteredObject); 
+
+  return filteredObject;
+}
+
+static async updateStudioById(studioId,newStudioData) {// added by Uday
+  const db = getDb();
+
+  try {            
+       const updatedResult = await db.collection("studios").findOneAndUpdate({ _id: new ObjectId(studioId) },{$set: newStudioData},{new:true});                
+      //  console.log(updatedResult)
+      return updatedResult
+
+  } catch (error) {
+      console.error("Error deleting service:", error);
+      return{ status: false, message: "Internal Server Error" };
+  }
+}
+
 }
 
 module.exports = Studio;
