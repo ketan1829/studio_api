@@ -54,7 +54,9 @@ exports.sendOTP = async function (phoneNumber, otp) {
             }
         });
 
-        if (response.data.return === true && response.data.message[0] === "SMS sent successfully.") {
+        // console.log("response==>:",response.data)
+
+        if (response.data.return === true || response.data.message[0].includes("SMS sent successfully")) {
             return { success: true };
         } else {
             return { success: false };

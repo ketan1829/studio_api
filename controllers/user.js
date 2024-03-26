@@ -225,7 +225,10 @@ exports.loginUserOTP = async (req, res, next) => {
             //user role login
             else {
                 // existing user role login
-                sendOTP(phoneNumber, otp)
+                const otp_status = await sendOTP(phoneNumber, otp)
+
+                console.log("otp_status====>");
+                console.log(otp_status.success);
                 statusInfo.role = "user"
                 if (userData) {
                     userData.deviceId = deviceId;
@@ -234,13 +237,13 @@ exports.loginUserOTP = async (req, res, next) => {
                     statusInfo.token = token
                     statusInfo.otp = otp
                     statusInfo.newUser = false
-                    statusInfo.status = true
+                    statusInfo.status = otp_status.success
                     statusInfo.user = userData
                     statusInfo.message = "Welcome back, OTP has been send Succesfully"
-                // new user role login    
+                // new user role login   
                 } else {
                     statusInfo.newUser = true
-                    statusInfo.status = true
+                    statusInfo.status = otp_status.success
                     statusInfo.otp = otp
                     statusInfo.user = {
                         "_id": "",
