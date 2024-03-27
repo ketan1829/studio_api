@@ -440,7 +440,7 @@ exports.loginUser = (req, res, next) => {
     db.collection("users")
       .updateOne({ email: email }, { $set: userData })
       .then((resultData) => {
-        jwt.sign({ user: userData }, secretKey, (err, token) => {
+        jwt.sign({ user: userData }, 'myAppSecretKey', (err, token) => {
           res.json({
             status: true,
             message: "Successfully Logged In",
@@ -1459,16 +1459,3 @@ exports.exportUserData = async (req, res) => {
 };
 
 
-// exports.updateAllUser=async(req,res)=>{
-// try {
-//   const db = getDb();
-//     db.collection("users")
-//       .updateMany({},{ $set: { status: 1 }})
-//       .then((resultData) => {
-//         return res.json({ status: true, message: "all User updated successfully" });
-//       })
-//       .catch((err) => console.log(err));
-// } catch (error) {
-//   console.log(error);
-// }
-// }

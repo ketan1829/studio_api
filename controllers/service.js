@@ -27,11 +27,12 @@ exports.createNewService = async (req, res, next) => {
 
   if (source === "google-sheet") {
     const addedData = [];
+    console.log("google sheet is running");
     Object.keys(service_objs).map((key) => {
       const serviceData = service_objs[key];
 
       const service_id = serviceData.service_id;
-      const fullName = serviceData.service_name.trim();
+      const fullName = serviceData.service_name;
       const price = parseInt(serviceData.service_lowest_price);
       const amenitiesData = serviceData.service_amenities;
       const totalPlans = parseInt(+serviceData.service_package_count);

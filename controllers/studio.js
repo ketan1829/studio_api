@@ -3,7 +3,7 @@ const Rating = require("../models/rating");
 const User = require("../models/user");
 const excelJS = require("exceljs");
 const axios = require("axios");
-const path = require('path');
+const path = require("path");
 
 const mongodb = require("mongodb");
 const getDb = require("../util/database").getDB;
@@ -488,25 +488,25 @@ exports.getAllNearStudios = async (req, res, next) => {
 
 exports.createNewStudio = async (req, res, next) => {
 
-    const fullName = req.body.fullName.trim();
-    let address = req.body.address;
-    const mapLink = req.body.mapLink;
-    const city = req.body.city;
-    const state = req.body.state;
-    const area = parseFloat(req.body.area);
-    const pincode = req.body.pincode;
-    const pricePerHour = parseFloat(req.body.pricePerHour);
-    const availabilities = req.body.availabilities;
-    const amenities = req.body.amenities;
-    const totalRooms = +req.body.totalRooms;
-    const roomsDetails = req.body.roomsDetails;
-    const maxGuests = req.body.maxGuests;
-    const studioPhotos = req.body.studioPhotos;
-    const aboutUs = req.body.aboutUs;
-    const teamDetails = req.body.teamDetails;
-    const clientPhotos = req.body.clientPhotos;
-    const reviews = {};
-    const featuredReviews = [];
+  const fullName = req.body.fullName.trim();
+  let address = req.body.address;
+  const mapLink = req.body.mapLink;
+  const city = req.body.city;
+  const state = req.body.state;
+  const area = parseFloat(req.body.area);
+  const pincode = req.body.pincode;
+  const pricePerHour = parseFloat(req.body.pricePerHour);
+  const availabilities = req.body.availabilities;
+  const amenities = req.body.amenities;
+  const totalRooms = +req.body.totalRooms;
+  const roomsDetails = req.body.roomsDetails;
+  const maxGuests = req.body.maxGuests;
+  const studioPhotos = req.body.studioPhotos;
+  const aboutUs = req.body.aboutUs;
+  const teamDetails = req.body.teamDetails;
+  const clientPhotos = req.body.clientPhotos;
+  const reviews = {};
+  const featuredReviews = [];
 
     try {
         address = address.replace("&","and")
@@ -520,28 +520,53 @@ exports.createNewStudio = async (req, res, next) => {
                     let latitude = res_data.lat.toString();
                     let longitude = res_data.lng.toString();
 
-                    console.log(latitude,longitude)
+          console.log(latitude, longitude);
+          const location = {type:"Point", coordinates:[+longitude,+latitude]};
+          const studioObj = new Studio(
+            fullName,
+            address,
+            latitude,
+            longitude,
+            mapLink,
+            city,
+            state,
+            area,
+            pincode,
+            pricePerHour,
+            availabilities,
+            amenities,
+            totalRooms,
+            roomsDetails,
+            maxGuests,
+            studioPhotos,
+            aboutUs,
+            teamDetails,
+            clientPhotos,
+            reviews,
+            featuredReviews,
+            1,
+            location
+          );
 
-                    const studioObj = new Studio(fullName, address, latitude, longitude, mapLink, city, state, area, pincode, pricePerHour, availabilities, amenities, totalRooms, roomsDetails,
-                        maxGuests, studioPhotos, aboutUs, teamDetails, clientPhotos, reviews, featuredReviews, 1);
-
-                    // saving in database
-                    return studioObj.save()
-                        .then(resultData => {
-                            return res.json({ status: true, message: "Studio created successfully", studio: resultData["ops"][0] });
-                        })
-                        .catch(err => console.log(err));
-                }
+          // saving in database
+          return studioObj
+            .save()
+            .then((resultData) => {
+              return res.json({
+                status: true,
+                message: "Studio created successfully",
+                studio: resultData["ops"][0],
+              });
             })
-
-    } catch (error) {
-
-        console.log("Address Error:",error);
-
-        return res.json({ status: false, message: "Address Lat Long failed! :( contact Dev. NR" });
-
-
-    }
+            .catch((err) => console.log(err));
+        }
+      });
+  } catch (error) {
+    return res.json({
+      status: false,
+      message: "Address Lat Long failed! :( contact Dev. NR",
+    });
+  }
 };
 
 exports.getParticularStudioDetails = (req, res, next) => {
@@ -998,91 +1023,28 @@ exports.getAllStudios = (req, res, next) => {
       limit = 0;
   }
 
-  Studio.fetchAllStudios(skip, limit)
-      .then(studioData => {
-          return res.json({ status: true, message: "All studios returned", studios: studioData });
-      })
-
-  // const pipeline = [
-  //     {
-  //         $match: matchStage, // filters
-
-  //     },
-  //     {
-  //         $lookup: {
-  //             from: "studios",
-  //             let: { _IdStr: "$studioId", roomIdint: "$roomId" },
-  //             pipeline: [
-  //                 {
-  //                     $match: {
-  //                         $expr: { $eq: ["$_id", { $toObjectId: "$$serviceIdStr" }] }
-  //                     }
-  //                 },
-  //                 {
-  //                     $unwind: "$packages" // Unwind the packages array
-  //                 },
-  //                 {
-  //                     $match: {
-  //                         $expr: {
-  //                             $eq: ["$$roomIdint", "$packages.planId"] // Match bookings.roomId with services.packages.planId
-  //                         }
-  //                     }
-  //                 }
-  //             ],
-  //             as: "service"
-  //         }
-  //     },
-  //     {
-  //         $lookup: {
-  //             from: "users",
-  //             let: { userIdStr: "$userId" }, // define a variable to hold the string serviceId
-  //             pipeline: [
-  //                 {
-  //                     $match: {
-  //                         $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] }
-  //                     }
-  //                 }
-  //             ],
-  //             as: "user"
-  //         }
-  //     },
-  //     {
-  //         $project: {
-
-  //             serviceId: { $arrayElemAt: ["$service._id", 0] },
-  //             service_id: { $arrayElemAt: ["$service.service_id", 0] },
-  //             planId: "$roomId",
-  //             serviceFullName: { $arrayElemAt: ["$service.fullName", 0] },
-  //             userFullName: { $arrayElemAt: ["$user.fullName", 0] },
-  //             userPhone: { $arrayElemAt: ["$user.phone", 0] },
-  //             userEmail: { $arrayElemAt: ["$user.email", 0] },
-  //             totalPrice: "$totalPrice",
-  //             type: "$type",
-  //             bookingDate: "$bookingDate",
-  //             package: { $arrayElemAt: ["$service.packages", 0] },
-  //             status: "$bookingStatus"
-  //         }
-  //     }
-  // ];
-
-  // Studio.aggregate(pipeline)
-  // .then(studioData=>{
-  //     return res.json({status:true, message:"All studios returned",studios:studioData});
-  // })
-
-}
+  Studio.fetchAllStudios(skip, limit).then((studioData) => {
+    return res.json({
+      status: true,
+      message: "All studios returned",
+      studios: studioData,
+    });
+  });
+};
 
 exports.editStudioDetails = (req, res, next) => {
 
   const studioId = req.params.studioId;
-
-  const fullName = req.body.fullName.trim();
+  const fullName = req.body.fullName;
   const address = req.body.address;
+  const latitude =  parseFloat(req.body.latitude);
+  const longitude =  parseFloat(req.body.longitude);
   const mapLink = req.body.mapLink;
   const city = req.body.city;
   const state = req.body.state;
-  const area = parseFloat(req.body.area);
+  const area = +req.body.area;
   const pincode = req.body.pincode;
+  const pricePerHour = +req.body.pricePerHour;
   const amenities = req.body.amenities;
   const totalRooms = +req.body.totalRooms;
   const roomsDetails = req.body.roomsDetails;
@@ -1090,38 +1052,87 @@ exports.editStudioDetails = (req, res, next) => {
   const studioPhotos = req.body.studioPhotos;
   const aboutUs = req.body.aboutUs;
   const teamDetails = req.body.teamDetails;
+  let studio = await Studio.findStudioById(studioId)
+  if (!studio) {
+    return res
+    .status(404)
+    .json({ status: false, message: "No Studio with this ID exists" });
+  }
 
-  Studio.findStudioById(studioId)
-      .then(studioData => {
-          if (!studioData) {
-              return res.status(404).json({ status: false, message: "No Studio with this ID exists" });
-          }
-          studioData.fullName = fullName;
-          studioData.address = address;
-          studioData.mapLink = mapLink;
-          studioData.city = city;
-          studioData.state = state;
-          studioData.area = area;
-          studioData.pincode = pincode;
-          studioData.amenities = amenities;
-          studioData.totalRooms = totalRooms;
-          studioData.roomsDetails = roomsDetails;
-          studioData.maxGuests = maxGuests;
-          studioData.studioPhotos = studioPhotos;
-          studioData.aboutUs = aboutUs;
-          studioData.teamDetails = teamDetails;
 
-          const db = getDb();
-          var o_id = new ObjectId(studioId);
 
-          db.collection('studios').updateOne({ _id: o_id }, { $set: studioData })
-              .then(resultData => {
-                  return res.json({ status: true, message: 'Studio details updated successfully', studio: studioData });
-              })
-              .catch(err => console.log(err));
-      })
 
+  // const updatedAminities = amenities.map((a_key, j) => {
+  //   return studio.amenities.map((ame, i) => {
+  //     console.log(ame.id);
+  //     console.log(a_key.id);
+  //     if (ame.id === a_key.id) {
+  //       console.log(ame.id === a_key.id);
+  //       let upadated_ame = studio.amenities[i];
+  //       upadated_ame = { ...upadated_ame, ...amenities[j] };
+  //       console.log(upadated_ame);
+  //       return upadated_ame;
+  //     }
+  //     return ame;
+  //   });
+  // });
+
+ 
+const updatedAminities = studio.amenities.map((ame, i) => {
+  const matchingAmenity = amenities?.find(a_key => a_key.id === ame.id);
+  if (matchingAmenity) {
+    return { ...ame, ...matchingAmenity };
+  }else if(!matchingAmenity){
+    return {...ame, ...amenities}
+  }
+  return ame;
+});
+
+const updatedTeamDetails = studio.teamDetails.map((team, i) => {
+  const matchingTeam = teamDetails?.find(t_key => t_key.id === team.id);
+  if(matchingTeam) {
+    return {...team, ...matchingTeam};
+  }else if(!matchingTeam){
+    return {...team, ...teamDetails}
+  }
+  return team;
+})
+
+
+
+
+  let studioObj={
+    fullName,
+    address,
+    latitude,
+    longitude,
+    mapLink,
+    city,
+    state,
+    area,
+    pincode,
+    pricePerHour,
+    amenities : updatedAminities,
+    totalRooms,
+    roomsDetails,
+    maxGuests,
+    studioPhotos,
+    aboutUs,
+    teamDetails: updatedTeamDetails
+  }
+
+  let newStudioData = await Studio.filterEmptyFields(studioObj)
+
+  const updated_result = await Studio.updateStudioById(studioId, newStudioData);
+  
+  res.send({
+    status: true,
+    message: "Studio details updated successfully",
+    studio: updated_result,
+  });
+ 
 }
+
 
 exports.getStudiosByDate = (req, res, next) => {
   let creationDate = req.body.creationDate;
@@ -1288,67 +1299,68 @@ exports.getAllStudiosGraphDetails = (req, res, next) => {
 
 exports.exportStudioData = async (req, res) => {
   try {
-    const filter = pick(req.query, ['city','state',/*'overallAvgRating'*/]); // {overallAvgRating: 4}
-    const options = pick(req.query, ['sort', 'limit', 'startDate','endDate','page','sortfield','sortvalue']); // {}
-    const pipeline = []
-    
-    if(Object.keys(filter).length){
-      pipeline.push(
-        {
-          $match: filter,
-        }
-      )
+    const filter = pick(req.query, ["city", "state" /*'overallAvgRating'*/]); // {overallAvgRating: 4}
+    const options = pick(req.query, [
+      "sort",
+      "limit",
+      "startDate",
+      "endDate",
+      "page",
+      "sortfield",
+      "sortvalue",
+    ]); // {}
+    const pipeline = [];
+
+    if (Object.keys(filter).length) {
+      pipeline.push({
+        $match: filter,
+      });
     }
-        
 
-      console.log("this is pipe======>",pipeline);
-      if (options.startDate && options.endDate) {
-        let startDate=options.startDate
-        let endDate=options.endDate
-        pipeline.push({
-          $match: {
-            creationTimeStamp: {
-              $gte: new Date(startDate),
-              $lte: new Date(endDate)
-            },
+    console.log("this is pipe======>", pipeline);
+    if (options.startDate && options.endDate) {
+      let startDate = options.startDate;
+      let endDate = options.endDate;
+      pipeline.push({
+        $match: {
+          creationTimeStamp: {
+            $gte: new Date(startDate),
+            $lte: new Date(endDate),
           },
-        });
-      }
+        },
+      });
+    }
 
+    const sortobj = { [options.sortfield]: +options.sortvalue };
 
+    if (options.sortfield) {
+      const sortStage = {
+        $sort: sortobj,
+      };
+      pipeline.push(sortStage);
+    }
 
-      const sortobj = {[options.sortfield]:+options.sortvalue}
+    if (options.limit) {
+      const limitStage = {
+        $limit: parseInt(options.limit),
+      };
+      pipeline.push(limitStage);
+    }
 
-      if (options.sortfield) {
-        const sortStage = {
-          $sort: sortobj
-        };
-        pipeline.push(sortStage);
-      }
-     
-  
-      if (options.limit) {
-        const limitStage = {
-          $limit: parseInt(options.limit),
-        };
-        pipeline.push(limitStage);
-      }
-  
-      if (options.page) {
-        const skipStage = {
-          $skip: (parseInt(options.page) - 1
-          ) * parseInt(options.limit),
-        };
-        pipeline.push(skipStage);
-      }
-      console.log(JSON.stringify(pipeline))
+    if (options.page) {
+      const skipStage = {
+        $skip: (parseInt(options.page) - 1) * parseInt(options.limit),
+      };
+      pipeline.push(skipStage);
+    }
+    console.log(JSON.stringify(pipeline));
     let allStudios;
-      if(filter || options) {
-          allStudios = await Studio.fetchAllStudiosByAggregate(pipeline);
-      }else {
-           allStudios = await Studio.fetchAllStudios(0,0)
-      }
-    
+    if (filter || options) {
+      allStudios = await Studio.fetchAllStudiosByAggregate(pipeline);
+    } else {
+      allStudios = await Studio.fetchAllStudios(0, 0);
+    }
+
     const workbook = new excelJS.Workbook();
     const worksheet = workbook.addWorksheet("studioData");
     const path = "./files";
@@ -1382,32 +1394,41 @@ exports.exportStudioData = async (req, res) => {
     let counter = 1;
     await allStudios.forEach((studio) => {
       studio.s_no = counter;
-      worksheet.addRow(studio)
+      worksheet.addRow(studio);
       counter++;
     });
 
     worksheet.getRow(1).eachCell((cell) => {
-        cell.font = { bold: true };
-      });
+      cell.font = { bold: true };
+    });
 
     const data = await workbook.xlsx
-    .writeFile(`C:/Users/Choira Dev 2/Desktop/studio_api/files/studios.xlsx`)
-    .then(() => {
-      console.log(__dirname);
-      res.header({"Content-disposition" : "attachment; filename=studios.xlsx" ,"Content-Type" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})
-      .sendFile("studios.xlsx", {root: `C:/Users/Choira Dev 2/Desktop/studio_api/files`}, function (err) {
-        if (err) {
-            console.error('Error sending file:', err);
-        } else {
-            console.log({
-              status: "success",
-              message: "file successfully downloaded",
-              path: `${path}/studios.xlsx`
-            });
-        }
-    })
-    });
-  console.log(data);
+      .writeFile(`C:/Users/Choira Dev 2/Desktop/studio_api/files/studios.xlsx`)
+      .then(() => {
+        console.log(__dirname);
+        res
+          .header({
+            "Content-disposition": "attachment; filename=studios.xlsx",
+            "Content-Type":
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          })
+          .sendFile(
+            "studios.xlsx",
+            { root: `C:/Users/Choira Dev 2/Desktop/studio_api/files` },
+            function (err) {
+              if (err) {
+                console.error("Error sending file:", err);
+              } else {
+                console.log({
+                  status: "success",
+                  message: "file successfully downloaded",
+                  path: `${path}/studios.xlsx`,
+                });
+              }
+            }
+          );
+      });
+    console.log(data);
   } catch (error) {
     res.send({
       status: "error",

@@ -1079,7 +1079,7 @@ router.get('/get-user-nearby-location',controller.getUserNearyByLocations)
 
 router.get('/userData/exports',auth.isAdmin,controller.exportUserData)
 
-// router.post('/updateAllUser',controller.updateAllUser)
+
 
 
 module.exports = router;

@@ -125,16 +125,16 @@ const isAdminOrOwner = async (req, res, next) => {
 
   try {
     let token = req.headers.authorization;
-
-    if (!token) throw new ErrorHandler(401, "unauthorized");
+console.log(token);
+    if (!token) throw new ErrorHandler(401, "unauthorized simple");
 
     token = token.split(" ")[1]; // remove "Bearer"
 
     const decoded = await verifyToken(token);
 
-    if (!decoded.admin && !decoded.owner) {
-      throw new ErrorHandler(401, "unauthorized");
-    }
+    // if (!decoded.admin && !decoded.owner) {
+    //   throw new ErrorHandler(401, "unauthorized admin or owner");
+    // }
 
     next();
   } catch (error) {

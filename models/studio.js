@@ -26,7 +26,8 @@ class Studio {
     clientPhotos,
     reviews,
     featuredReviews,
-    isActive
+    isActive,
+    location,
   ) {
     this.fullName = fullName;
     this.address = address;
@@ -51,6 +52,7 @@ class Studio {
     this.featuredReviews = featuredReviews; // Array of Objects
     this.isActive = isActive; // 0-> No, 1-> Yes
     this.creationTimeStamp = new Date();
+    this.location = location;
   }
 
   save() {
@@ -154,6 +156,13 @@ class Studio {
       throw new Error("Pagination failed: " + error.message);
     }
   }
+
+
+ static async searchStudioWithFilters_Aggregation(filter){
+  const db = getDb();
+  console.log(JSON.stringify(filter));
+  return db.collection("studios").aggregate(filter).toArray()
+ }
 
   static async updateDocumentsWithGeoLocation() {
     const db = getDb();
@@ -379,12 +388,31 @@ static async fetchAllStudiosByAggregate(pipeline) {
   }
 }
 
-static async findStudioByFilterAndOptions(filterAndOptions){
-  try {
-    const db = getDb(); 
-      return await db.collection("studios").findOne(filterAndOptions)
+static filterEmptyFields(studioObj) {// added by Uday
+  const filteredObject = {};
+
+  for (const key in studioObj) {
+    if (studioObj[key] || studioObj[key] === 0){
+      filteredObject[key] = studioObj[key];
+    }
+  }
+
+  // console.log("filteredObject",filteredObject); 
+
+  return filteredObject;
+}
+
+static async updateStudioById(studioId,newStudioData) {// added by Uday
+  const db = getDb();
+
+  try {            
+       const updatedResult = await db.collection("studios").findOneAndUpdate({ _id: new ObjectId(studioId) },{$set: newStudioData},{new:true});                
+      //  console.log(updatedResult)
+      return updatedResult
+
   } catch (error) {
-    console.log(error);
+      console.error("Error deleting service:", error);
+      return{ status: false, message: "Internal Server Error" };
   }
 }
 
