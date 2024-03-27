@@ -225,9 +225,17 @@ exports.getStudios = async (req, res, next) => {
           })
   } else {
       console.log("not lattt");
-
+      
       Studio.paginate(filter, options).then(studioData => {
-          return res.json({ status: true, message: "All studios returned", studios: studioData.results });
+          console.log("--------COUNT:", studioData.totalPages, studioData.totalResults);
+          const paginateData = 
+          {
+            page: studioData.page,
+            limit: studioData.limit,
+            totalPages: studioData.totalPages,
+            totalResults: studioData.totalResults,
+          }
+          return res.json({ status: true, message: "All studios returned", studios: studioData.results, paginate: paginateData });
       })
   }
 

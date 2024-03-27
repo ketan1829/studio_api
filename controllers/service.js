@@ -188,7 +188,15 @@ exports.getServices = (req, res, next) => {
   }
 
   paginate(collectionName, mappedFilter, options).then((ServiceData) => {
-      return res.json({ status: true, message: `Page ${ServiceData.page} of ${ServiceData.totalPages} - ${ServiceData.totalResults} services returned`, services: ServiceData });
+    const paginateData = 
+    {
+      page: ServiceData.page,
+      limit: ServiceData.limit,
+      totalPages: ServiceData.totalPages,
+      totalResults: ServiceData.totalResults,
+      
+    }
+      return res.json({ status: true, message: `Page ${ServiceData.page} of ${ServiceData.totalPages} - ${ServiceData.totalResults} services returned`, services: ServiceData, paginate: paginateData });
   })
 
 }
