@@ -1032,7 +1032,7 @@ exports.getAllStudios = (req, res, next) => {
   });
 };
 
-exports.editStudioDetails = (req, res, next) => {
+exports.editStudioDetails = async(req, res, next) => {
 
   const studioId = req.params.studioId;
   const fullName = req.body.fullName;
@@ -1052,6 +1052,7 @@ exports.editStudioDetails = (req, res, next) => {
   const studioPhotos = req.body.studioPhotos;
   const aboutUs = req.body.aboutUs;
   const teamDetails = req.body.teamDetails;
+
   let studio = await Studio.findStudioById(studioId)
   if (!studio) {
     return res
