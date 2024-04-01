@@ -45,6 +45,18 @@ class Service {
             throw error;
         }
     }
+
+    async save() {
+        const db = getDB();
+        try {
+
+            const result = await db.collection(collectionName).insertOne(this);
+            return result.ops[0];
+        } catch (error) { 
+            console.error('Error saving service:', error);
+            throw error;
+        }
+    }
     
 
     static async deleteServiceById(sId) {

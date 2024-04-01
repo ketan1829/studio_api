@@ -65,7 +65,7 @@ class Studio {
     return db.collection("studios").aggregate(Data);
   }
 
-  static async getNearByStudios(longitude, latitude,range) {
+  static async getNearByStudios(longitude, latitude,range, page, limit) {
     try {
       const db = getDb();
       const nearByStudiosCursor = await db.collection("studios").find({
@@ -75,9 +75,30 @@ class Studio {
             $maxDistance: range * 1000
           },
         },
-      });
+      })
+      .skip(parseInt(page))
+      .limit(parseInt(limit));
+
       const nearByStudios = await nearByStudiosCursor.toArray();
-      return nearByStudios;
+      const totalResultsCursor = await db.collection("studios").find({
+        location: {
+          $nearSphere: {
+            $geometry: { type: "Point", coordinates: [longitude, latitude] },
+            $maxDistance: range * 1000
+          }
+        }
+      });
+      const totalResults = await totalResultsCursor.count();
+      const totalPages = Math.ceil(totalResults / limit);
+
+      const message = `Page ${page} of ${totalPages} - ${nearByStudios.length} studios returned`
+      const paginateData = {
+        page: page,
+        limit: limit,
+        totalPages: totalPages,
+        totalResults: totalResults
+      };
+      return {studios: nearByStudios, message: message, paginate: paginateData };
     } catch (error) {
       console.log(error);
       throw error; 

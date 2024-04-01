@@ -221,10 +221,11 @@ app.use((error, req, res, next) => {
 
 
 let port = process.env.PORT || 4000;
+
+console.log(port)
 //establishing DB connection
 mongoConnect(()=>{
     app.listen(port);
-
 });
 
 

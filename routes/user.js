@@ -974,6 +974,8 @@ router.get('/users/:userId/delete',auth.isBoth,controller.deleteParticularUser);
 //Upload media file
 router.post('/upload-single-image',(req,res,next)=>{
 
+    console.log(req.file);
+
     upload1(req,res,function(err){
         if(req.file!=null)
         {
@@ -986,6 +988,7 @@ router.post('/upload-single-image',(req,res,next)=>{
                 originalname:null,
                 filename:null
             };
+            return res.status(500).json({status:false,message:"No Image found"})
         }
            
         if(err)
@@ -1027,9 +1030,12 @@ router.post('/upload-single-image',(req,res,next)=>{
 //Upload multiple files
 router.post('/upload-multiple-images',(req,res,next)=>{
 
+    console.log(req.files);
+
     upload2(req,res,function(err){
         if(err)
         {
+            console.log(err);
             return res.json({status:false,message:"Error Occured",error:err})
         }
 

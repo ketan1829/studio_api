@@ -216,13 +216,22 @@ exports.getStudios = async (req, res, next) => {
   }
 
   if (latitude?.length && longitude?.length) {
+    const availableStudios = await Studio.getNearByStudios(
+      +longitude,
+      +latitude,
+      range ? range : 10,
+      options?.page || 1,
+      options?.limit || 10,
+    );
+
+    return res.json({ status: true, message: availableStudios.message, studios: availableStudios.studios, paginate: availableStudios.paginate });
       
-      Studio.fetchAllStudios(0, 0)
-          .then(studioData => {
-              const paginatedStudios = filterNearbySudios(studioData, latitude, longitude, options.page || 1, options.limit || 0, range ? range : 10);
-              
-              return res.json({ status: true, message: paginatedStudios.message, studios: paginatedStudios.studios, paginate: paginatedStudios.paginate });
-          })
+    // Studio.fetchAllStudios(0, 0)
+    //     .then(studioData => {
+    //         const paginatedStudios = filterNearbySudios(studioData, latitude, longitude, options.page || 1, options.limit || 0, range ? range : 10);
+            
+    //         return res.json({ status: true, message: paginatedStudios.message, studios: paginatedStudios.studios, paginate: paginatedStudios.paginate });
+    //     })
   } else {
       console.log("not lattt");
       
@@ -496,14 +505,14 @@ exports.getAllNearStudios = async (req, res, next) => {
 
 exports.createNewStudio = async (req, res, next) => {
 
-  const fullName = req.body.fullName.trim();
+  const fullName = req.body.fullName; //.trim();
   let address = req.body.address;
   const mapLink = req.body.mapLink;
   const city = req.body.city;
   const state = req.body.state;
   const area = parseFloat(req.body.area);
   const pincode = req.body.pincode;
-  const pricePerHour = parseFloat(req.body.pricePerHour);
+  const pricePerHour = parseFloat(req.body.pricePerHour) || 0;
   const availabilities = req.body.availabilities;
   const amenities = req.body.amenities;
   const totalRooms = +req.body.totalRooms;
@@ -517,6 +526,9 @@ exports.createNewStudio = async (req, res, next) => {
   const featuredReviews = [];
 
     try {
+
+        console.log(address)
+        console.log( typeof(address))
         address = address.replace("&","and")
         axios.get("https://maps.googleapis.com/maps/api/geocode/json?address="+address+"&key="+GOOGLE_MAP_KEY)
             .then(function (response) {
@@ -570,6 +582,8 @@ exports.createNewStudio = async (req, res, next) => {
         }
       });
   } catch (error) {
+
+    console.log(error)
     return res.json({
       status: false,
       message: "Address Lat Long failed! :( contact Dev. NR",

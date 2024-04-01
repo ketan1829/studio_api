@@ -95,8 +95,8 @@ exports.createNewService = async (req, res, next) => {
       data: addedData,
     });
   } else {
-    const service_id = req.body.service_id;
-    const fullName = req.body.serviceName.trim();
+    const service_id = req.body.service_id || -1 ;
+    const fullName = req.body.serviceName;
     const price = parseFloat(req.body.startingPrice);
     const amenities = req.body.offerings;
     const totalPlans = +req.body.TotalServices;
@@ -109,9 +109,12 @@ exports.createNewService = async (req, res, next) => {
     const reviews = req.body.userReviews;
     const featuredReviews = req.body.starredReviews;
     const type = req.body.type || "c2";
-    const isActive = req.body.service_status || 1;
+    const isActive = [0,1,2].includes(req.body.isActive) ? req.body.isActive:1;
 
-    console.log("else is running");
+
+
+    console.log("else is running",req.body);
+    console.log("else is running",type,isActive);
     // const { error } = validateService(req.body);
     // if (error) {
     //   return res.status(400).json({ error: error.details[0].message });
@@ -139,7 +142,7 @@ exports.createNewService = async (req, res, next) => {
 
     // saving in database
     return serviceObj
-      .checkBeforeSave()
+      .save()
       .then((resultData) => {
         if (resultData.status == false) {
           return res.json({

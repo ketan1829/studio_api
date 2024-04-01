@@ -507,6 +507,7 @@ exports.createNewBooking = async (req, res, next) => {
       "c1"
     );
     const resultData = await bookingObj.save();
+    sendMailToUserAndAdmin({ userId, studioId, roomId, bookingDate, bookingTime, totalPrice })
     const bookingData = resultData.ops[0];
     bookingData.totalPrice = bookingData.totalPrice.toFixed(2);
 
@@ -3699,6 +3700,64 @@ exports.exportBookingData = async (req, res) => {
     });
   }
 };
+
+// send mails
+
+async function sendMailToUserAndAdmin(datas) {
+
+
+  const { userId, studioId, roomId, bookingDate, bookingTime, totalPrice } = datas
+
+  const bookingDetails = { userName: "", userNumber: "", studioName: "", studioLocation: "", bookingDateTime: "", totalPrice: "" }
+
+  bookingDetails.bookingDateTime = `${bookingDate} at ${bookingTime.startTime}-${bookingTime.endTime}`;
+  bookingDetails.totalPrice = totalPrice
+  const user_data = await User.findUserByUserId(userId);
+  if (user_data) {
+
+      bookingDetails.userName = user_data.fullName
+      bookingDetails.userNumber = user_data.phone
+
+  } else {
+      const subAdmin_data = await SubAdmin.findSubAdminById(userId)
+      if (subAdmin_data) {
+          bookingDetails.userName = `"${subAdmin_data.firstName} ${subAdmin_data.lastName}`
+          bookingDetails.adminEmail = subAdmin_data.email
+
+      } else {
+
+          const admin_data = await Admin.findAdminById(userId)
+          if (admin_data) {
+              bookingDetails.userName = `"${admin_data.firstName} ${admin_data.lastName}`
+              bookingDetails.adminEmail = admin_data.email
+          } else {
+
+              const owner_data = await Owner.findOwnerByOwnerId(userId)
+              if (owner_data) {
+                  bookingDetails.ownerName = `"${owner_data.firstName} ${owner_data.lastName}`
+                  bookingDetails.ownerEmail = owner_data.email
+              } else {
+                  bookingDetails.userName = "Admin"
+              }
+          }
+
+      }
+  }
+  const studioData = await Studio.findStudioById(studioId)
+  if (studioData) {
+      bookingDetails.studioName = studioData.fullName;
+      bookingDetails.studioLocation = studioData.address;
+
+      studioData.roomsDetails.map(room => {
+          if (room.roomId === roomId) {
+              bookingDetails.roomName = room.roomName
+              bookingDetails.area = room.area
+              bookingDetails.priceperhour = room.pricePerHour
+          }
+      })
+  }
+  send_mail(bookingDetails)
+}
 
 //Automatch API for cronjob
 cron.schedule("*/10 * * * * *", function () {
