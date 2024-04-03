@@ -106,20 +106,15 @@ function filterNearbySudios(studioData, latitude, longitude, page, limit, range)
 
 // ----------------- v2.2.3 ---------------------------
 
+
 exports.getStudios = async (req, res, next) => {
 
   console.log("body---", req.body);
   console.log("body---", req.query);
-  if (req.query.latitude) {
 
-      console.log("testtttttttt");
-      var { city, state, minArea, minPricePerHour, amenity, availabilityDay, latitude, longitude, range, active, studioId, searchText } = req.query;
+  var { city, state, minArea, minPricePerHour, amenity, availabilityDay, latitude, longitude, range, active, studioId, searchText } = req.query;
 
-  } else {
-      var { city, state, minArea, minPricePerHour, amenity, availabilityDay, latitude, longitude, range, active, studioId, searchText } = req.body;
-
-  }
-  const filter = pick(req.query, ['name', 'role']) || { isActive: 1 }
+  const filter = pick(req.query, ['name', 'role','city']) || { isActive: 1 }
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
 
   // const filter = { isActive: 1 };
@@ -138,7 +133,7 @@ exports.getStudios = async (req, res, next) => {
   const check = req.query.check;
 
 
-  console.log("latitude?.length:",filter);
+  console.log("latitude?.length:-------------",filter);
 
 
 
