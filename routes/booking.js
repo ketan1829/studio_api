@@ -323,7 +323,7 @@ router.get('/bookings',auth.isAdminOrOwnerOrUser, controller.getAllBookings);
 // Get only Services Booking
 router.get('/bookings/services',auth.isAdminOrOwnerOrUser, controller.getServiceBookings);
 // Get Studio/Service Bookings dynamically
-router.get('/bookings-v2',auth.isAdminOrOwnerOrUser, controller.getAllBookingsOptimized);
+router.get('/bookings-all',auth.isAdminOrOwnerOrUser, controller.getAllBookingsOptimized);
 
 /**
 * @swagger

@@ -1054,8 +1054,8 @@ exports.editStudioDetails = async(req, res, next) => {
   const studioId = req.params.studioId;
   const fullName = req.body.fullName;
   const address = req.body.address;
-  const latitude =  parseFloat(req.body.latitude);
-  const longitude =  parseFloat(req.body.longitude);
+  const latitude =  req.body.latitude?.toString()
+  const longitude =  req.body.longitude?.toString()
   const mapLink = req.body.mapLink;
   const city = req.body.city;
   const state = req.body.state;

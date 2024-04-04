@@ -2524,11 +2524,11 @@ exports.getAllBookings = async (req, res, next) => {
   console.log("data:", req.query)
   try {
       let skip = +req.query.skip || 0;
-      let limit = +req.query.limit || 0;
+      let limit = +req.query.limit || 10;
       let bookingType = [0, 1, 2].includes(+req.query.bookingType) ? +req.query.bookingType : -1;
-      let booking_category = req.query.category || "c1";
-
-      console.log({ booking_category, bookingType });
+      let booking_category = req.query.category || "c1";                                                                              
+      console.log(limit);
+      console.log({ booking_category, bookingType });                                         
 
       if (isNaN(skip)) {
           skip = 0;
@@ -2711,7 +2711,6 @@ exports.getServiceBookings = async (req, res) => {
   const pipeline = [
       {
           $match: matchStage, // filters
-
       },
       {
           $lookup: {
@@ -2826,6 +2825,53 @@ exports.deleteBooking = async (req, res) => {
   }
 };
 
+// exports.getAllBookingsOptimized = async (req, res, next) => {
+// try {
+//   const filter = pick(req.query, ['type','startPrice','endPrice'])
+//   const options = pick(req.query, ['sortBy', 'limit', 'page']);
+//   let aggregationPipeline = []
+//   if(filter){
+//     aggregationPipeline.push({$match:{}})
+//   }
+//   if(filter.type){
+//     aggregationPipeline.push({$match:{type:filter.type}})
+//   }
+
+//   if (filter.startPrice && filter.endPrice) {
+//     let startPrice = +filter.startPrice;
+//     let endPrice = +filter.endPrice;
+//     aggregationPipeline.push({
+//       $match: {
+//         totalPrice: { $gte: startPrice, $lte: endPrice },
+//       },
+//     });
+//   }
+
+//   if (filter.creationTimeStamp) {
+//     const startDate = new Date(filter.startDate);
+//     const endDate = new Date(filter.endDate);
+//     aggregationPipeline.push({
+//       $match: {
+//         creationTimeStamp: {
+//           $gte: startDate,
+//           $lt: endDate     
+//         }
+//       }
+//     });
+//   }
+  
+
+ 
+//   console.log(filter);
+//   const bookingData = await Booking.aggregate(aggregationPipeline);
+//   res.status(200).json({
+//     success:true,
+//     data: bookingData,
+//   })
+// } catch (error) {
+//   console.log(error.message);
+// }
+// }
 
 exports.getAllBookingsOptimized = async (req, res, next) => {
   try {
