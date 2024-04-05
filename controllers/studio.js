@@ -121,8 +121,10 @@ exports.getStudios = async (req, res, next) => {
 
   // Filters
   active ? filter.isActive = active : filter.isActive = 1
+  if (searchText) filter.fullName = searchText;
   if (city) filter.city = city;
   if (state) filter.state = state;
+  if (studioId) filter.studioId = studioId;
   if (minArea) filter.area = { $gte: parseInt(minArea) };
   if (minPricePerHour) filter['roomsDetails.basePrice'] = { $gte: parseInt(minPricePerHour) };
   if (amenity) filter['amenities.name'] = amenity;
