@@ -227,7 +227,8 @@ exports.loginUserOTP = async (req, res, next) => {
           phoneNumber: userData.phone,
           role: userData.role,
         };
-        const token = await jwt.sign({ user: userData }, secretKey);
+        console.log(">------",AdminData.phoneNumber);
+        const token = await jwt.sign({ user: AdminData }, secretKey);
         return res.json({
           status: true,
           message: "OTP has been send Succesfully",
@@ -269,11 +270,14 @@ exports.loginUserOTP = async (req, res, next) => {
       // Existing User Login
       else {
         // existing user role login
-        sendOTP(phoneNumber, otp);
+
+        const token = await jwt.sign({ user: userData }, secretKey);
+        statusInfo.token = token;
         statusInfo.role = "user";
         statusInfo.message = "OTP has been send Succesfully";
-        statusInfo.newUser = true;
+        statusInfo.newUser = false;
         statusInfo.status = true;
+        statusInfo.user = userData;
         statusInfo.otp = otp;
       }
     }
