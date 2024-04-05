@@ -204,84 +204,59 @@ exports.loginUserOTP = async (req, res, next) => {
   try {
     console.log("LOGIN======>");
     const { phoneNumber, deviceId, userType, role } = req.body;
-    console.log("<=======LOGIN");
 
     console.log({ phoneNumber, deviceId, userType, role });
 
     const userData = await User.findUserByPhone(phoneNumber);
-    const tempUserData = await TempUser.findUserByPhone(phoneNumber);
 
-    console.log("DATA::::", userData, tempUserData);
+    console.log("DATA::::", userData);
 
     let statusInfo = { status: false, message: "something went wrong" };
 
     let otp = generateRandomCode(4);
 
     if (userType === "NUMBER") {
-      let token;
+
       // ADMIN login
-      if (role === "admin") {
-        const adminData = await Admin.findAdminByNumber(phoneNumber);
-        if (adminData) {
-          const AdminData = {
-            id: adminData.adminId,
-            fullName: `${adminData.firstName} ${adminData.lastName}`,
-            emailId: adminData.email,
-            Image: adminData.adminImage,
-            phoneNumber: adminData.phone,
-            role: "admin",
-          };
-          const token = await jwt.sign({ user: userData }, secretKey);
-          return res.json({
-            status: true,
-            message: "OTP has been send Succesfully",
-            user: AdminData,
-            token,
-            otp,
-          });
-        }
-        return res.json({ status: false, message: "Admin not found" });
+      if (userData && userData.role === "admin") {
+        const AdminData = {
+          id: userData.adminId,
+          fullName: userData.fullName,
+          emailId: userData.email,
+          Image: userData.adminImage,
+          phoneNumber: userData.phone,
+          role: userData.role,
+        };
+        const token = await jwt.sign({ user: userData }, secretKey);
+        return res.json({
+          status: true,
+          message: "OTP has been send Succesfully",
+          user: AdminData,
+          token,
+          otp,
+        });
       }
       // Test User login
-      if (tempUserData && role === "tester") {
-        statusInfo.role = "tester";
-        console.log("Mobile OTP:", otp);
-        if (tempUserData) {
-          if (deviceId) {
-            tempUserData.deviceId = deviceId;
-            await TempUser.update(phoneNumber, { deviceId: deviceId });
-          }
-          const token = await jwt.sign({ user: tempUserData }, secretKey);
-          statusInfo.token = token;
-          statusInfo.otp = otp;
-          statusInfo.newUser = false;
-          statusInfo.status = true;
-          statusInfo.user = tempUserData;
-          statusInfo.message = "Welcome again, OTP has been send Succesfully.";
-        }
-      }
-      // New Test User
-      else if (!tempUserData && role === "tester") {
-        const tempUser = await TempUser.save({
-          phoneNumber,
-          userType,
-          deviceId,
-          role,
-        });
-        sendOTP(phoneNumber, otp);
-        statusInfo.newUser = true;
-        statusInfo.status = true;
-        statusInfo.otp = otp;
-        statusInfo.user = tempUser;
-        statusInfo.message = "OTP has been send Succesfully";
-      }
-      //user role login
-      else {
-        // existing user role login
-        sendOTP(phoneNumber, otp);
-        statusInfo.role = "user";
-        if (userData) {
+      else if (userData && userData.role === "tester") {
+        
+        console.log("Tester OTP:", otp);
+        if (deviceId) {
           userData.deviceId = deviceId;
+          await User.update(phoneNumber, { deviceId: deviceId });
+        }
+        const token = await jwt.sign({ user: userData }, secretKey);
+        statusInfo.role = "tester";
+        statusInfo.token = token;
+        statusInfo.otp = otp;
+        statusInfo.newUser = false;
+        statusInfo.status = true;
+        statusInfo.user = userData;
+        statusInfo.message = "Welcome again, OTP has been send Succesfully.";
+        
+      }
+      // New User
+      else if (!userData) {
+        userData.deviceId = deviceId;
           await User.update(phoneNumber, { deviceId: deviceId });
           const token = await jwt.sign({ user: userData }, secretKey);
           statusInfo.token = token;
@@ -290,34 +265,20 @@ exports.loginUserOTP = async (req, res, next) => {
           statusInfo.status = true;
           statusInfo.user = userData;
           statusInfo.message = "Welcome back, OTP has been send Succesfully";
-          // new user role login
-        } else {
-          statusInfo.newUser = true;
-          statusInfo.status = true;
-          statusInfo.otp = otp;
-          statusInfo.user = {
-            _id: "",
-            fullName: "",
-            dateOfBirth: "",
-            email: "",
-            phone: "",
-            password: "",
-            latitude: "",
-            longitude: "",
-            city: "",
-            state: "",
-            profileUrl: "",
-            gender: "",
-            userType: "NUMBER",
-            favourites: [],
-            deviceId: "",
-          };
-        }
+      }
+      // Existing User Login
+      else {
+        // existing user role login
+        sendOTP(phoneNumber, otp);
+        statusInfo.role = "user";
         statusInfo.message = "OTP has been send Succesfully";
+        statusInfo.newUser = true;
+        statusInfo.status = true;
+        statusInfo.otp = otp;
       }
     }
-    console.log("-----c:::", statusInfo);
-    return res.json(statusInfo);
+    return res.status(200).json(statusInfo);
+
   } catch (error) {
     console.error("Error in loginUserOTP:", error);
     return res.status(500).json({ message: "Please try after some time" });
