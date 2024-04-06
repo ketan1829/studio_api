@@ -562,7 +562,7 @@ exports.createServiceBooking = async (req, res, next) => {
         // if (!errors.isEmpty()) {
         //     return res.status(400).json({ errors: errors.array() });
         // }
-
+        console.log("req.body---", req.body)
         const { userId, serviceId, planId, bookingDate, bookingTime, totalPrice, serviceType } = req.body;
         const bookingStatus = 0;
 
@@ -570,6 +570,7 @@ exports.createServiceBooking = async (req, res, next) => {
         bookingTime.endTime = convertTo24HourFormat(bookingTime.endTime);
 
         let userData = await findUserById(userId);
+        console.log("userData", userData)
         if (!userData) {
             return res.status(404).json({ status: false, message: "Enter valid user ID" });
         }

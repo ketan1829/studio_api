@@ -168,7 +168,7 @@ exports.loginUserOTP = async (req, res, next) => {
         const userData = await User.findUserByPhone(phoneNumber);
         const tempUserData = await TempUser.findUserByPhone(phoneNumber);
 
-        console.log("DATA::::", userData, tempUserData);
+        console.log("DATA::: userData tempUserData");
 
         let statusInfo = { status: false, message: "something went wrong" }
 
@@ -266,7 +266,7 @@ exports.loginUserOTP = async (req, res, next) => {
                 statusInfo.message = "OTP has been send Succesfully"
             }
         }
-        console.log("-----c:::", statusInfo)
+        console.log("-----c:::", statusInfo?.message,"OTP:",statusInfo?.otp)
         return res.json(statusInfo);
     } catch (error) {
     console.error("Error in loginUserOTP:", error);

@@ -47,7 +47,7 @@ class Studio {
 
         return db.collection('studios').findOne({ _id: o_id })
             .then(studioData => {
-                console.log("ID---studioData---", studioData);
+                console.log("found studio by id:",sId);
                 return studioData;
             })
             .catch(err => console.log(err));
@@ -278,7 +278,7 @@ class Studio {
             .limit(per_page).toArray()
     }
 
-
+    // to remove duplicated and unstructured users
 
 }
 

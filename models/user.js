@@ -104,6 +104,59 @@ class User
             .catch(err=>console.log(err));
     }
 
+    static fetchAllUsersFromDate(fromdate,todate)
+    {
+        const db = getDb();
+        
+        return db.collection('users').find({ "creationTimeStamp": { $gte: new Date(fromdate + "T00:00:00"), $lt: new Date(todate + "T23:59:59") } }).toArray()
+            .then(userData=>{
+                return userData;
+            })
+            .catch(err=>console.log(err));
+    }
+
+    // remove duplicate >>>>>>>>>>>>>
+
+    static fetchAllUsersFromDate2(fromdate,todate)
+    {
+        const db = getDb();
+        
+        return db.collection('users').find({ "creationTimeStamp": { $gte: new Date(fromdate + "T00:00:00"), $lt: new Date(todate + "T23:59:59") } }).toArray()
+            .then(userData=>{
+                return userData;
+            }).catch(err=>console.log(err));
+    }
+
+    static async findUsersByPhone(phone)
+    {
+        const db = getDb();
+                            
+        return await db.collection('users').find({ phone: phone }).sort({ _id: -1 }).toArray()
+    }
+
+    static deleteUserPermanent(user_id){
+        const db = getDb();
+        db.collection('users').deleteOne({_id:ObjectId(user_id)})
+            .then(userData=>{
+                console.log("user delete op:",user_id);
+                return userData;
+            })
+            .catch(err=>console.log(err));
+        // db.commit()
+    }
+
+    static async update_object(phoneNumber, newData) {
+        const db = getDb();
+        const userToUpdate = { _id:ObjectId(phoneNumber)};
+        const updateData = {
+            $set: newData
+        };
+        return await db.collection("users").updateOne(userToUpdate, updateData);
+    }
+
+    // <<<<<<<< remove duplicate
+
+
 }
 
 
