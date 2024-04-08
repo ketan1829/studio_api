@@ -178,6 +178,9 @@ exports.getStudios = async (req, res, next) => {
                     spherical: false,
                     includeLocs: "dist.location",
                 }
+            },
+            {
+                $match: { isActive:1 }
             }
             // {
             //     $match: filter
@@ -186,7 +189,7 @@ exports.getStudios = async (req, res, next) => {
 
         if (searchText) {
             aggregationPipeline.push({
-                $match: { fullName: { $regex: searchText, $options: 'i' } }
+                $match: { fullName: { $regex: searchText, $options: 'i'} }
             });
         }
 
@@ -219,15 +222,12 @@ exports.getStudios = async (req, res, next) => {
 
     if (latitude?.length && longitude?.length) {
         
-        Studio.fetchAllStudios(0, 0)
-            .then(studioData => {
+        Studio.fetchAllStudios(0, 0).then(studioData => {
                 const paginatedStudios = filterNearbySudios(studioData, latitude, longitude, options.page || 1, options.limit || 0, range ? range : 10);
-                
                 return res.json({ status: true, message: paginatedStudios.message, studios: paginatedStudios.studios, paginate: paginatedStudios.paginate });
             })
     } else {
         console.log("not lattt");
-
         Studio.paginate(filter, options).then(studioData => {
             return res.json({ status: true, message: "All studios returned", studios: studioData.results });
         })

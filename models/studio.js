@@ -263,7 +263,7 @@ class Studio {
 
     static fetchAllStudios(skipCount, limitCount) {
         const db = getDb();
-        return db.collection('studios').find().sort({ creationTimeStamp: 1 }).skip(skipCount).limit(limitCount).toArray()
+        return db.collection('studios').find({isActive:1}).sort({ creationTimeStamp: 1 }).skip(skipCount).limit(limitCount).toArray()
             .then(studioData => {
                 return studioData;
             })
