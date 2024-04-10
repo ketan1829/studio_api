@@ -372,16 +372,16 @@ exports.updateService = async (req, res) => {
       message: "Service does not exist or provide the correct service Id",
     });
   }
-  const updatedPackages = packages?.map((p_key, j) => {
-    return serviceData.packages.map((pkg, i) => {
-      if (pkg.planId === p_key.planId) {
-        let updata_pack = serviceData.packages[i];
-        updata_pack = { ...updata_pack, ...packages[j] };
-        return updata_pack;
-      }
-      return pkg;
-    });
-  });
+  // const updatedPackages = packages?.map((p_key, j) => {
+  //   return serviceData.packages.map((pkg, i) => {
+  //     if (pkg.planId === p_key.planId) {
+  //       let updata_pack = serviceData.packages[i];
+  //       updata_pack = { ...updata_pack, ...packages[j] };
+  //       return updata_pack;
+  //     }
+  //     return pkg;
+  //   });
+  // });
   // console.log(updatedPackages);
 
   let service_obj = {
@@ -390,7 +390,7 @@ exports.updateService = async (req, res) => {
     price,
     amenities,
     totalPlans,
-    packages: updatedPackages,
+    packages,
     servicePhotos,
     aboutUs,
     workDetails,
