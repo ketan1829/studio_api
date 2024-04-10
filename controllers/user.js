@@ -266,10 +266,10 @@ exports.loginUserOTP = async (req, res, next) => {
       if (!userData) {
         console.log("new user=======");
 
-        sendOTP(phoneNumber, otp)
+        const otp_status = await sendOTP(phoneNumber, otp)
         statusInfo.otp = otp;
         statusInfo.newUser = true;
-        statusInfo.status = true;
+        statusInfo.status = otp_status;
         statusInfo.user = {
           "_id": "",
           "fullName": "",
@@ -293,6 +293,7 @@ exports.loginUserOTP = async (req, res, next) => {
       else {
         console.log("ELESEEEE");
         sendOTP(phoneNumber, otp)
+        const otp_status = await sendOTP(phoneNumber, otp)
         if (deviceId) {
           userData.deviceId = deviceId;
           await User.update(phoneNumber, { deviceId: deviceId });
@@ -302,7 +303,7 @@ exports.loginUserOTP = async (req, res, next) => {
         statusInfo.role = "user";
         statusInfo.message = "Welcome back, OTP has been send Succesfully";
         statusInfo.newUser = false;
-        statusInfo.status = true;
+        statusInfo.status = otp_status.success;
         statusInfo.user = userData;
         statusInfo.otp = otp;
       }

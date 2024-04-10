@@ -2585,6 +2585,7 @@ exports.getAllBookings = async (req, res, next) => {
           });
       } else {
           pipeline_lane.push({ $match: { bookingStatus: bookingType, $or: [{ type: "c1" }, { type: { $nin: ["c2", "c3"] } }] } });
+          pipeline_lane.push({ $sort: { _id: -1 } })
           pipeline_lane.push({
 
               $lookup: {
@@ -2711,6 +2712,9 @@ exports.getServiceBookings = async (req, res) => {
   const pipeline = [
       {
           $match: matchStage, // filters
+      },
+      {
+        $sort: { _id: -1 }
 
       },
       {

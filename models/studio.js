@@ -374,7 +374,7 @@ class Studio {
     const db = getDb();
     return db
       .collection("studios")
-      .find()
+      .find({isActive:1})
       .sort({ creationTimeStamp: 1 })
       .skip(skipCount)
       .limit(limitCount)

@@ -190,7 +190,8 @@ exports.getStudios = async (req, res, next) => {
       if (req.query.sortBy) {
           sortStage[req.query.sortBy] = 1;
       } else {
-          sortStage.fullName = 1;
+          // sortStage.fullName = 1;
+          sortStage._id = -1;
       }
 
       aggregationPipeline.push({ $sort: sortStage });

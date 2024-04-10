@@ -7,6 +7,7 @@ const { homeScreen } = require('../config/settings');
 
 // models
 const Setting = require('../models/setting');
+const User = require('../models/user');
 
 // utils
 const { validateService, validateFilterSchema } = require('../util/validations');
@@ -60,4 +61,70 @@ exports.getCategory = (req,res,next)=>{
         return res.json({status:true, message:`category returned`,categories:CategoryData});
     })
     
+}
+
+exports.deleteDuplicateUserWhileCheckingPreviousUser = async (req, res, next) => {
+
+    const chunk_users = await User.fetchAllUsersFromDate2("2024-04-01", "2024-04-02")
+    // res.send({data:chunk_users})
+
+    let user_phones = []
+
+    chunk_users.forEach(async user => {
+        const is_object = typeof (user.fullName)
+        if (is_object === "object") {
+
+            console.log("new op started =====");
+
+            if (user.fullName.fullName) {
+                // check user exist with number
+                if (user.fullName.phone) {
+
+                    console.log("phone exitttttt");
+
+                    let userbyphone = await User.findUsersByPhone(user.fullName.phone)
+
+
+                    if(Array.isArray(userbyphone) && userbyphone.length){
+
+                        console.log("Deleting Unstruct duplicated USER");
+                        // delete object record
+                        User.deleteUserPermanent(user._id)
+                      
+                    }else{
+                        console.log("NOT AN ARRAY or MT array");
+                        console.log("TestUser unstruct updated coz user found");
+                        // make data to the root level of user document
+
+                        if(!user_phones.includes(user.fullName.phone)){
+
+                            const fullname  = user.fullName.fullName
+                            user = { ...user, ...user.fullName }
+                            user.fullName = fullname
+                            user_phones.push(user.phone)
+                            await User.update_object(user._id, user)
+
+                        }else{
+                            console.log("Deleting redundant record from table",user.fullName.phone);
+                            // delete duplicate object record
+                            User.deleteUserPermanent(user._id)
+                        }
+                        
+                    }
+
+                }else{
+                    console.log("phone not exittttttt");
+                }
+            } else {
+                console.log("TestUser unstruct blank data updated");
+                // delete the record
+                User.deleteUserPermanent(user._id);
+            }
+
+        } else {
+            console.log("NOt AN Object");
+        }
+        console.log("==== op ended =====");
+    })
+    res.send({ ack: "OKKKK" })
 }
