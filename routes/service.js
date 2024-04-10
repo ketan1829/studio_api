@@ -16,11 +16,11 @@ router.get('/services/bookings/create',auth.isBoth,controller.getServiceBookings
 // GS
 router.get('/services/bookings/detail',auth.isBoth,controller.getServiceBookingsDetails);
 
-router.put('/services/update/:serviceId',auth.isAdmin,controller.updateService);
+router.put('/services/update/:serviceId',auth.isAdminV2,controller.updateService);
 
-router.delete('/services/delete/:serviceId',auth.isAdmin,controller.deleteService);
+router.delete('/services/delete/:serviceId',auth.isAdminV2,controller.deleteService);
 
-router.get('/exportServicesData',auth.isAdmin,controller.exportServicesData)
+router.get('/exportServicesData',auth.isAdminV2,controller.exportServicesData)
 
 
 

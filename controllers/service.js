@@ -363,7 +363,7 @@ exports.updateService = async (req, res) => {
   const reviews = req.body.userReviews;
   const featuredReviews = req.body.starredReviews;
   const type = req.body.type || "c2";
-  const isActive = +req.body.service_status;
+  const isActive = +req.body.isActive;
   const serviceData = await Service.findServiceById(sId);
   console.log(sId);
   if (!serviceData) {

@@ -6,7 +6,7 @@ const ObjectId = mongodb.ObjectId;
 class User
 {
     constructor(
-        fullName,
+        {fullName,
         dateOfBirth,
         email,
         phone,
@@ -21,7 +21,7 @@ class User
         userType = "NUMBER",
         favourites = [],
         deviceId,
-        status="",
+        status="",}
     ) 
     
     {
@@ -56,7 +56,7 @@ class User
         const updateData = {
             $set: newData
         };
-        return db.collection(collectionName).updateOne(userToUpdate, updateData);
+        return db.collection(collectionName).updateOne(userToUpdate, updateData,{ returnOriginal: false }).then(udata=>{return udata}).catch(error=>console.log("error",error));
     }
 
     static findUserByUserId(uId)
@@ -85,11 +85,11 @@ class User
             .catch(err=>console.log(err));
     }
 
-    static findUserByPhone(phone)
+    static findUserByPhone(phone,status=1)
     {
         const db = getDb();
                             
-        return db.collection('users').findOne({ phone:phone,status:1 })
+        return db.collection('users').findOne({ phone:phone,status:status })
             .then(userData=>{
                 return userData;  
             })
