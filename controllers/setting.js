@@ -23,7 +23,7 @@ exports.addStatusFieldInUsers = async (req,res,next)=>{
     if(user_count?.modifiedCount){
         return res.send({status:true,message:"'status' field got added",user_affected:user_count?.modifiedCount})
     }
-    return res.send({status:false,message:"failed to add thw field 'status'",user_affected:user_count?.modifiedCount})
+    return res.send({status:false,message:"failed to add the field 'status'",user_affected:user_count?.modifiedCount})
 
 
 }
