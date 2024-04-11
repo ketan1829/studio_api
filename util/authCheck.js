@@ -3,7 +3,7 @@ const ErrorHandler = require("./errorHandler");
 const { logger } = require("./logger");
 
 const verifyToken = (token) => {
-  console.log("token", token);
+  // console.log("token", token);
 
   return new Promise((resolve, reject) => {
     jwt.verify(token, 'myAppSecretKey', (err, decoded) => {
@@ -49,7 +49,7 @@ const isAdminV2 = async (req, res, next) => {
     }
 
     token = token.split(" ")[1]; // remove "Bearer"
-    console.log("token", token);
+    // console.log("token", token);
     const decoded = await verifyToken(token);
     // console.log("decoded:::", decoded, decoded.user.role)
 
@@ -77,7 +77,7 @@ const isAdmin = async (req, res, next) => {
     }
 
     token = token.split(" ")[1]; // remove "Bearer"
-    console.log("token", token);
+    // console.log("token", token);
     const decoded = await verifyToken(token);
     // console.log("decoded:::", decoded, decoded.user.role)
 

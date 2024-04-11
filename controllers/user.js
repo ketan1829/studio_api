@@ -141,10 +141,9 @@ exports.signupUserV2 = async (req, res, next) => {
 
     console.log({ fullName, dateOfBirth, email, phoneNumber, deviceId });
 
-    // const userData = await TempUser.findUserByPhone(phoneNumber);
     let _userData = await User.findUserByPhone(phoneNumber, 0);
 
-    console.log("REGISTER USER DATA", _userData);
+    console.log("REGISTER USER DATA", _userData?.fullName);
 
     const user_data = {
       fullName: fullName.trim(),
@@ -180,16 +179,17 @@ exports.signupUserV2 = async (req, res, next) => {
         status: 1
       }
       const udata = await User.update(phoneNumber, updated_user_data)
+      console.log(udata?`udata count:${udata?.matchedCount}`:"nottttt");
+    } else {
+      // If user does not exist, create a new user
+      const newUser = new User(updated_user_data);
+      await newUser.save();
     }
 
-    // if (_userData) {
-    //   return res.status(409).json({ status: false, message: "Phone number already registered" });
-    // }
-
     const token = jwt.sign({ user: user_data }, "myAppSecretKey");
-    // Send OTP
-    if (role === "tester" || role === "admin") {
-      await addContactBrevo(_userData);
+    // Only add to Brevo if the role is 'user' and it's a new signup
+    if (role === "user" && !_userData) {
+      await addContactBrevo(userObj);
       console.log("Added to Brevo");
     }
     return res.json({ status: true, message: "Signup successful", user: user_data, token });
@@ -209,7 +209,7 @@ exports.loginUserOTP = async (req, res, next) => {
 
     const userData = await User.findUserByPhone(phoneNumber);
 
-    // console.log("DATA::::", userData);
+    console.log("DATA::::", userData);
 
     let statusInfo = { status: false, message: "something went wrong" };
 
@@ -266,10 +266,10 @@ exports.loginUserOTP = async (req, res, next) => {
       if (!userData) {
         console.log("new user=======");
 
-        const otp_status = await sendOTP(phoneNumber, otp)
+        sendOTP(phoneNumber, otp)
         statusInfo.otp = otp;
         statusInfo.newUser = true;
-        statusInfo.status = otp_status;
+        statusInfo.status = true;
         statusInfo.user = {
           "_id": "",
           "fullName": "",
@@ -293,7 +293,6 @@ exports.loginUserOTP = async (req, res, next) => {
       else {
         console.log("ELESEEEE");
         sendOTP(phoneNumber, otp)
-        const otp_status = await sendOTP(phoneNumber, otp)
         if (deviceId) {
           userData.deviceId = deviceId;
           await User.update(phoneNumber, { deviceId: deviceId });
@@ -303,7 +302,7 @@ exports.loginUserOTP = async (req, res, next) => {
         statusInfo.role = "user";
         statusInfo.message = "Welcome back, OTP has been send Succesfully";
         statusInfo.newUser = false;
-        statusInfo.status = otp_status.success;
+        statusInfo.status = true;
         statusInfo.user = userData;
         statusInfo.otp = otp;
       }

@@ -50,13 +50,13 @@ class User
         return db.collection('users').insertOne(this);
     }
 
-    static update(phoneNumber, newData) {
+    static async update(phoneNumber, newData) {
         const db = getDb();
-        const userToUpdate = { phone: phoneNumber };
+        const filter = { phone: phoneNumber };
         const updateData = {
             $set: newData
         };
-        return db.collection(collectionName).updateOne(userToUpdate, updateData,{ returnOriginal: false }).then(udata=>{return udata}).catch(error=>console.log("error",error));
+        return await db.collection("users").updateOne(filter, updateData,{ returnOriginal: false }).then(udata=>{return udata}).catch(error=>console.log("error",error));
     }
 
     static findUserByUserId(uId)

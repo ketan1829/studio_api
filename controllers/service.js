@@ -159,7 +159,7 @@ exports.createNewService = async (req, res, next) => {
 
 exports.getServices = (req, res, next) => {
 
-  console.log("body---", req.query);
+  // console.log("body---", req.query);
   // const { serviceName, startingPrice, offerings, TotalServices, avgReview, serviceId } = req.query;
   const filter = pick(req.query, ['serviceType', 'active', 'serviceName', 'startingPrice','endPrice','planId','TotalServices'])
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
@@ -208,7 +208,7 @@ exports.getServices = (req, res, next) => {
 }
 
 exports.getServiceBookings = (req, res, next) => {
-  console.log("body---", req.query);
+  // console.log("body---", req.query);
 
   const {
     bookingId,

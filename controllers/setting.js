@@ -21,7 +21,7 @@ const ObjectId = mongodb.ObjectId;
 
 exports.getBanner = (req,res,next)=>{
 
-    console.log("body---", req.body);
+    // console.log("body---", req.body);
     const { settingId, startingPrice, offerings, TotalServices, avgReview, serviceId, active } = req.body;
     const filter = pick(req.query, ['name', 'role']) || { active: 1 }
     const options = pick(req.query, ['sortBy', 'limit', 'page']);
