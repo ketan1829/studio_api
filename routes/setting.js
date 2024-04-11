@@ -8,6 +8,7 @@ const auth = require("../util/authCheck");
 // router.post('/settings/create',controller.createNewSetting);
 
 router.get('/settings/banner',auth.isBoth,controller.getBanner);
+router.get('/settings/addstatus',auth.isAdmin,controller.addStatusFieldInUsers);
 
 router.get('/settings/category',auth.isBoth,controller.getCategory);
 // router.post('/settings/update_or_delete_user',auth.isBoth,controller.deleteDuplicateUserWhileCheckingPreviousUser);

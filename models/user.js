@@ -154,6 +154,14 @@ class User
         return await db.collection("users").updateOne(userToUpdate, updateData);
     }
 
+    static async add_status_field(){
+        const db = getDb();
+        const updateData = {
+            $set: {status:1}
+        };
+        return await db.collection("users").updateMany({}, updateData);
+    }
+
     // <<<<<<<< remove duplicate
 
 

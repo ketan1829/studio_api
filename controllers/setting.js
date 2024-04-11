@@ -18,6 +18,16 @@ const { paginate } = require('../util/plugins/paginate.plugin')
 
 const ObjectId = mongodb.ObjectId;
 
+exports.addStatusFieldInUsers = async (req,res,next)=>{
+    const user_count = await User.add_status_field()
+    if(user_count?.modifiedCount){
+        return res.send({status:true,message:"'status' field got added",user_affected:user_count?.modifiedCount})
+    }
+    return res.send({status:false,message:"failed to add thw field 'status'",user_affected:user_count?.modifiedCount})
+
+
+}
+
 
 exports.getBanner = (req, res, next) => {
 
