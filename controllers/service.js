@@ -109,12 +109,9 @@ exports.createNewService = async (req, res, next) => {
     const reviews = req.body.userReviews;
     const featuredReviews = req.body.starredReviews;
     const type = req.body.type || "c2";
-    const isActive = [0,1,2].includes(req.body.isActive) ? req.body.isActive:1;
-
-
+    const isActive = req.body.isActive || 1;
 
     console.log("else is running",req.body);
-    console.log("else is running",type,isActive);
     // const { error } = validateService(req.body);
     // if (error) {
     //   return res.status(400).json({ error: error.details[0].message });
@@ -136,8 +133,8 @@ exports.createNewService = async (req, res, next) => {
       clientPhotos,
       reviews,
       featuredReviews,
-      type,
-      isActive
+      isActive,
+      type
     );
 
     // saving in database
@@ -162,33 +159,39 @@ exports.createNewService = async (req, res, next) => {
 
 exports.getServices = (req, res, next) => {
 
-  console.log("body---", req.query);
+  // console.log("body---", req.query);
   // const { serviceName, startingPrice, offerings, TotalServices, avgReview, serviceId } = req.query;
-  const filter = pick(req.query, ['serviceType', 'active', 'serviceName', 'startingPrice', 'planId'])
+  const filter = pick(req.query, ['serviceType', 'active', 'serviceName', 'startingPrice','endPrice','planId','TotalServices'])
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
 
   let mappedFilter = {}
 
   const collectionName = homeScreen.category?.[filter.serviceType]?.coll
 
+
   if (filter.serviceType) mappedFilter.type = filter.serviceType //: filter.catId = 1;
   filter.active ? mappedFilter.isActive = parseInt(filter.active) : mappedFilter.isActive = 1;
 
   if (filter.planId) {
-      var o_id = new ObjectId(filter.planId);
-      filter._id = o_id
+      // var o_id = new ObjectId(filter.planId);
+      // filter._id = o_id
+      mappedFilter['packages.planId'] = +filter.planId
   }
-  if (filter.serviceName) mappedFilter.fullName = serviceName;
-  if (filter.startingPrice) mappedFilter.price = startingPrice;
-  if (filter.TotalServices) mappedFilter.totalPlans = TotalServices;
-  if (filter.avgReview) mappedFilter.featuredReviews.avgService = parseFloat(avgReview);
+  if (filter.serviceName) mappedFilter.fullName = filter.serviceName;
+  if (filter.startingPrice) mappedFilter.price = { $gte: parseInt(filter.startingPrice) }
+  if (filter.endPrice) {
+    mappedFilter.price.$lte = parseInt(filter.endPrice);
+  }
+  if (filter.TotalServices) mappedFilter.totalPlans = +filter.TotalServices;
+  if (filter.avgReview) mappedFilter.featuredReviews.avgService = parseFloat(filter.avgReview);
 
   console.log("collectionName----", collectionName, mappedFilter, options);
 
-  const { error } = validateFilterSchema(filter);
-  if (error) {
-      return res.status(400).json({ status: false, message: error.details[0].message });
-  }
+
+  // const { error } = validateFilterSchema(filter);
+  // if (error) {
+  //     return res.status(400).json({ status: false, message: error.details[0].message });
+  // }
 
   paginate(collectionName, mappedFilter, options).then((ServiceData) => {
     const paginateData = 
@@ -205,7 +208,7 @@ exports.getServices = (req, res, next) => {
 }
 
 exports.getServiceBookings = (req, res, next) => {
-  console.log("body---", req.query);
+  // console.log("body---", req.query);
 
   const {
     bookingId,
@@ -360,7 +363,7 @@ exports.updateService = async (req, res) => {
   const reviews = req.body.userReviews;
   const featuredReviews = req.body.starredReviews;
   const type = req.body.type || "c2";
-  const isActive = +req.body.service_status;
+  const isActive = +req.body.isActive;
   const serviceData = await Service.findServiceById(sId);
   console.log(sId);
   if (!serviceData) {
@@ -369,16 +372,16 @@ exports.updateService = async (req, res) => {
       message: "Service does not exist or provide the correct service Id",
     });
   }
-  const updatedPackages = packages?.map((p_key, j) => {
-    return serviceData.packages.map((pkg, i) => {
-      if (pkg.planId === p_key.planId) {
-        let updata_pack = serviceData.packages[i];
-        updata_pack = { ...updata_pack, ...packages[j] };
-        return updata_pack;
-      }
-      return pkg;
-    });
-  });
+  // const updatedPackages = packages?.map((p_key, j) => {
+  //   return serviceData.packages.map((pkg, i) => {
+  //     if (pkg.planId === p_key.planId) {
+  //       let updata_pack = serviceData.packages[i];
+  //       updata_pack = { ...updata_pack, ...packages[j] };
+  //       return updata_pack;
+  //     }
+  //     return pkg;
+  //   });
+  // });
   // console.log(updatedPackages);
 
   let service_obj = {
@@ -387,7 +390,7 @@ exports.updateService = async (req, res) => {
     price,
     amenities,
     totalPlans,
-    packages: updatedPackages,
+    packages,
     servicePhotos,
     aboutUs,
     workDetails,

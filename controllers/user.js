@@ -133,33 +133,19 @@ exports.loginUserOTP2 = (req, res, next) => {
   return res.json({ status: true, message: "Login-OTP" });
 };
 
-// ----------- Auth V 1.1 ------------------------
+// ----------- Auth V 2.2.4 ------------------------
 
 exports.signupUserV2 = async (req, res, next) => {
   try {
-    const {
-      fullName,
-      userType,
-      dateOfBirth,
-      email,
-      phoneNumber,
-      deviceId,
-      role,
-    } = req.body;
+    const { fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role } = req.body;
 
     console.log({ fullName, dateOfBirth, email, phoneNumber, deviceId });
 
-    // const userData = await TempUser.findUserByPhone(phoneNumber);
-    let _userData = await User.findUserByPhone(phoneNumber);
+    let _userData = await User.findUserByPhone(phoneNumber, 0);
 
-    console.log("REGISTER USER DATA", _userData);
+    console.log("REGISTER USER DATA", _userData?.fullName);
 
-    if (_userData) {
-      return res
-        .status(409)
-        .json({ status: false, message: "Phone number already registered" });
-    }
-    const userObj = new User({
+    const user_data = {
       fullName: fullName.trim(),
       dateOfBirth,
       email,
@@ -175,28 +161,42 @@ exports.signupUserV2 = async (req, res, next) => {
       role: role || "user",
       gender: "",
       favourites: [],
-    });
-    await userObj.save();
-    const token = await jwt.sign({ user: userObj }, "myAppSecretKey");
-    // Send OTP
-    if (role === "tester" || role === "admin") {
-      await addContactBrevo(_userData);
+      status: 1
+    };
+
+    const userObj = new User(user_data);
+    user_data._id = _userData._id
+
+    if (_userData) {
+      const updated_user_data = {
+        fullName: fullName.trim(),
+        dateOfBirth,
+        email,
+        phone: phoneNumber,
+        userType: userType || "NUMBER",
+        deviceId,
+        role: role || "user",
+        status: 1
+      }
+      const udata = await User.update(phoneNumber, updated_user_data)
+      console.log(udata?`udata count:${udata?.matchedCount}`:"nottttt");
+    } else {
+      // If user does not exist, create a new user
+      const newUser = new User(updated_user_data);
+      await newUser.save();
+    }
+
+    const token = jwt.sign({ user: user_data }, "myAppSecretKey");
+    // Only add to Brevo if the role is 'user' and it's a new signup
+    if (role === "user" && !_userData) {
+      await addContactBrevo(userObj);
       console.log("Added to Brevo");
     }
-    return res.json({
-      status: true,
-      message: "Signup successful",
-      user: userObj,
-      token,
-    });
+    return res.json({ status: true, message: "Signup successful", user: user_data, token });
+
   } catch (error) {
     console.error("Error in signupUserV2:", error);
-    return res
-      .status(500)
-      .json({
-        status: false,
-        message: "Something went wrong, try again later",
-      });
+    return res.status(500).json({ status: false, message: "Something went wrong, try again later" });
   }
 };
 
@@ -204,120 +204,113 @@ exports.loginUserOTP = async (req, res, next) => {
   try {
     console.log("LOGIN======>");
     const { phoneNumber, deviceId, userType, role } = req.body;
-    console.log("<=======LOGIN");
 
     console.log({ phoneNumber, deviceId, userType, role });
 
     const userData = await User.findUserByPhone(phoneNumber);
-    const tempUserData = await TempUser.findUserByPhone(phoneNumber);
 
-    console.log("DATA::::", userData, tempUserData);
+    console.log("DATA::::", userData);
 
     let statusInfo = { status: false, message: "something went wrong" };
 
     let otp = generateRandomCode(4);
 
     if (userType === "NUMBER") {
-      let token;
+
+      // Admin/ Tester -- not found
+      if (!userData && (role === "admin" || role === "tester")) {
+        return res.status(500).json({ message: `${role} not found, Try again later` });
+      }
+
       // ADMIN login
-      if (role === "admin") {
-        const adminData = await Admin.findAdminByNumber(phoneNumber);
-        if (adminData) {
-          const AdminData = {
-            id: adminData.adminId,
-            fullName: `${adminData.firstName} ${adminData.lastName}`,
-            emailId: adminData.email,
-            Image: adminData.adminImage,
-            phoneNumber: adminData.phone,
-            role: "admin",
-          };
-          const token = await jwt.sign({ user: userData }, secretKey);
-          return res.json({
-            status: true,
-            message: "OTP has been send Succesfully",
-            user: AdminData,
-            token,
-            otp,
-          });
-        }
-        return res.json({ status: false, message: "Admin not found" });
-      }
-      // Test User login
-      if (tempUserData && role === "tester") {
-        statusInfo.role = "tester";
-        console.log("Mobile OTP:", otp);
-        if (tempUserData) {
-          if (deviceId) {
-            tempUserData.deviceId = deviceId;
-            await TempUser.update(phoneNumber, { deviceId: deviceId });
-          }
-          const token = await jwt.sign({ user: tempUserData }, secretKey);
-          statusInfo.token = token;
-          statusInfo.otp = otp;
-          statusInfo.newUser = false;
-          statusInfo.status = true;
-          statusInfo.user = tempUserData;
-          statusInfo.message = "Welcome again, OTP has been send Succesfully.";
-        }
-      }
-      // New Test User
-      else if (!tempUserData && role === "tester") {
-        const tempUser = await TempUser.save({
-          phoneNumber,
-          userType,
-          deviceId,
-          role,
+      if (userData && userData.role === "admin") {
+        const AdminData = {
+          id: userData.adminId,
+          fullName: userData.fullName,
+          emailId: userData.email,
+          Image: userData.adminImage,
+          phoneNumber: userData.phone,
+          role: userData.role,
+        };
+        // console.log(">------",AdminData.phoneNumber);
+        const token = await jwt.sign({ user: AdminData }, secretKey);
+        return res.json({
+          status: true,
+          message: "Hello Admin, OTP has been send Succesfully",
+          user: AdminData,
+          token,
+          otp,
         });
-        sendOTP(phoneNumber, otp);
-        statusInfo.newUser = true;
-        statusInfo.status = true;
-        statusInfo.otp = otp;
-        statusInfo.user = tempUser;
-        statusInfo.message = "OTP has been send Succesfully";
       }
-      //user role login
-      else {
-        // existing user role login
-        sendOTP(phoneNumber, otp);
-        statusInfo.role = "user";
-        if (userData) {
+
+      // Test User login
+      if (userData && userData.role === "tester") {
+
+        console.log("Tester OTP:", otp);
+
+        if (deviceId) {
           userData.deviceId = deviceId;
           await User.update(phoneNumber, { deviceId: deviceId });
-          const token = await jwt.sign({ user: userData }, secretKey);
-          statusInfo.token = token;
-          statusInfo.otp = otp;
-          statusInfo.newUser = false;
-          statusInfo.status = true;
-          statusInfo.user = userData;
-          statusInfo.message = "Welcome back, OTP has been send Succesfully";
-          // new user role login
-        } else {
-          statusInfo.newUser = true;
-          statusInfo.status = true;
-          statusInfo.otp = otp;
-          statusInfo.user = {
-            _id: "",
-            fullName: "",
-            dateOfBirth: "",
-            email: "",
-            phone: "",
-            password: "",
-            latitude: "",
-            longitude: "",
-            city: "",
-            state: "",
-            profileUrl: "",
-            gender: "",
-            userType: "NUMBER",
-            favourites: [],
-            deviceId: "",
-          };
         }
+        const token = await jwt.sign({ user: userData }, secretKey);
+        statusInfo.role = "tester";
+        statusInfo.token = token;
+        statusInfo.otp = otp;
+        statusInfo.newUser = false;
+        statusInfo.status = true;
+        statusInfo.user = userData;
+        statusInfo.message = "Welcome Tester, OTP has been send Succesfully.";
+
+      }
+      // New User
+      if (!userData) {
+        console.log("new user=======");
+
+        sendOTP(phoneNumber, otp)
+        statusInfo.otp = otp;
+        statusInfo.newUser = true;
+        statusInfo.status = true;
+        statusInfo.user = {
+          "_id": "",
+          "fullName": "",
+          "dateOfBirth": "",
+          "email": "",
+          "phone": "",
+          "password": "",
+          "latitude": "",
+          "longitude": "",
+          "city": "",
+          "state": "",
+          "profileUrl": "",
+          "gender": "",
+          "userType": "NUMBER",
+          "favourites": [],
+          "deviceId": "",
+        };
         statusInfo.message = "OTP has been send Succesfully";
       }
+      // Existing User Login
+      else {
+        console.log("ELESEEEE");
+        sendOTP(phoneNumber, otp)
+        if (deviceId) {
+          userData.deviceId = deviceId;
+          await User.update(phoneNumber, { deviceId: deviceId });
+        }
+        const token = await jwt.sign({ user: userData }, secretKey);
+        statusInfo.token = token;
+        statusInfo.role = "user";
+        statusInfo.message = "Welcome back, OTP has been send Succesfully";
+        statusInfo.newUser = false;
+        statusInfo.status = true;
+        statusInfo.user = userData;
+        statusInfo.otp = otp;
+      }
     }
-    console.log("-----c:::", statusInfo);
-    return res.json(statusInfo);
+
+    console.log("statusInfo:", statusInfo);
+    return res.status(200).json(statusInfo);
+
   } catch (error) {
     console.error("Error in loginUserOTP:", error);
     return res.status(500).json({ message: "Please try after some time" });
@@ -482,11 +475,11 @@ exports.sendSignUpOtp = (req, res, next) => {
       axios
         .get(
           "https://www.fast2sms.com/dev/bulkV2?authorization=" +
-            process.env.FAST2SMS_AUTH_KEY +
-            "&variables_values" +
-            token +
-            "&route=otp&numbers=" +
-            phone
+          process.env.FAST2SMS_AUTH_KEY +
+          "&variables_values" +
+          token +
+          "&route=otp&numbers=" +
+          phone
         )
         .then(function (response) {
           // console.log(response.data);
@@ -763,11 +756,11 @@ exports.sendPhoneOtpForEdit = (req, res, next) => {
     axios
       .get(
         "https://www.fast2sms.com/dev/bulkV2?authorization=" +
-          process.env.FAST2SMS_AUTH_KEY +
-          "&variables_values" +
-          token +
-          "&route=otp&numbers=" +
-          phone
+        process.env.FAST2SMS_AUTH_KEY +
+        "&variables_values" +
+        token +
+        "&route=otp&numbers=" +
+        phone
       )
       .then(function (response) {
         if (
@@ -957,11 +950,11 @@ exports.sendForgotPasswordOtp = (req, res, next) => {
       axios
         .get(
           "https://www.fast2sms.com/dev/bulkV2?authorization=" +
-            process.env.FAST2SMS_AUTH_KEY +
-            "&variables_values" +
-            token +
-            "&route=otp&numbers=" +
-            identity
+          process.env.FAST2SMS_AUTH_KEY +
+          "&variables_values" +
+          token +
+          "&route=otp&numbers=" +
+          identity
         )
         .then(function (response) {
           if (
@@ -1186,7 +1179,7 @@ exports.deleteParticularUser = (req, res, next) => {
     var o_id = new ObjectId(userId);
 
     db.collection("users")
-      .updateOne({ _id: o_id },{ $set: { status: 0 }})
+      .updateOne({ _id: o_id }, { $set: { status: 0 } })
       .then((resultData) => {
         return res.json({ status: true, message: "User deleted successfully" });
       })
@@ -1325,7 +1318,7 @@ exports.getAllUsersGraphDetails = (req, res, next) => {
   });
 };
 
-exports.getUserNearyByLocations = async(req, res, next) => {
+exports.getUserNearyByLocations = async (req, res, next) => {
   const latitude = 19.1196773;
   const longitude = 72.9050809;
   const range = 100;
@@ -1337,86 +1330,86 @@ exports.getUserNearyByLocations = async(req, res, next) => {
 exports.exportUserData = async (req, res) => {
   try {
     const filter = pick(req.query, ['dateOfBirth', 'userType', 'role']); // {startDate: 2022-19-01}
-    const options = pick(req.query, ['sort', 'limit', 'gender', 'startDate','endDate','page','sortfield','sortvalue']); // {}
+    const options = pick(req.query, ['sort', 'limit', 'gender', 'startDate', 'endDate', 'page', 'sortfield', 'sortvalue']); // {}
     const pipeline = []
-    
-    if(Object.keys(filter).length){
+
+    if (Object.keys(filter).length) {
       pipeline.push(
         {
           $match: filter,
         }
       )
     }
-        
 
-      console.log("this is pipe======>",pipeline);
-      if (options.startDate && options.endDate) {
-        let startDate=options.startDate
-        let endDate=options.endDate
-        pipeline.push({
-          $match: {
-            creationTimeStamp: {
-              $gte: new Date(startDate),
-              $lte: new Date(endDate)
-            },
+
+    console.log("this is pipe======>", pipeline);
+    if (options.startDate && options.endDate) {
+      let startDate = options.startDate
+      let endDate = options.endDate
+      pipeline.push({
+        $match: {
+          creationTimeStamp: {
+            $gte: new Date(startDate),
+            $lte: new Date(endDate)
           },
-        });
-      }
+        },
+      });
+    }
 
 
 
-      const sortobj = {[options.sortfield]:+options.sortvalue}
+    const sortobj = { [options.sortfield]: +options.sortvalue }
 
-      if (options.sortfield) {
-        const sortStage = {
-          $sort: sortobj
-        };
-        pipeline.push(sortStage);
-      }
-     
-  
-      if (options.limit) {
-        const limitStage = {
-          $limit: parseInt(options.limit),
-        };
-        pipeline.push(limitStage);
-      }
-  
-      if (options.page) {
-        const skipStage = {
-          $skip: (parseInt(options.page) - 1
-          ) * parseInt(options.limit),
-        };
-        pipeline.push(skipStage);
-      }
-      console.log(JSON.stringify(pipeline))
+    if (options.sortfield) {
+      const sortStage = {
+        $sort: sortobj
+      };
+      pipeline.push(sortStage);
+    }
+
+
+    if (options.limit) {
+      const limitStage = {
+        $limit: parseInt(options.limit),
+      };
+      pipeline.push(limitStage);
+    }
+
+    if (options.page) {
+      const skipStage = {
+        $skip: (parseInt(options.page) - 1
+        ) * parseInt(options.limit),
+      };
+      pipeline.push(skipStage);
+    }
+    console.log(JSON.stringify(pipeline))
     let allUser;
-      if(filter || options) {
-         allUser = await User.fetchAllUsersByAggregate(pipeline)
-      }else {
-         allUser = await User.fetchAllUsers(0,0);
-      }
-      // console.log(JSON.stringify(pipeline))
+    if (filter || options) {
+      allUser = await User.fetchAllUsersByAggregate(pipeline)
+    } else {
+      allUser = await User.fetchAllUsers(0, 0);
+    }
+    // console.log(JSON.stringify(pipeline))
     const workbook = new excelJS.Workbook();
     const worksheet = workbook.addWorksheet("userData");
     const mypath = "./files";
     worksheet.columns = [
       { header: "S no.", key: "s_no", width: 10 },
-    //   { headers: "Id", key: "_id", width: 10 },
+      //   { headers: "Id", key: "_id", width: 10 },
       { header: "fullName", key: "fullName", width: 10 },
       { header: "dateOfBirth", key: "dateOfBirth", width: 10 },
       { header: "email", key: "email", width: 10 },
       { header: "phone", key: "phone", width: 10 },
-    //   { header: "password", key: "password", width: 10 },
+      //   { header: "password", key: "password", width: 10 },
       { header: "latitude", key: "latitude", width: 10 },
       { header: "longitude", key: "longitude", width: 10 },
       { header: "city", key: "city", width: 10 },
       { header: "state", key: "state", width: 10 },
       { header: "profileUrl", key: "profileUrl", width: 10 },
       { header: "gender", key: "gender", width: 10 },
-    //   { header: "userType", key: "userType", width: 10 },
+      //   { header: "userType", key: "userType", width: 10 },
       { header: "favourites", key: "favourites", width: 10 },
-    //   { header: "deviceId", key: "deviceId", width: 10 },
+      //   { header: "deviceId", key: "deviceId", width: 10 },
       { header: "creationTimeStamp", key: "creationTimeStamp", width: 10 },
     ];
 
@@ -1436,24 +1429,24 @@ exports.exportUserData = async (req, res) => {
       .writeFile(`C:/Users/Choira Dev 2/Desktop/studio_api/files/users.xlsx`)
       .then(() => {
         console.log(__dirname);
-        res.header({"Content-disposition" : "attachment; filename=users.xlsx" ,"Content-Type" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}).sendFile("users.xlsx", {root: `C:/Users/Choira Dev 2/Desktop/studio_api/files`}, function (err) {
+        res.header({ "Content-disposition": "attachment; filename=users.xlsx", "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }).sendFile("users.xlsx", { root: `C:/Users/Choira Dev 2/Desktop/studio_api/files` }, function (err) {
           if (err) {
-              console.error('Error sending file:', err);
+            console.error('Error sending file:', err);
           } else {
-              console.log({
-                status: "success",
-                message: "file successfully downloaded",
-                path: `${mypath}/users.xlsx`
-              });
+            console.log({
+              status: "success",
+              message: "file successfully downloaded",
+              path: `${mypath}/users.xlsx`
+            });
           }
-      })
+        })
       });
   } catch (error) {
     console.log(error)
     res.send({
       status: "error",
       message: "Something went wrong",
-      error:error.message
+      error: error.message
     });
   }
 };

@@ -6,7 +6,7 @@ const ObjectId = mongodb.ObjectId;
 class User
 {
     constructor(
-        fullName,
+        {fullName,
         dateOfBirth,
         email,
         phone,
@@ -21,7 +21,7 @@ class User
         userType = "NUMBER",
         favourites = [],
         deviceId,
-        status="",
+        status="",}
     ) 
     
     {
@@ -50,13 +50,13 @@ class User
         return db.collection('users').insertOne(this);
     }
 
-    static update(phoneNumber, newData) {
+    static async update(phoneNumber, newData) {
         const db = getDb();
-        const userToUpdate = { phone: phoneNumber };
+        const filter = { phone: phoneNumber };
         const updateData = {
             $set: newData
         };
-        return db.collection(collectionName).updateOne(userToUpdate, updateData);
+        return await db.collection("users").updateOne(filter, updateData,{ returnOriginal: false }).then(udata=>{return udata}).catch(error=>console.log("error",error));
     }
 
     static findUserByUserId(uId)
@@ -85,11 +85,11 @@ class User
             .catch(err=>console.log(err));
     }
 
-    static findUserByPhone(phone)
+    static findUserByPhone(phone,status=1)
     {
         const db = getDb();
                             
-        return db.collection('users').findOne({ phone:phone,status:1 })
+        return db.collection('users').findOne({ phone:phone,status:status })
             .then(userData=>{
                 return userData;  
             })
@@ -136,6 +136,48 @@ class User
             throw err; 
         }
     }
+
+       // remove duplicate >>>>>>>>>>>>>
+
+       static fetchAllUsersFromDate2(fromdate,todate)
+       {
+           const db = getDb();
+           
+           return db.collection('users').find({ "creationTimeStamp": { $gte: new Date(fromdate + "T00:00:00"), $lt: new Date(todate + "T23:59:59") } }).toArray()
+               .then(userData=>{
+                   return userData;
+               }).catch(err=>console.log(err));
+       }
+   
+       static async findUsersByPhone(phone)
+       {
+           const db = getDb();
+                               
+           return await db.collection('users').find({ phone: phone }).sort({ _id: -1 }).toArray()
+       }
+   
+       static deleteUserPermanent(user_id){
+           const db = getDb();
+           db.collection('users').deleteOne({_id:ObjectId(user_id)})
+               .then(userData=>{
+                   console.log("user delete op:",user_id);
+                   return userData;
+               })
+               .catch(err=>console.log(err));
+           // db.commit()
+       }
+   
+       static async update_object(phoneNumber, newData) {
+           const db = getDb();
+           const userToUpdate = { _id:ObjectId(phoneNumber)};
+           const updateData = {
+               $set: newData
+           };
+           return await db.collection("users").updateOne(userToUpdate, updateData);
+       }
+   
+       // <<<<<<<< remove duplicate
+   
     
 
     // static async paginate(filter, options) {

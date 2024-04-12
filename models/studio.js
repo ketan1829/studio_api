@@ -67,6 +67,7 @@ class Studio {
 
   static async getNearByStudios(longitude, latitude,range, page, limit) {
     try {
+      console.log("parseFloat(longitude), parseFloat(latitude)---", longitude, latitude);
       const db = getDb();
       const nearByStudiosCursor = await db.collection("studios").find({
         location: {
@@ -85,11 +86,11 @@ class Studio {
           $nearSphere: {
             $geometry: { type: "Point", coordinates: [longitude, latitude] },
             $maxDistance: range * 1000
-          }
-        }
+          },
+        },
       });
       const totalResults = await totalResultsCursor.count();
-      const totalPages = Math.ceil(totalResults / limit);
+      const totalPages = limit > 0 ? Math.ceil(totalResults / limit) : 0;
 
       const message = `Page ${page} of ${totalPages} - ${nearByStudios.length} studios returned`
       const paginateData = {
@@ -374,7 +375,7 @@ class Studio {
     const db = getDb();
     return db
       .collection("studios")
-      .find()
+      .find({isActive:1})
       .sort({ creationTimeStamp: 1 })
       .skip(skipCount)
       .limit(limitCount)

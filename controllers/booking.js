@@ -19,7 +19,7 @@ const ObjectId = mongodb.ObjectId;
 
 const jwt = require("jsonwebtoken");
 
-const send_mail = require("../util/mail.js");
+const { send_mail } = require("../util/mail.js");
 const pick = require("../util/pick");
 const { getLogger } = require("nodemailer/lib/shared");
 
@@ -514,10 +514,10 @@ exports.createNewBooking = async (req, res, next) => {
     const title = "Congratulations!!";
     const message = `Your booking with '${studioData.fullName}' is confirmed`;
     const myJSONObject = {
-      app_id: process.env.ONE_SIGNAL_APP_ID,
-      include_player_ids: [userDeviceId],
-      data: {},
-      contents: { en: `${title}\n${message}` },
+      "app_id": process.env.ONE_SIGNAL_APP_ID,
+      "include_player_ids": [userDeviceId],
+      "data": {},
+      "contents": { "en": `${title}\n${message}` },
     };
 
     const result = await axios.post(
@@ -526,7 +526,7 @@ exports.createNewBooking = async (req, res, next) => {
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: process.env.ONE_SIGNAL_AUTH,
+          "Authorization": process.env.ONE_SIGNAL_AUTH,
         },
       }
     );
@@ -2585,6 +2585,7 @@ exports.getAllBookings = async (req, res, next) => {
           });
       } else {
           pipeline_lane.push({ $match: { bookingStatus: bookingType, $or: [{ type: "c1" }, { type: { $nin: ["c2", "c3"] } }] } });
+          pipeline_lane.push({ $sort: { _id: -1 } })
           pipeline_lane.push({
 
               $lookup: {
@@ -2711,6 +2712,9 @@ exports.getServiceBookings = async (req, res) => {
   const pipeline = [
       {
           $match: matchStage, // filters
+      },
+      {
+        $sort: { _id: -1 }
 
       },
       {

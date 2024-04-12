@@ -106,20 +106,14 @@ function filterNearbySudios(studioData, latitude, longitude, page, limit, range)
 
 // ----------------- v2.2.3 ---------------------------
 
+
 exports.getStudios = async (req, res, next) => {
 
-  console.log("body---", req.body);
-  console.log("body---", req.query);
-  if (req.query.latitude) {
+  // console.log("body---", req.query);
 
-      console.log("testtttttttt");
-      var { city, state, minArea, minPricePerHour, amenity, availabilityDay, latitude, longitude, range, active, studioId, searchText } = req.query;
+  var { city, state, minArea, minPricePerHour, amenity, availabilityDay, latitude, longitude, range, active, studioId, searchText } = req.query;
 
-  } else {
-      var { city, state, minArea, minPricePerHour, amenity, availabilityDay, latitude, longitude, range, active, studioId, searchText } = req.body;
-
-  }
-  const filter = pick(req.query, ['name', 'role']) || { isActive: 1 }
+  const filter = pick(req.query, ['name', 'role','city']) || { isActive: 1 }
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
 
   // const filter = { isActive: 1 };
@@ -136,10 +130,6 @@ exports.getStudios = async (req, res, next) => {
       filter['roomsDetails.generalEndTime'] = availabilityDay.endTime;
   }
   const check = req.query.check;
-
-
-  console.log("latitude?.length:",filter);
-
 
 
   if (check && check === "2dsphere") {
@@ -195,7 +185,8 @@ exports.getStudios = async (req, res, next) => {
       if (req.query.sortBy) {
           sortStage[req.query.sortBy] = 1;
       } else {
-          sortStage.fullName = 1;
+          // sortStage.fullName = 1;
+          sortStage._id = -1;
       }
 
       aggregationPipeline.push({ $sort: sortStage });
@@ -216,10 +207,11 @@ exports.getStudios = async (req, res, next) => {
   }
 
   if (latitude?.length && longitude?.length) {
+    
     const availableStudios = await Studio.getNearByStudios(
-      +longitude,
-      +latitude,
-      range ? range : 10,
+      +parseFloat(longitude),
+      +parseFloat(latitude),
+      range ? parseInt(range) : 10,
       options?.page || 1,
       options?.limit || 10,
     );
@@ -253,7 +245,7 @@ exports.getStudios = async (req, res, next) => {
 // Added Aggregation performing operations on it but shows incorrect results
 exports.getStudios_aggreation = async (req, res, next) => {
     try {
-        console.log("body---", req.body, parseFloat(req.body.longitude));
+        // console.log("body---", req.body, parseFloat(req.body.longitude));
         const db = getDb();
         const { city, state, minArea, minPricePerHour, amenity, availabilityDay, latitude, longitude, range, active, studioId } = req.body;
         let filter = { isActive: 1 };
@@ -331,7 +323,7 @@ exports.getStudios_aggreation = async (req, res, next) => {
 
 
 exports.getStudiosOptimized = (req, res, next) => {
-    console.log("body---", req.body);
+    // console.log("body---", req.body);
     const { city, state, minArea, minPricePerHour, amenity, availabilityDay, latitude, longitude, range, active, studioId } = req.body;
     const filter = pick(req.query, ['name', 'role']) || { isActive: 1 }
     const options = pick(req.query, ['sort', 'limit', 'page']);
