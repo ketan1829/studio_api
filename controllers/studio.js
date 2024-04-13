@@ -116,7 +116,7 @@ exports.getStudios = async (req, res, next) => {
 
   const filter = pick(req.query, ['name', 'role','city']) || { isActive: 1 }
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
-
+ 
   // const filter = { isActive: 1 };
 
   // Filters
@@ -129,9 +129,11 @@ exports.getStudios = async (req, res, next) => {
   if (minPricePerHour) filter['roomsDetails.basePrice'] = { $gte: parseInt(minPricePerHour) };
   if (amenity) filter['amenities.name'] = amenity;
   if (availabilityDay) {
-      filter['roomsDetails.generalStartTime'] = availabilityDay.startTime;
-      filter['roomsDetails.generalEndTime'] = availabilityDay.endTime;
+    let availability = JSON.parse(availabilityDay);
+      filter['roomsDetails.generalStartTime'] = availability.startTime;
+      filter['roomsDetails.generalEndTime'] = availability.endTime;
   }
+
   const check = req.query.check;
 
 
