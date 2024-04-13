@@ -732,7 +732,7 @@ exports.getStudioAvailabilities = (req, res, next) => {
 
         let availSlotsNew = allSlots;
         //Filtering to remove past slots for current date
-        if (cTimeStamp == bTimeStamp) {
+        if (cTimeStamp <= bTimeStamp) { //before ->if (cTimeStamp == bTimeStamp)
           availSlotsNew = availSlotsNew.filter((i) => {
             var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
             var sMin =
