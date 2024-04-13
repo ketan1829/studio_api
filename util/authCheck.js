@@ -31,6 +31,7 @@ const isUser = async (req, res, next) => {
 
     next();
   } catch (error) {
+    console.log("user error:=",error)
     next(error);
   }
 };
@@ -109,16 +110,15 @@ const isBoth = async (req, res, next) => {
       console.log("authCheck3 >>>")
       return next();
     } else {
-
       const decoded = await verifyToken(token);
-
       if (!decoded.admin && !decoded.user) {
+        console.log("isboth:====");
         throw new ErrorHandler(401, "unauthorized");
       }
-
       next();
     }
   } catch (error) {
+    console.log("isboth error:=",error);
     next(error);
   }
 };
@@ -166,11 +166,14 @@ const isAdminOrOwner = async (req, res, next) => {
     console.log(decoded, "<<<<<");
 
     // if (!decoded.admin || !decoded.owner || decoded?.user?.role !== "admin") {
-    if (decoded?.user?.role !== "admin") {
+    
+
+    if(decoded?.user?.role === "admin" || decoded.admin || decoded.owner){
+      next();
+    }else{
       throw new ErrorHandler(401, "unauthorized admin or owner");
     }
 
-    next();
   } catch (error) {
     next(error);
   }

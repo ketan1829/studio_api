@@ -109,7 +109,7 @@ function filterNearbySudios(studioData, latitude, longitude, page, limit, range)
 
 exports.getStudios = async (req, res, next) => {
 
-  // console.log("body---", req.query);
+  console.log("body---studios-all");
 
   var { city, state, minArea, minPricePerHour, amenity, availabilityDay, latitude, longitude, range, active, studioId, searchText } = req.query;
 
@@ -228,7 +228,7 @@ exports.getStudios = async (req, res, next) => {
       console.log("not lattt");
       
       Studio.paginate(filter, options).then(studioData => {
-          console.log("--------COUNT:", studioData.totalPages, studioData.totalResults);
+          console.log("---- STUDIOS COUNT:", studioData.totalPages, studioData.totalResults);
           const paginateData = 
           {
             page: studioData.page,

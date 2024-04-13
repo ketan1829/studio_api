@@ -165,7 +165,6 @@ exports.signupUserV2 = async (req, res, next) => {
     };
 
     const userObj = new User(user_data);
-    user_data._id = _userData._id
 
     if (_userData) {
       const updated_user_data = {
@@ -182,8 +181,7 @@ exports.signupUserV2 = async (req, res, next) => {
       console.log(udata?`udata count:${udata?.matchedCount}`:"nottttt");
     } else {
       // If user does not exist, create a new user
-      const newUser = new User(updated_user_data);
-      await newUser.save();
+      await userObj.save();
     }
 
     const token = jwt.sign({ user: user_data }, "myAppSecretKey");

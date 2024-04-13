@@ -389,7 +389,7 @@ exports.createNewBooking2 = async (req, res, next) => {
         .save()
         .then((resultData) => {
           let bookingData = resultData["ops"][0];
-          console.log(bookingData);
+          // console.log(bookingData);
           bookingData.totalPrice = bookingData.totalPrice.toString();
           if (bookingData.totalPrice.split(".")[1] == undefined) {
             bookingData.totalPrice = bookingData.totalPrice + ".0";
@@ -414,7 +414,7 @@ exports.createNewBooking2 = async (req, res, next) => {
             },
           })
             .then(async (result) => {
-              console.log("Success : ", result.data);
+              // console.log("Success : ", result.data);
               if (result.data.recipients == 1) {
                 const notification = new Notifications(userId, title, message);
 
@@ -440,7 +440,7 @@ exports.createNewBooking2 = async (req, res, next) => {
                   });
                 });
               } else {
-                console.log(result.data);
+                // console.log(result.data);
                 return res.json({
                   status: true,
                   message:
@@ -593,7 +593,7 @@ exports.createServiceBooking = async (req, res, next) => {
       }
 
       if (ExistingServiceData.length) {
-          console.log("ExistingServiceData:", ExistingServiceData);
+          // console.log("ExistingServiceData:", ExistingServiceData);
           return res.status(200).json({ status: false, message: "Requested Package booking has been pre-booked already!" });
       }
 
@@ -618,7 +618,7 @@ exports.createServiceBooking = async (req, res, next) => {
           }
       });
 
-      console.log("oneSignal result:", result.status);
+      // console.log("oneSignal result:", result.status);
 
       if (result.status === 1) {
           const notification = new Notifications(userId, title, message);
