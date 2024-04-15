@@ -74,7 +74,8 @@ router.post('/bookings/delete',auth.isAdminOrOwnerOrUser, controller.deleteBooki
  *             planId: "1"
  *             bookingDate: "2022-07-06T00:00:00.000+00:00"
  *             bookingTime: {"startTime":"16:00","endTime":"17:00"}
- *             totalPrice: "100"
+ *             totalPrice: "100",
+ *             serviceType:'c2'
  *     responses:
  *       200:
  *         description: Booking created successfully
