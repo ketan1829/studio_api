@@ -48,7 +48,7 @@ router.post('/transactions/razorpay',controller.createRazorPayOrder);
  *     requestBody:
  *       description: | 
  *          #
- *          Token is required
+ *          paymentId,Token is required
  *          #
  *          Inside PAYMENT object, check the status. Also, "failed" is for rejected transaction, "authorized" for success, and else pending. For more info, check razorpay docs for statuses.
  *       content:
@@ -351,6 +351,7 @@ router.get('/transactions/studio/:studioId',auth.isAdminOrOwner,controller.getAl
 *     tags: [Transaction]
 *     requestBody:
 *       description: | 
+*          startDate,endDate,studioId is required
 *          #
 *          Token is required
 *          #

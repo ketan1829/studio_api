@@ -4,26 +4,6 @@ const controller = require('../controllers/service');
 
 const auth = require("../util/authCheck");
 
-
-router.post('/services/create', auth.isBoth,controller.createNewService);
-
-router.get('/services',auth.isBoth,controller.getServices);
-
-router.get('/services/bookings',auth.isBoth,controller.getServiceBookings);
-
-router.get('/services/bookings/create',auth.isBoth,controller.getServiceBookings);
-
-// GS
-router.get('/services/bookings/detail',auth.isBoth,controller.getServiceBookingsDetails);
-
-router.put('/services/update/:serviceId',auth.isAdmin,controller.updateService);
-
-router.delete('/services/delete/:serviceId',auth.isAdmin,controller.deleteService);
-
-router.get('/exportServicesData',auth.isAdmin,controller.exportServicesData)
-
-
-
 /**
  * @swagger
  * /services/create:
@@ -65,6 +45,8 @@ router.get('/exportServicesData',auth.isAdmin,controller.exportServicesData)
  *       500:
  *         description: Internal server error
  */
+router.post('/services/create', auth.isBoth,controller.createNewService);
+
 
 
 /**
@@ -74,11 +56,11 @@ router.get('/exportServicesData',auth.isAdmin,controller.exportServicesData)
  *     summary: Get All Services based on various parameters
  *     tags: [Studios]
  *     parameters:
- *       - in : query
+ *       - in: query
  *         name: skip
  *         description: paginated page
  *         required: false
- *       - in : query
+ *       - in: query
  *         name: limit
  *         description: limitCount
  *         required: false
@@ -91,10 +73,10 @@ router.get('/exportServicesData',auth.isAdmin,controller.exportServicesData)
  *         description: Services Listed successfully
  *         content:
  *           application/json:
- *               example : 
- *                 status : true
- *                 message : "Page 1 of 10 - 97 services returned"
- *                 studio : {}
+ *             example:
+ *               status: true
+ *               message: "Page 1 of 10 - 97 services returned"
+ *               studio: {}
  *       400:
  *         description: Bad Request, check request body
  *       401:
@@ -102,6 +84,139 @@ router.get('/exportServicesData',auth.isAdmin,controller.exportServicesData)
  *       500:
  *         description: Internal server error
  */
+router.get('/services',auth.isBoth,controller.getServices);
+
+
+router.get('/services/bookings',auth.isBoth,controller.getServiceBookings);
+
+router.get('/services/bookings/create',auth.isBoth,controller.getServiceBookings);
+
+// GS
+router.get('/services/bookings/detail',auth.isBoth,controller.getServiceBookingsDetails);
+
+
+/**
+ * @swagger
+ * /services/update/{serviceId}:
+ *   put:
+ *     summary: Update service
+ *     tags: [Service]
+ *     parameters:
+ *       - in: path
+ *         name: serviceId
+ *         description: id of service
+ *         required: true
+ *       - in: path
+ *         name: packageId
+ *         description: id of package
+ *         required: false
+ *     requestBody:
+ *       description: | 
+ *          #
+ *          service_id,serviceName,startingPrice,offerings,TotalServices,packages,ServicePhotos,description,portfolio,discography,userPhotos,userReviews,starredReviews,type=> fiels can be updated, only provide the field you want to update.
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               service_id:
+ *                 type: integer
+ *                 description: The ID of the service
+ *               serviceName:
+ *                 type: string
+ *                 description: The full name of the service
+ *               startingPrice:
+ *                 type: number
+ *                 description: The starting price of the service
+ *               offerings:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: List of amenities offered
+ *               TotalServices:
+ *                 type: integer
+ *                 description: The total number of plans
+ *               packages:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                 description: List of packages
+ *               ServicePhotos:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: List of service photos
+ *               description:
+ *                 type: string
+ *                 description: Description about the service
+ *               portfolio:
+ *                 type: string
+ *                 description: Work details of the service
+ *               discography:
+ *                 type: string
+ *                 description: Discography details of the service
+ *               userPhotos:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: List of client photos
+ *               userReviews:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: List of user reviews
+ *               starredReviews:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: List of featured reviews
+ *               type:
+ *                 type: string
+ *                 default: c2
+ *                 description: Type of service
+ *               service_status:
+ *                 type: integer
+ *                 description: Status of the service
+ *     responses:
+ *       200:
+ *         description: Service updated successfully
+ *       400:
+ *         description: Bad request, service does not exist or incorrect service ID provided
+ *       500:
+ *         description: Internal server error, failed to update service
+ */
+router.put('/services/update/:serviceId',auth.isAdmin,controller.updateService);
+
+/**
+ * @swagger
+ * /services/delete/{serviceId}:
+ *   delete:
+ *     summary: Delete a service
+ *     tags: [Service]
+ *     parameters:
+ *       - in: path
+ *         name: serviceId
+ *         description: ID of the service to delete
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Service deleted successfully
+ *       400:
+ *         description: Bad request, service does not exist or incorrect service ID provided
+ *       500:
+ *         description: Internal server error, failed to delete service
+ */
+router.delete('/services/delete/:serviceId',auth.isAdmin,controller.deleteService);
+
+router.get('/exportServicesData',auth.isAdmin,controller.exportServicesData)
+
+
+
+
+
+
 
  module.exports = router;
 
