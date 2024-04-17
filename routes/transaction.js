@@ -363,6 +363,7 @@ router.get('/transactions/studio/:studioId',auth.isAdminOrOwner,controller.getAl
 *           example : 
 *             startDate: "2022-09-01"
 *             endDate: "2022-09-20"
+*             studioId: 62d19c6e5e6
 *     responses:
 *       200:
 *         description: All transaction(s) returned

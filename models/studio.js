@@ -141,13 +141,23 @@ class Studio {
 
       // console.log("sort--", sort)
       const countPromise = db.collection("studios").countDocuments(filter);
-      let docsPromise = db
+      let docsPromise;
+      if(filter.fullName){
+        // db.collection("studios").createIndex({ fullName: 'text', address: 'text' });
+         docsPromise = db
+        .collection("studios")
+        .find({ $text: { $search: filter.fullName } })
+        .sort(sort)
+        .skip(skip)
+        .limit(limit);
+      }else {
+       docsPromise = db
         .collection("studios")
         .find(filter)
         .sort(sort)
         .skip(skip)
         .limit(limit);
-
+      }
       if (options.populate) {
         console.log("populate ---", options.populate);
         options.populate.split(",").forEach((populateOption) => {

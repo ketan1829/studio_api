@@ -112,15 +112,16 @@ exports.getStudios = async (req, res, next) => {
   console.log("body---", req.body);
   console.log("body---", req.query);
 
-  var { city, state, minArea, minPricePerHour, amenity, availabilityDay, latitude, longitude, range, active, studioId, searchText } = req.query;
+  var { city, state, minArea, minPricePerHour, amenity, availabilityDay, latitude, longitude, range, active, studioId,searchText } = req.query;
 
   const filter = pick(req.query, ['name', 'role','city']) || { isActive: 1 }
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
+
  
   // const filter = { isActive: 1 };
 
   // Filters
-  active ? filter.isActive = active : filter.isActive = 1
+  
   if (searchText) filter.fullName = searchText;
   if (city) filter.city = city;
   if (state) filter.state = state;
@@ -133,6 +134,7 @@ exports.getStudios = async (req, res, next) => {
       filter['roomsDetails.generalStartTime'] = availability.startTime;
       filter['roomsDetails.generalEndTime'] = availability.endTime;
   }
+  active ? filter.isActive = active : filter.isActive = 1
 
   const check = req.query.check;
 
