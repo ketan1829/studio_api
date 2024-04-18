@@ -139,11 +139,11 @@ class Studio {
       const page = parseInt(options.page, 10) || 1;
       const skip = (page - 1) * limit;
 
-      // console.log("sort--", sort)
-      const countPromise = db.collection("studios").countDocuments(filter);
+      let countPromise;
       let docsPromise;
       if(filter.fullName){
         // db.collection("studios").createIndex({ fullName: 'text', address: 'text' });
+         countPromise = db.collection("studios").countDocuments({ $text: { $search: filter.fullName } });
          docsPromise = db
         .collection("studios")
         .find({ $text: { $search: filter.fullName } })
@@ -151,6 +151,7 @@ class Studio {
         .skip(skip)
         .limit(limit);
       }else {
+        countPromise = db.collection("studios").countDocuments(filter);
        docsPromise = db
         .collection("studios")
         .find(filter)

@@ -193,8 +193,9 @@ app.get("/studio-owner*", (req, res) => {
 //
 
 app.get('/',(req,res)=>{
-    logger.info('Test API check ---');
-    res.json({message:"Test api"});
+    logger.info('Test API check --->');
+    logger.error('Congrats new errorrr->');
+    res.json({message:"Test api-->"});
 });
 
 
