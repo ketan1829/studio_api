@@ -19,6 +19,7 @@ const httpStatus = require("http-status");
 var nodemailer = require("nodemailer");
 const { sendOTP, addContactBrevo } = require("../util/mail");
 const { json } = require("express");
+const { logger } = require("../util/logger");
 
 // Sendinblue library\
 // const SibApiV3Sdk = require('sib-api-v3-sdk');
@@ -1350,7 +1351,7 @@ exports.exportUserData = async (req, res) => {
         };
         pipeline.push(skipStage);
       }
-      console.log(JSON.stringify(pipeline))
+      logger.info(JSON.stringify(pipeline))
     let allUser;
       if(filter || options) {
          allUser = await User.fetchAllUsersByAggregate(pipeline)

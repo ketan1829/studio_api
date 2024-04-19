@@ -50,7 +50,6 @@ exports.getAllNotificationsForParticularStudio = (req,res,next)=>{
             }
         });
     })
-
 }
 
 

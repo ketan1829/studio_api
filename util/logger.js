@@ -16,7 +16,7 @@ const fileTransport = pino.transport({
   targets: [{
     level: 'info',
     target: 'pino-pretty', // must be installed separately
-    options: { destination: `./logs/info.log`, colorize: false , }
+    options: { destination: `./logs/info.log`, colorize: false }
   }, {
     level: 'error',
     target: 'pino-pretty',
@@ -29,6 +29,7 @@ const fileTransport = pino.transport({
 // Create a logging instance
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+  timestamp: () => `,"date":"${new Date().toISOString()}"`
 }, fileTransport);
 
 // Proxify logger instance to use child logger from context if it exists

@@ -18,6 +18,46 @@ const {paginate} = require('../util/plugins/paginate.plugin')
 const ObjectId = mongodb.ObjectId;
 
 
+
+exports.addPricing = async(req, res)=>{
+    try {
+        const db = getDb();
+        const services = await db.collection('services').find().toArray();
+
+        console.log(">>>>>>>>>>",services.length);
+        for (const service of services) {
+            const arr = []
+            for (const package of service.packages) {
+                package.pricing = {
+                    "USA": {
+                        "price":package.price,
+                        "basePrice": package.price,
+                        "discountPercentage": 10
+                    },"IN": {
+                        "price":package.price,
+                        "basePrice": package.price,
+                        "discountPercentage": 10
+                    },"JP": {
+                        "price": package.price,
+                        "basePrice": package.price,
+                        "discountPercentage": 10
+                    },
+            }
+            arr.push(package)
+            }
+            // Update service document with modified packages
+            await  db.collection('services').updateOne(
+                { _id: service._id },
+                { $set: { packages: arr } }
+            );
+        }
+        console.log("Pricing details updated for all packages");
+}catch (err) {
+    console.error("Error updating pricing details:", err);
+}
+res.send({status:true, message:"Pricing details updated successfully"})
+}
+
 exports.getBanner = (req,res,next)=>{
 
     console.log("body---", req.body);

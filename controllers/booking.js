@@ -2527,9 +2527,9 @@ exports.getAllBookings = async (req, res, next) => {
       let limit = +req.query.limit || 10;
       let bookingType = [0, 1, 2].includes(+req.query.bookingType) ? +req.query.bookingType : -1;
       let booking_category = req.query.category || "c1";                                                                              
-      console.log(limit);
+      console.log("bookingType",bookingType);
       console.log({ booking_category, bookingType });                                         
-
+console.log("hello");
       if (isNaN(skip)) {
           skip = 0;
           // limit = 0;
@@ -2538,8 +2538,7 @@ exports.getAllBookings = async (req, res, next) => {
       const pipeline_lane = [];
 
       if (bookingType === -1) {
-          pipeline_lane.push({ $skip: skip });
-          pipeline_lane.push({ $limit: limit });
+
           pipeline_lane.push({
               $lookup: {
                   from: "studios",
@@ -2577,6 +2576,8 @@ exports.getAllBookings = async (req, res, next) => {
                   userType: { $cond: [{ $eq: ["$userInfo", []] }, "", "USER"] }
               }
           });
+          pipeline_lane.push({ $skip: skip });
+          pipeline_lane.push({ $limit: limit });
           pipeline_lane.push({
               $project: {
                   studioInfo: 0,
@@ -2660,7 +2661,8 @@ exports.getAllBookings = async (req, res, next) => {
                   }
               }
           );
-
+          pipeline_lane.push({ $limit: limit });
+          pipeline_lane.push({ $skip: skip });
           pipeline_lane.push({
               $project: {
 
