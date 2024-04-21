@@ -29,7 +29,11 @@ const fileTransport = pino.transport({
 // Create a logging instance
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-  timestamp: () => `,"date":"${new Date().toISOString()}"`
+  timestamp: () => `,"date":"${new Date().toISOString()}"`,
+  serializers: {
+    // Custom serializer for errors
+    err: pino.stdSerializers.err // Use the default error serializer
+  }
 }, fileTransport);
 
 // Proxify logger instance to use child logger from context if it exists

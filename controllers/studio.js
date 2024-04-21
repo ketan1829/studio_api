@@ -90,7 +90,7 @@ function filterNearbySudios(
 
     const totalPages = Math.ceil(availableStudios.length / limit);
 
-    console.log(
+    logger.info(
       `Page ${page} of ${totalPages} - ${paginatedStudios.length} studios returned`
     );
     return {
@@ -113,7 +113,7 @@ function filterNearbySudios(
       // }
     };
   } catch (exception) {
-    console.log("Exception Occurred:", exception);
+    logger.error(exception,"Exception Occurred");
     return { status: false, message: "Invalid Latitude" };
   }
 }
@@ -121,10 +121,10 @@ function filterNearbySudios(
 // ----------------- v2.2.3 ---------------------------
 
 exports.getStudios = async (req, res, next) => {
-  console.log("sfdyhj");
+ 
 
-  console.log("body---", req.body);
-  console.log("body---", req.query);
+  logger.info("body---", req.body);
+  logger.info("body---", req.query);
 
   var {
     city,
@@ -173,19 +173,22 @@ exports.getStudios = async (req, res, next) => {
       $gte: +minPricePerHour,
       $lte: +maxPricePerHour,
     };
+  } else if (minPricePerHour) {
+    filter["roomsDetails.basePrice"] = { $gte: parseInt(minPricePerHour) };
+  } else if (maxPricePerHour) {
+    filter["roomsDetails.basePrice"] = { $lte: parseInt(maxPricePerHour) };
   }
-  if (minPricePerHour)
-  filter["roomsDetails.basePrice"] = { $gte: parseInt(minPricePerHour) };
-  if (maxPricePerHour)
-  filter["roomsDetails.basePrice"] = { $lte: parseInt(minPricePerHour) };
-  // if(creationTimeStamp){
-  //   filter.creationTimeStamp = {
-  //     creationTimeStamp: {$gte:new Date(creationTimeStamp+"T00:00:00"), $lt:new Date(creationTimeStamp+"T23:59:59")},
-  //   }
-  // }
-  const check = req.query.check;
+  
 
-  console.log("latitude?.length:-------------", filter);
+  if(creationTimeStamp){
+    filter.creationTimeStamp = {$gte:new Date(creationTimeStamp+"T00:00:00"), $lt:new Date(creationTimeStamp+"T23:59:59")}
+  }
+
+  logger.info("filter", filter);
+
+
+  const check = req.query.check;
+  // console.log("latitude?.length:-------------", filter);
 
   if (check && check === "2dsphere") {
     const db = getDb();
@@ -208,7 +211,7 @@ exports.getStudios = async (req, res, next) => {
     db.collection("studios")
       .createIndex({ location: "2dsphere" })
       .then((data) => {
-        console.log("2dSphrere created", data);
+        logger.info("2dSphrere created", data);
         return res.json({ status: true, message: "2dSphrere created" });
       });
   }
@@ -300,10 +303,9 @@ exports.getStudios = async (req, res, next) => {
     //         return res.json({ status: true, message: paginatedStudios.message, studios: paginatedStudios.studios, paginate: paginatedStudios.paginate });
     //     })
   } else {
-    console.log("not lattt");
 
     Studio.paginate(filter, options).then((studioData) => {
-      console.log(
+      logger.info(
         "--------COUNT:",
         studioData.totalPages,
         studioData.totalResults
@@ -327,7 +329,7 @@ exports.getStudios = async (req, res, next) => {
 // Added Aggregation performing operations on it but shows incorrect results
 exports.getStudios_aggreation = async (req, res, next) => {
   try {
-    console.log("body---", req.body, parseFloat(req.body.longitude));
+    logger.info("body---", req.body, parseFloat(req.body.longitude));
     const db = getDb();
     const {
       city,
@@ -410,7 +412,7 @@ exports.getStudios_aggreation = async (req, res, next) => {
         .collection("studios")
         .countDocuments(filter);
       const totalPages = Math.ceil(totalNearbyStudios / options.limit);
-      console.log("nearbyStudios---", nearbyStudios);
+      logger.info("nearbyStudios---", nearbyStudios);
       return res.json({
         status: true,
         message: `Page ${options.page} of ${totalPages} - ${nearbyStudios.length} studios returned`,
@@ -431,7 +433,7 @@ exports.getStudios_aggreation = async (req, res, next) => {
       });
     }
   } catch (error) {
-    console.error("Error occurred:", error);
+    logger.error(error,"Error occurred:");
     return res
       .status(500)
       .json({ status: false, message: "Internal server error" });
@@ -439,7 +441,7 @@ exports.getStudios_aggreation = async (req, res, next) => {
 };
 
 exports.getStudiosOptimized = (req, res, next) => {
-  console.log("body---", req.body);
+  logger.info("body---", req.body);
   const {
     city,
     state,
@@ -553,7 +555,7 @@ exports.getAllNearStudios = async (req, res, next) => {
       forYou: [],
     });
   } catch (exception) {
-    console.log("Exception Occured : ", exception);
+    logger.error(exception,"Exception Occured");
     return res.json({
       status: false,
       message: "Geopoint Exception Occured....Invalid Latitude",
@@ -646,8 +648,7 @@ exports.createNewStudio = async (req, res, next) => {
   const featuredReviews = [];
 
   try {
-    console.log(address);
-    console.log(typeof address);
+    logger.info(address);
     address = address.replace("&", "and");
     axios
       .get(
@@ -667,7 +668,7 @@ exports.createNewStudio = async (req, res, next) => {
           let latitude = res_data.lat.toString();
           let longitude = res_data.lng.toString();
 
-          console.log(latitude, longitude);
+          logger.info(latitude, longitude);
           const location = {
             type: "Point",
             coordinates: [+longitude, +latitude],
@@ -708,11 +709,11 @@ exports.createNewStudio = async (req, res, next) => {
                 studio: resultData["ops"][0],
               });
             })
-            .catch((err) => console.log(err));
+            .catch((err) => logger.error(err));
         }
       });
   } catch (error) {
-    console.log(error);
+    logger.error(error);
     return res.json({
       status: false,
       message: "Address Lat Long failed! :( contact Dev. NR",
@@ -745,7 +746,7 @@ exports.getParticularStudioDetails = (req, res, next) => {
         });
       } else {
         let rCount = ratingsData.length;
-        console.log("Ratings exists : " + rCount);
+        logger.info("Ratings exists : " + rCount);
         let serviceCount = 0;
         let studioRatingCount = 0;
         let amenityRatingCount = 0;
@@ -787,7 +788,7 @@ exports.getParticularStudioDetails = (req, res, next) => {
             parseFloat(studioData.reviews.avgStudio) +
             parseFloat(studioData.reviews.avgAmenity) +
             parseFloat(studioData.reviews.avgLocation);
-          console.log(overallAvgRating);
+            logger.info(overallAvgRating);
           studioData.reviews.overallAvgRating = parseFloat(
             (overallAvgRating / 4).toFixed(1)
           );
@@ -831,7 +832,7 @@ exports.toggleStudioActiveStatus = (req, res, next) => {
           studio: studioData,
         });
       })
-      .catch((err) => console.log(err));
+      .catch((err) => logger.error(err));
   });
 };
 
@@ -848,13 +849,13 @@ exports.getDashboardStudios = (req, res, next) => {
   const relevance = +req.body.relevance; // 1-> rating(high to low), 2-> cost(low to high), 3-> cost(high to low)
 
   Studio.fetchAllActiveStudios(0, 0).then((studiosData) => {
-    console.log("Studios COunt : " + studiosData.length);
+    logger.info("Studios COunt : " + studiosData.length);
     //get offers mapping
     offersMapping(studiosData, (resData) => {
-      // console.log(resData);
+      // logger.info(resData);
       studiosData = resData;
       if (studiosData.length == 0) {
-        console.log("availableStudios1:");
+        logger.info("availableStudios1:");
         return res.status(404).json({
           status: false,
           message: "No studio exist",
@@ -864,7 +865,7 @@ exports.getDashboardStudios = (req, res, next) => {
         });
       } else {
         if (latitude == undefined || latitude.length == 0) {
-          console.log("Default filter");
+          logger.info("Default filter");
           var availableStudios = [];
           for (var i = 0; i < studiosData.length; i++) {
             //Checking for localities
@@ -880,7 +881,7 @@ exports.getDashboardStudios = (req, res, next) => {
               //this means localities not selected for filter and we need to skip it
               index = 1;
             }
-            console.log("Index : ", index);
+            logger.info("Index : ", index);
 
             //Checking for amenities
             let matchedAmenities = [];
@@ -891,7 +892,7 @@ exports.getDashboardStudios = (req, res, next) => {
                     s.id.toString() == f.id.toString() ||
                     s.name.trim().toLowerCase() == f.name.trim().toLowerCase()
                 );
-                // console.log("Index : ",indexAmenity);
+                // logger.info("Index : ",indexAmenity);
                 if (indexAmenity != -1) {
                   return true;
                 } else {
@@ -904,10 +905,10 @@ exports.getDashboardStudios = (req, res, next) => {
               //this means amenties not selected for filter and we need to skip it
               matchCount = 1;
             }
-            console.log("Match amenities : ", matchCount);
+            logger.info("Match amenities : ", matchCount);
 
             let budget1 = budget;
-            console.log("Budget : ", budget);
+            logger.info("Budget : ", budget);
             if (isNaN(budget)) {
               //this means budget not selected for filter and we need to skip it
               // budget = parseFloat(studiosData[i].pricePerHour);
@@ -921,14 +922,14 @@ exports.getDashboardStudios = (req, res, next) => {
             }
 
             let person1 = person;
-            console.log("Person : ", person);
+            logger.info("Person : ", person);
             if (isNaN(person)) {
               //this means person not selected for filter and we need to skip it
               person = parseFloat(studiosData[i].maxGuests);
             }
 
             let rooms1 = rooms;
-            console.log("Rooms : ", rooms);
+            logger.info("Rooms : ", rooms);
             if (isNaN(rooms)) {
               //this means person not selected for filter and we need to skip it
               rooms = parseFloat(studiosData[i].totalRooms);
@@ -993,7 +994,7 @@ exports.getDashboardStudios = (req, res, next) => {
                 // Sort Based on distance
                 availableStudios.sort((a, b) => a.distance - b.distance);
               }
-              console.log("availableStudios2:");
+              logger.info("availableStudios2:");
 
               return res.json({
                 status: true,
@@ -1009,19 +1010,19 @@ exports.getDashboardStudios = (req, res, next) => {
             person = person1;
           }
         } else {
-          console.log("Non-default filter");
+          logger.info("Non-default filter");
           try {
             var point1 = new GeoPoint(+latitude, +longitude);
             var availableStudios = [];
             for (var i = 0; i < studiosData.length; i++) {
-              // console.log(studiosData[i].latitude,studiosData[i].longitude);
+              // logger.info(studiosData[i].latitude,studiosData[i].longitude);
               var point2 = new GeoPoint(
                 +studiosData[i].latitude,
                 +studiosData[i].longitude
               );
               var distance = point1.distanceTo(point2, true); //output in kilometers
               studiosData[i].distance = distance.toFixed(2);
-              console.log("Distance:", distance.toFixed(2));
+              logger.info("Distance:", distance.toFixed(2));
 
               //Checking for localities
               let index = 1;
@@ -1036,7 +1037,7 @@ exports.getDashboardStudios = (req, res, next) => {
                 //this means localities not selected for filter and we need to skip it
                 index = 1;
               }
-              console.log("Index : ", index);
+              logger.info("Index : ", index);
 
               //Checking for amenities
               let matchedAmenities = [];
@@ -1046,7 +1047,7 @@ exports.getDashboardStudios = (req, res, next) => {
                     (s) =>
                       s.name.trim().toLowerCase() == f.name.trim().toLowerCase()
                   );
-                  // console.log("Index Amenity: ",indexAmenity);
+                  // logger.info("Index Amenity: ",indexAmenity);
                   if (indexAmenity != -1) {
                     studiosData[i].amenityMatch = true;
                     return true;
@@ -1061,10 +1062,10 @@ exports.getDashboardStudios = (req, res, next) => {
                 //this means amenties not selected for filter and we need to skip it
                 matchCount = 1;
               }
-              console.log("Match amenities : ", matchCount);
+              logger.info("Match amenities : ", matchCount);
 
               let budget1 = budget;
-              console.log("Budget : ", budget);
+              logger.info("Budget : ", budget);
               // if(isNaN(budget))  //this means budget not selected for filter and we need to skip it
               // {
               // budget = parseFloat(studiosData[i].pricePerHour);
@@ -1095,7 +1096,7 @@ exports.getDashboardStudios = (req, res, next) => {
               if (!isNaN(budget)) {
                 studiosData[i].roomsDetails.forEach((singleRoom) => {
                   if (singleRoom.pricePerHour <= budget) {
-                    console.log(studiosData[i]._id);
+                    logger.info(studiosData[i]._id);
                     if (index != -1) {
                       if (
                         parseFloat(studiosData[i].area) >= area &&
@@ -1125,7 +1126,7 @@ exports.getDashboardStudios = (req, res, next) => {
                 }
               }
 
-              console.log(parseFloat(studiosData[i].pricePerHour), budget);
+              logger.info(parseFloat(studiosData[i].pricePerHour), budget);
               if (distance <= range) {
                 if (
                   parseFloat(studiosData[i].area) >= area &&
@@ -1220,7 +1221,7 @@ exports.getDashboardStudios = (req, res, next) => {
 
                 let allNearStudios = allStudiosForNear.slice(0, 4); //Note that the slice function on arrays returns a shallow copy of the array, and does not modify the original array
                 // allNearStudios = allNearStudios.filter(i=>i.distance!=undefined);
-                console.log("availableStudios3:");
+                logger.info("availableStudios3:");
                 return res.json({
                   status: true,
                   message:
@@ -1237,8 +1238,7 @@ exports.getDashboardStudios = (req, res, next) => {
             }
           } catch (exception) {
             // return;  //Return statement is used for BREAKING the for loop
-            console.log("Exception Occured : ", exception);
-            console.log("availableStudios4:");
+            logger.error(exception,"Exception Occured : ");
             return res.json({
               status: false,
               message: "Geopoint Exception Occured....Invalid Latitude",
@@ -1378,7 +1378,7 @@ exports.getStudiosByDate = (req, res, next) => {
   }
   creationDate = yr + "-" + mth + "-" + dt;
   var sTimeStamp = new Date(creationDate).getTime();
-  console.log("Creation Date : ", creationDate);
+  logger.info("Creation Date : ", creationDate);
 
   Studio.fetchStudiosByDate(creationDate).then((studioData) => {
     return res.json({
@@ -1449,7 +1449,7 @@ exports.getAllStudiosGraphDetails = (req, res, next) => {
     });
     keyData = keyData + 1;
   }
-  console.log(months);
+  logger.info(months);
 
   Studio.fetchAllStudios(0, 0).then((studiosData) => {
     studiosData.forEach((singleStudio) => {
@@ -1549,7 +1549,7 @@ exports.exportStudioData = async (req, res) => {
       });
     }
 
-    console.log("this is pipe======>", pipeline);
+    logger.info("this is pipe======>", pipeline);
     if (options.startDate && options.endDate) {
       let startDate = options.startDate;
       let endDate = options.endDate;
@@ -1585,7 +1585,7 @@ exports.exportStudioData = async (req, res) => {
       };
       pipeline.push(skipStage);
     }
-    console.log(JSON.stringify(pipeline));
+    logger.info(JSON.stringify(pipeline));
     let allStudios;
     if (filter || options) {
       allStudios = await Studio.fetchAllStudiosByAggregate(pipeline);
@@ -1637,7 +1637,7 @@ exports.exportStudioData = async (req, res) => {
     const data = await workbook.xlsx
       .writeFile(`C:/Users/Choira Dev 2/Desktop/studio_api/files/studios.xlsx`)
       .then(() => {
-        console.log(__dirname);
+        logger.info(__dirname);
         res
           .header({
             "Content-disposition": "attachment; filename=studios.xlsx",
@@ -1649,9 +1649,9 @@ exports.exportStudioData = async (req, res) => {
             { root: `C:/Users/Choira Dev 2/Desktop/studio_api/files` },
             function (err) {
               if (err) {
-                console.error("Error sending file:", err);
+                logger.error(err,"Error sending file:");
               } else {
-                console.log({
+                logger.info({
                   status: "success",
                   message: "file successfully downloaded",
                   path: `${path}/studios.xlsx`,
@@ -1660,7 +1660,7 @@ exports.exportStudioData = async (req, res) => {
             }
           );
       });
-    console.log(data);
+    logger.info(data);
   } catch (error) {
     res.send({
       status: "error",

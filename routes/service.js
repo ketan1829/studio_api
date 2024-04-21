@@ -187,6 +187,8 @@ router.get('/services/bookings/detail',auth.isBoth,controller.getServiceBookings
  */
 router.put('/services/update/:serviceId',auth.isAdmin,controller.updateService);
 
+router.patch('/services/editPackage',auth.isAdmin,controller.editPackageDetails);
+
 /**
  * @swagger
  * /services/delete/{serviceId}:
