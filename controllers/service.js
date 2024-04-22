@@ -413,27 +413,37 @@ exports.updateService = async (req, res) => {
   res.send(updated_result);
 };
 
-exports.editPackageDetails = async(req, res)=>{
-  try{
-      const {service_id,plan_id,package_data} = req.body;
-  const db = getDb();
-  const service = await db.collection('services').findOne({ _id: new ObjectId(service_id) })
-  for (const [index, package] of service.packages.entries()){
-      if(package.planId === plan_id){
-        service.packages[index] = package_data;
-      await  db.collection('services').updateOne(
-          { _id: service_id },
-          { $set: { packages: service.packages } }
-      );
+exports.editPackageDetails = async (req, res) => {
+  try {
+    const { service_id, plan_id, package_data } = req.body;
+    const db = getDB();
+    const serviceObjectId = new ObjectId(service_id);
+    const service = await db.collection('services').findOne({ _id: serviceObjectId });
+    if (!service) {
+      return res.send({ status: false, message: "Service not found" });
+    }
+    const updatedPackages = service.packages.map(pkg => {
+      if (pkg.planId === plan_id) {
+        return package_data;
+      } else {
+        return pkg;
       }
-  }
-   console.log("details updated for first packages of first service");
-    return res.send({status:true,message:"package updated"})
-  }catch(error){
-      console.log("error updating details" ,error)
-    return res.send({status:false,message:"package update failed"})
+    });
+
+    await db.collection('services').updateOne(
+      { _id: serviceObjectId },
+      { $set: { packages: updatedPackages } }
+    );
+
+    console.log("Details updated for package in service with id:", service_id);
+    return res.send({ status: true, message: "Package updated" });
+  } catch (error) {
+    console.log("Error updating package details:", error);
+    return res.send({ status: false, message: "Package update failed" });
   }
 }
+
+
 
 
 exports.exportServicesData = async (req, res) => {
