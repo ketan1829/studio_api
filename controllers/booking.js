@@ -19,7 +19,7 @@ const ObjectId = mongodb.ObjectId;
 
 const jwt = require("jsonwebtoken");
 
-const send_mail = require("../util/mail.js");
+const { send_mail } = require("../util/mail.js");
 const pick = require("../util/pick");
 const { getLogger } = require("nodemailer/lib/shared");
 const { logger } = require("../util/logger");
@@ -415,7 +415,6 @@ exports.createNewBooking2 = async (req, res, next) => {
             },
           })
             .then(async (result) => {
-              logger.info("Success : ", result.data);
               if (result.data.recipients == 1) {
                 const notification = new Notifications(userId, title, message);
 
@@ -441,7 +440,6 @@ exports.createNewBooking2 = async (req, res, next) => {
                   });
                 });
               } else {
-                logger.info(result.data);
                 return res.json({
                   status: true,
                   message:
@@ -459,7 +457,6 @@ exports.createNewBooking2 = async (req, res, next) => {
               });
             });
         })
-        .catch((err) => logger.error(err));
     });
   });
 };
@@ -515,10 +512,10 @@ exports.createNewBooking = async (req, res, next) => {
     const title = "Congratulations!!";
     const message = `Your booking with '${studioData.fullName}' is confirmed`;
     const myJSONObject = {
-      app_id: process.env.ONE_SIGNAL_APP_ID,
-      include_player_ids: [userDeviceId],
-      data: {},
-      contents: { en: `${title}\n${message}` },
+      "app_id": process.env.ONE_SIGNAL_APP_ID,
+      "include_player_ids": [userDeviceId],
+      "data": {},
+      "contents": { "en": `${title}\n${message}` },
     };
 
     const result = await axios.post(
@@ -527,7 +524,7 @@ exports.createNewBooking = async (req, res, next) => {
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: process.env.ONE_SIGNAL_AUTH,
+          "Authorization": process.env.ONE_SIGNAL_AUTH,
         },
       }
     );
@@ -593,9 +590,9 @@ exports.createServiceBooking = async (req, res, next) => {
           return res.status(200).json({ status: false, message: "Something went wrong, Try again later" });
       }
 
-      if (ExistingServiceData.length) {
-          logger.info("ExistingServiceData:", ExistingServiceData);
-          return res.status(200).json({ status: false, message: "Requested Package booking has been pre-booked already!" });
+      if (ExistingServiceData.length){
+        logger.info("ExistingServiceData:", ExistingServiceData);
+        return res.status(200).json({ status: false, message: "Requested Package booking has been pre-booked already!" });
       }
 
       const bookingObj = new Booking(userId, serviceId, parseInt(planId), bookingDate, bookingTime, parseFloat(totalPrice), bookingStatus, serviceType);
@@ -618,8 +615,6 @@ exports.createServiceBooking = async (req, res, next) => {
               'Authorization': process.env.ONE_SIGNAL_AUTH
           }
       });
-
-      logger.info("oneSignal result:", result.status);
 
       if (result.status === 1) {
           const notification = new Notifications(userId, title, message);
@@ -2587,6 +2582,7 @@ logger.info("hello");
           });
       } else {
           pipeline_lane.push({ $match: { bookingStatus: bookingType, $or: [{ type: "c1" }, { type: { $nin: ["c2", "c3"] } }] } });
+          pipeline_lane.push({ $sort: { _id: -1 } })
           pipeline_lane.push({
 
               $lookup: {
@@ -2715,6 +2711,10 @@ exports.getServiceBookings = async (req, res) => {
   const pipeline = [
       {
           $match: matchStage, // filters
+      },
+      {
+        $sort: { _id: -1 }
+
       },
       {
           $lookup: {

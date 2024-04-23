@@ -185,9 +185,9 @@ router.get('/services/bookings/detail',auth.isBoth,controller.getServiceBookings
  *       500:
  *         description: Internal server error, failed to update service
  */
-router.put('/services/update/:serviceId',auth.isAdmin,controller.updateService);
+router.put('/services/update/:serviceId',auth.isAdminV2,controller.updateService);
 
-router.patch('/services/editPackage',auth.isAdmin,controller.editPackageDetails);
+router.patch('/services/editPackage',auth.isAdminV2,controller.editPackageDetails);
 
 /**
  * @swagger
@@ -210,9 +210,9 @@ router.patch('/services/editPackage',auth.isAdmin,controller.editPackageDetails)
  *       500:
  *         description: Internal server error, failed to delete service
  */
-router.delete('/services/delete/:serviceId',auth.isAdmin,controller.deleteService);
+router.delete('/services/delete/:serviceId',auth.isAdminV2,controller.deleteService);
 
-router.get('/exportServicesData',auth.isAdmin,controller.exportServicesData)
+router.get('/exportServicesData',auth.isAdminV2,controller.exportServicesData)
 
 
 

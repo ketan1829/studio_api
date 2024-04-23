@@ -475,7 +475,7 @@ router.post('/studios/date-filter',auth.isAdminOrOwner,controller.getStudiosByDa
 // /studios/filter/data
 router.get('/studios/filter/data',controller.getStudiosFiltersData);
 
-router.get('/exportStudiosData',auth.isAdmin,controller.exportStudioData)
+router.get('/exportStudiosData',auth.isAdminV2,controller.exportStudioData)
 
 
 module.exports = router;

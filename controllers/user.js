@@ -134,33 +134,19 @@ exports.loginUserOTP2 = (req, res, next) => {
   return res.json({ status: true, message: "Login-OTP" });
 };
 
-// ----------- Auth V 1.1 ------------------------
+// ----------- Auth V 2.2.4 ------------------------
 
 exports.signupUserV2 = async (req, res, next) => {
   try {
-    const {
-      fullName,
-      userType,
-      dateOfBirth,
-      email,
-      phoneNumber,
-      deviceId,
-      role,
-    } = req.body;
+    const { fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role } = req.body;
 
     logger.info({ fullName, dateOfBirth, email, phoneNumber, deviceId });
 
-    // const userData = await TempUser.findUserByPhone(phoneNumber);
-    let _userData = await User.findUserByPhone(phoneNumber);
+    let _userData = await User.findUserByPhone(phoneNumber, 0);
 
     logger.info("REGISTER USER DATA", _userData);
 
-    if (_userData) {
-      return res
-        .status(409)
-        .json({ status: false, message: "Phone number already registered" });
-    }
-    const userObj = new User({
+    const user_data = {
       fullName: fullName.trim(),
       dateOfBirth,
       email,
@@ -176,28 +162,40 @@ exports.signupUserV2 = async (req, res, next) => {
       role: role || "user",
       gender: "",
       favourites: [],
-    });
-    await userObj.save();
-    const token = await jwt.sign({ user: userObj }, "myAppSecretKey");
-    // Send OTP
-    if (role === "tester" || role === "admin") {
-      await addContactBrevo(_userData);
+      status: 1
+    };
+
+    const userObj = new User(user_data);
+
+    if (_userData) {
+      const updated_user_data = {
+        fullName: fullName.trim(),
+        dateOfBirth,
+        email,
+        phone: phoneNumber,
+        userType: userType || "NUMBER",
+        deviceId,
+        role: role || "user",
+        status: 1
+      }
+      const udata = await User.update(phoneNumber, updated_user_data)
+      console.log(udata?`udata count:${udata?.matchedCount}`:"nottttt");
+    } else {
+      // If user does not exist, create a new user
+      await userObj.save();
+    }
+
+    const token = jwt.sign({ user: user_data }, "myAppSecretKey");
+    // Only add to Brevo if the role is 'user' and it's a new signup
+    if (role === "user" && !_userData) {
+      await addContactBrevo(userObj);
       logger.info("Added to Brevo");
     }
-    return res.json({
-      status: true,
-      message: "Signup successful",
-      user: userObj,
-      token,
-    });
+    return res.json({ status: true, message: "Signup successful", user: user_data, token });
+
   } catch (error) {
-    logger.error(error,"Error in signupUserV2:");
-    return res
-      .status(500)
-      .json({
-        status: false,
-        message: "Something went wrong, try again later",
-      });
+    console.error("Error in signupUserV2:", error);
+    return res.status(500).json({ status: false, message: "Something went wrong, try again later" });
   }
 };
 
@@ -217,6 +215,11 @@ exports.loginUserOTP = async (req, res, next) => {
 
     if (userType === "NUMBER") {
 
+      // Admin/ Tester -- not found
+      if (!userData && (role === "admin" || role === "tester")) {
+        return res.status(500).json({ message: `${role} not found, Try again later` });
+      }
+
       // ADMIN login
       if (userData && userData.role === "admin") {
         const AdminData = {
@@ -227,19 +230,22 @@ exports.loginUserOTP = async (req, res, next) => {
           phoneNumber: userData.phone,
           role: userData.role,
         };
-        const token = await jwt.sign({ user: userData }, secretKey);
+        // console.log(">------",AdminData.phoneNumber);
+        const token = await jwt.sign({ user: AdminData }, secretKey);
         return res.json({
           status: true,
-          message: "OTP has been send Succesfully",
+          message: "Hello Admin, OTP has been send Succesfully",
           user: AdminData,
           token,
           otp,
         });
       }
+
       // Test User login
-      else if (userData && userData.role === "tester") {
-        
-        logger.info("Tester OTP:", otp);
+      if (userData && userData.role === "tester") {
+
+        console.log("Tester OTP:", otp);
+
         if (deviceId) {
           userData.deviceId = deviceId;
           await User.update(phoneNumber, { deviceId: deviceId });
@@ -251,29 +257,51 @@ exports.loginUserOTP = async (req, res, next) => {
         statusInfo.newUser = false;
         statusInfo.status = true;
         statusInfo.user = userData;
-        statusInfo.message = "Welcome again, OTP has been send Succesfully.";
-        
+        statusInfo.message = "Welcome Tester, OTP has been send Succesfully.";
+
       }
       // New User
-      else if (!userData) {
-        userData.deviceId = deviceId;
-          await User.update(phoneNumber, { deviceId: deviceId });
-          const token = await jwt.sign({ user: userData }, secretKey);
-          statusInfo.token = token;
-          statusInfo.otp = otp;
-          statusInfo.newUser = false;
-          statusInfo.status = true;
-          statusInfo.user = userData;
-          statusInfo.message = "Welcome back, OTP has been send Succesfully";
+      if (!userData) {
+        console.log("new user=======");
+
+        sendOTP(phoneNumber, otp)
+        statusInfo.otp = otp;
+        statusInfo.newUser = true;
+        statusInfo.status = true;
+        statusInfo.user = {
+          "_id": "",
+          "fullName": "",
+          "dateOfBirth": "",
+          "email": "",
+          "phone": "",
+          "password": "",
+          "latitude": "",
+          "longitude": "",
+          "city": "",
+          "state": "",
+          "profileUrl": "",
+          "gender": "",
+          "userType": "NUMBER",
+          "favourites": [],
+          "deviceId": "",
+        };
+        statusInfo.message = "OTP has been send Succesfully";
       }
       // Existing User Login
       else {
-        // existing user role login
-        sendOTP(phoneNumber, otp);
+        console.log("ELESEEEE");
+        sendOTP(phoneNumber, otp)
+        if (deviceId) {
+          userData.deviceId = deviceId;
+          await User.update(phoneNumber, { deviceId: deviceId });
+        }
+        const token = await jwt.sign({ user: userData }, secretKey);
+        statusInfo.token = token;
         statusInfo.role = "user";
-        statusInfo.message = "OTP has been send Succesfully";
-        statusInfo.newUser = true;
+        statusInfo.message = "Welcome back, OTP has been send Succesfully";
+        statusInfo.newUser = false;
         statusInfo.status = true;
+        statusInfo.user = userData;
         statusInfo.otp = otp;
       }
     }
@@ -442,11 +470,11 @@ exports.sendSignUpOtp = (req, res, next) => {
       axios
         .get(
           "https://www.fast2sms.com/dev/bulkV2?authorization=" +
-            process.env.FAST2SMS_AUTH_KEY +
-            "&variables_values" +
-            token +
-            "&route=otp&numbers=" +
-            phone
+          process.env.FAST2SMS_AUTH_KEY +
+          "&variables_values" +
+          token +
+          "&route=otp&numbers=" +
+          phone
         )
         .then(function (response) {
           if (
@@ -721,11 +749,11 @@ exports.sendPhoneOtpForEdit = (req, res, next) => {
     axios
       .get(
         "https://www.fast2sms.com/dev/bulkV2?authorization=" +
-          process.env.FAST2SMS_AUTH_KEY +
-          "&variables_values" +
-          token +
-          "&route=otp&numbers=" +
-          phone
+        process.env.FAST2SMS_AUTH_KEY +
+        "&variables_values" +
+        token +
+        "&route=otp&numbers=" +
+        phone
       )
       .then(function (response) {
         if (
@@ -915,11 +943,11 @@ exports.sendForgotPasswordOtp = (req, res, next) => {
       axios
         .get(
           "https://www.fast2sms.com/dev/bulkV2?authorization=" +
-            process.env.FAST2SMS_AUTH_KEY +
-            "&variables_values" +
-            token +
-            "&route=otp&numbers=" +
-            identity
+          process.env.FAST2SMS_AUTH_KEY +
+          "&variables_values" +
+          token +
+          "&route=otp&numbers=" +
+          identity
         )
         .then(function (response) {
           if (
@@ -1144,7 +1172,7 @@ exports.deleteParticularUser = (req, res, next) => {
     var o_id = new ObjectId(userId);
 
     db.collection("users")
-      .updateOne({ _id: o_id },{ $set: { status: 0 }})
+      .updateOne({ _id: o_id }, { $set: { status: 0 } })
       .then((resultData) => {
         return res.json({ status: true, message: "User deleted successfully" });
       })
@@ -1283,7 +1311,7 @@ exports.getAllUsersGraphDetails = (req, res, next) => {
   });
 };
 
-exports.getUserNearyByLocations = async(req, res, next) => {
+exports.getUserNearyByLocations = async (req, res, next) => {
   const latitude = 19.1196773;
   const longitude = 72.9050809;
   const range = 100;
@@ -1295,17 +1323,17 @@ exports.getUserNearyByLocations = async(req, res, next) => {
 exports.exportUserData = async (req, res) => {
   try {
     const filter = pick(req.query, ['dateOfBirth', 'userType', 'role']); // {startDate: 2022-19-01}
-    const options = pick(req.query, ['sort', 'limit', 'gender', 'startDate','endDate','page','sortfield','sortvalue']); // {}
+    const options = pick(req.query, ['sort', 'limit', 'gender', 'startDate', 'endDate', 'page', 'sortfield', 'sortvalue']); // {}
     const pipeline = []
-    
-    if(Object.keys(filter).length){
+
+    if (Object.keys(filter).length) {
       pipeline.push(
         {
           $match: filter,
         }
       )
     }
-        
+
 
     logger.info("this is pipe======>",pipeline);
       if (options.startDate && options.endDate) {
@@ -1323,58 +1351,58 @@ exports.exportUserData = async (req, res) => {
 
 
 
-      const sortobj = {[options.sortfield]:+options.sortvalue}
+    const sortobj = { [options.sortfield]: +options.sortvalue }
 
-      if (options.sortfield) {
-        const sortStage = {
-          $sort: sortobj
-        };
-        pipeline.push(sortStage);
-      }
-     
-  
-      if (options.limit) {
-        const limitStage = {
-          $limit: parseInt(options.limit),
-        };
-        pipeline.push(limitStage);
-      }
-  
-      if (options.page) {
-        const skipStage = {
-          $skip: (parseInt(options.page) - 1
-          ) * parseInt(options.limit),
-        };
-        pipeline.push(skipStage);
-      }
-      logger.info(JSON.stringify(pipeline))
+    if (options.sortfield) {
+      const sortStage = {
+        $sort: sortobj
+      };
+      pipeline.push(sortStage);
+    }
+
+
+    if (options.limit) {
+      const limitStage = {
+        $limit: parseInt(options.limit),
+      };
+      pipeline.push(limitStage);
+    }
+
+    if (options.page) {
+      const skipStage = {
+        $skip: (parseInt(options.page) - 1
+        ) * parseInt(options.limit),
+      };
+      pipeline.push(skipStage);
+    }
+    console.log(JSON.stringify(pipeline))
     let allUser;
-      if(filter || options) {
-         allUser = await User.fetchAllUsersByAggregate(pipeline)
-      }else {
-         allUser = await User.fetchAllUsers(0,0);
-      }
-      // console.log(JSON.stringify(pipeline))
+    if (filter || options) {
+      allUser = await User.fetchAllUsersByAggregate(pipeline)
+    } else {
+      allUser = await User.fetchAllUsers(0, 0);
+    }
+    // console.log(JSON.stringify(pipeline))
     const workbook = new excelJS.Workbook();
     const worksheet = workbook.addWorksheet("userData");
     const mypath = "./files";
     worksheet.columns = [
       { header: "S no.", key: "s_no", width: 10 },
-    //   { headers: "Id", key: "_id", width: 10 },
+      //   { headers: "Id", key: "_id", width: 10 },
       { header: "fullName", key: "fullName", width: 10 },
       { header: "dateOfBirth", key: "dateOfBirth", width: 10 },
       { header: "email", key: "email", width: 10 },
       { header: "phone", key: "phone", width: 10 },
-    //   { header: "password", key: "password", width: 10 },
+      //   { header: "password", key: "password", width: 10 },
       { header: "latitude", key: "latitude", width: 10 },
       { header: "longitude", key: "longitude", width: 10 },
       { header: "city", key: "city", width: 10 },
       { header: "state", key: "state", width: 10 },
       { header: "profileUrl", key: "profileUrl", width: 10 },
       { header: "gender", key: "gender", width: 10 },
-    //   { header: "userType", key: "userType", width: 10 },
+      //   { header: "userType", key: "userType", width: 10 },
       { header: "favourites", key: "favourites", width: 10 },
-    //   { header: "deviceId", key: "deviceId", width: 10 },
+      //   { header: "deviceId", key: "deviceId", width: 10 },
       { header: "creationTimeStamp", key: "creationTimeStamp", width: 10 },
     ];
 
@@ -1403,14 +1431,14 @@ exports.exportUserData = async (req, res) => {
                 path: `${mypath}/users.xlsx`
               });
           }
-      })
+        })
       });
   } catch (error) {
     logger.error(error)
     res.send({
       status: "error",
       message: "Something went wrong",
-      error:error.message
+      error: error.message
     });
   }
 };

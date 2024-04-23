@@ -1,30 +1,27 @@
 const mongodb = require('mongodb');
-const getDb = require('../util/database').getDB; 
+const getDb = require('../util/database').getDB;
 
 const ObjectId = mongodb.ObjectId;
 
-class User
-{
+class User {
     constructor(
-        fullName,
-        dateOfBirth,
-        email,
-        phone,
-        password = "",
-        latitude = "",
-        longitude = "",
-        city = "",
-        state = "",
-        profileUrl = "",
-        role = "user",
-        gender = "",
-        userType = "NUMBER",
-        favourites = [],
-        deviceId,
-        status="",
-    ) 
-    
-    {
+        { fullName,
+            dateOfBirth,
+            email,
+            phone,
+            password = "",
+            latitude = "",
+            longitude = "",
+            city = "",
+            state = "",
+            profileUrl = "",
+            role = "user",
+            gender = "",
+            userType = "NUMBER",
+            favourites = [],
+            deviceId,
+            status = 1 }
+    ) {
         this.fullName = fullName;
         this.dateOfBirth = dateOfBirth;
         this.email = email;
@@ -40,60 +37,56 @@ class User
         this.userType = userType;
         this.favourites = favourites;
         this.deviceId = deviceId;
-        this.status=1;
+        this.status = 1;
         this.creationTimeStamp = new Date();
     }
 
-    save()
-    {
+    save() {
         const db = getDb();
         return db.collection('users').insertOne(this);
     }
 
-    static update(phoneNumber, newData) {
+    static async update(phoneNumber, newData) {
         const db = getDb();
-        const userToUpdate = { phone: phoneNumber };
+        const filter = { phone: phoneNumber };
         const updateData = {
             $set: newData
         };
-        return db.collection(collectionName).updateOne(userToUpdate, updateData);
+        return await db.collection("users").updateOne(filter, updateData, { returnOriginal: false }).then(udata => { return udata }).catch(error => console.log("error", error));
     }
 
-    static findUserByUserId(uId)
-    {
+    static findUserByUserId(uId) {
 
         // console.log("uID-------->",uId);
 
         var o_id = new ObjectId(uId);
         const db = getDb();
 
-        return db.collection('users').findOne({_id:o_id})
-            .then(userData=>{
-                return userData;  
+        return db.collection('users').findOne({ _id: o_id })
+            .then(userData => {
+                return userData;
             })
-            .catch(err=>console.log(err));
-    }
-  
-    static findUserByEmail(email)
-    {
-        const db = getDb();
-                            
-        return db.collection('users').findOne({ email:email })
-            .then(userData=>{
-                return userData;  
-            })
-            .catch(err=>console.log(err));
+            .catch(err => console.log(err));
     }
 
-    static findUserByPhone(phone)
-    {
+    static findUserByEmail(email) {
         const db = getDb();
-                            
-        return db.collection('users').findOne({ phone:phone,status:1 })
-            .then(userData=>{
-                return userData;  
+
+        return db.collection('users').findOne({ email: email })
+            .then(userData => {
+                return userData;
             })
-            .catch(err=>console.log(err));
+            .catch(err => console.log(err));
+    }
+
+    static findUserByPhone(phone, status = 1) {
+        const db = getDb();
+
+        return db.collection('users').findOne({ phone: phone, status: status })
+            .then(userData => {
+                return userData;
+            })
+            .catch(err => console.log(err));
     }
 
     // static async find(filter,options)
@@ -106,7 +99,7 @@ class User
     //         // })
     //         // .catch(err=>console.log(err));
 
-        
+
     // }
 
     // static test2(msg)
@@ -115,14 +108,13 @@ class User
     //     console.log("=>>>>>>>>>>>>>>>>>>>",this.filteredData);
     // }
 
-    static fetchAllUsers(skipCount,limitCount)
-    {
+    static fetchAllUsers(skipCount, limitCount) {
         const db = getDb();
-        return db.collection('users').find().sort({creationTimeStamp:-1}).skip(skipCount).limit(limitCount).toArray()
-            .then(userData=>{
+        return db.collection('users').find().sort({ creationTimeStamp: -1 }).skip(skipCount).limit(limitCount).toArray()
+            .then(userData => {
                 return userData;
             })
-            .catch(err=>console.log(err));
+            .catch(err => console.log(err));
     }
 
     static async fetchAllUsersByAggregate(pipeline) {
@@ -133,10 +125,50 @@ class User
             return userData;
         } catch (err) {
             console.error("Error in fetchAllUsersByAggregate:", err);
-            throw err; 
+            throw err;
         }
     }
-    
+
+    // remove duplicate >>>>>>>>>>>>>
+
+    static fetchAllUsersFromDate2(fromdate, todate) {
+        const db = getDb();
+
+        return db.collection('users').find({ "creationTimeStamp": { $gte: new Date(fromdate + "T00:00:00"), $lt: new Date(todate + "T23:59:59") } }).toArray()
+            .then(userData => {
+                return userData;
+            }).catch(err => console.log(err));
+    }
+
+    static async findUsersByPhone(phone) {
+        const db = getDb();
+
+        return await db.collection('users').find({ phone: phone }).sort({ _id: -1 }).toArray()
+    }
+
+    static deleteUserPermanent(user_id) {
+        const db = getDb();
+        db.collection('users').deleteOne({ _id: ObjectId(user_id) })
+            .then(userData => {
+                console.log("user delete op:", user_id);
+                return userData;
+            })
+            .catch(err => console.log(err));
+        // db.commit()
+    }
+
+    static async update_object(phoneNumber, newData) {
+        const db = getDb();
+        const userToUpdate = { _id: ObjectId(phoneNumber) };
+        const updateData = {
+            $set: newData
+        };
+        return await db.collection("users").updateOne(userToUpdate, updateData);
+    }
+
+    // <<<<<<<< remove duplicate
+
+
 
     // static async paginate(filter, options) {
     //     try {
@@ -152,11 +184,11 @@ class User
     //           sort = { ...sort, ...criteria };
     //         });
     //       }
-    
+
     //       const limit = parseInt(options.limit, 10) || 10;
     //       const page = parseInt(options.page, 10) || 1;
     //       const skip = (page - 1) * limit;
-    
+
     //       // console.log("sort--", sort)
     //       const countPromise = db.collection("users").countDocuments(filter);
     //       let docsPromise = db
@@ -165,7 +197,7 @@ class User
     //         .sort(sort)
     //         .skip(skip)
     //         .limit(limit);
-    
+
     //       if (options.populate) {
     //         console.log("populate ---", options.populate);
     //         options.populate.split(",").forEach((populateOption) => {
@@ -176,13 +208,13 @@ class User
     //           docsPromise = docsPromise.populate(path);
     //         });
     //       }
-    
+
     //       const [totalResults, results] = await Promise.all([
     //         countPromise,
     //         docsPromise.toArray(),
     //       ]);
     //       const totalPages = Math.ceil(totalResults / limit);
-    
+
     //       return {
     //         results,
     //         page,
@@ -195,7 +227,7 @@ class User
     //       throw new Error("Pagination failed: " + error.message);
     //     }
     //   }
-    
+
 
 }
 

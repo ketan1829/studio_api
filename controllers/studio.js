@@ -121,7 +121,8 @@ function filterNearbySudios(
 // ----------------- v2.2.3 ---------------------------
 
 exports.getStudios = async (req, res, next) => {
- 
+
+  console.log("body---studios-all");
 
   logger.info("body---", req.body);
   logger.info("body---", req.query);
@@ -252,7 +253,8 @@ exports.getStudios = async (req, res, next) => {
     if (req.query.sortBy) {
       sortStage[req.query.sortBy] = 1;
     } else {
-      sortStage.fullName = 1;
+      // sortStage.fullName = 1;
+          sortStage._id = -1;
     }
 
     aggregationPipeline.push({ $sort: sortStage });
@@ -281,10 +283,11 @@ exports.getStudios = async (req, res, next) => {
   }
 
   if (latitude?.length && longitude?.length) {
+    
     const availableStudios = await Studio.getNearByStudios(
-      +longitude,
-      +latitude,
-      range ? range : 10,
+      +parseFloat(longitude),
+      +parseFloat(latitude),
+      range ? parseInt(range) : 10,
       options?.page || 1,
       options?.limit || 10
     );
@@ -306,7 +309,7 @@ exports.getStudios = async (req, res, next) => {
 
     Studio.paginate(filter, options).then((studioData) => {
       logger.info(
-        "--------COUNT:",
+        "---- STUDIOS COUNT:",
         studioData.totalPages,
         studioData.totalResults
       );

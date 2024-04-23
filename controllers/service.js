@@ -137,8 +137,8 @@ exports.createNewService = async (req, res, next) => {
       clientPhotos,
       reviews,
       featuredReviews,
-      type,
-      isActive
+      isActive,
+      type
     );
 
     // saving in database
@@ -367,7 +367,7 @@ exports.updateService = async (req, res) => {
   const reviews = req.body.userReviews;
   const featuredReviews = req.body.starredReviews;
   const type = req.body.type || "c2";
-  const isActive = +req.body.service_status;
+  const isActive = +req.body.isActive;
   const serviceData = await Service.findServiceById(sId);
   logger.info(sId);
   if (!serviceData) {
@@ -376,17 +376,17 @@ exports.updateService = async (req, res) => {
       message: "Service does not exist or provide the correct service Id",
     });
   }
-  const updatedPackages = packages?.map((p_key, j) => {
-    return serviceData.packages.map((pkg, i) => {
-      if (pkg.planId === p_key.planId) {
-        let updata_pack = serviceData.packages[i];
-        updata_pack = { ...updata_pack, ...packages[j] };
-        return updata_pack;
-      }
-      return pkg;
-    });
-  });
-  // logger.info(updatedPackages);
+  // const updatedPackages = packages?.map((p_key, j) => {
+  //   return serviceData.packages.map((pkg, i) => {
+  //     if (pkg.planId === p_key.planId) {
+  //       let updata_pack = serviceData.packages[i];
+  //       updata_pack = { ...updata_pack, ...packages[j] };
+  //       return updata_pack;
+  //     }
+  //     return pkg;
+  //   });
+  // });
+  // console.log(updatedPackages);
 
   let service_obj = {
     service_id,
@@ -394,7 +394,7 @@ exports.updateService = async (req, res) => {
     price,
     amenities,
     totalPlans,
-    packages: updatedPackages,
+    packages,
     servicePhotos,
     aboutUs,
     workDetails,
