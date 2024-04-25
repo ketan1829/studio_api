@@ -156,7 +156,7 @@ exports.getStudios = async (req, res, next) => {
   if (city) filter.city = city;
   if (state) filter.state = state;
   if (state) filter.totalRooms = +totalRooms;
-  if (studioId) filter.studioId = studioId;
+  if (studioId) filter._id = new ObjectId(studioId);
   if (minArea) filter.area = { $gte: parseInt(minArea) };
 
   if (amenity) filter["amenities.name"] = amenity;

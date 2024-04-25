@@ -6,7 +6,7 @@ const verifyToken = (token) => {
   // console.log("token", token);
 
   return new Promise((resolve, reject) => {
-    jwt.verify(token, 'myAppSecretKey', (err, decoded) => {
+    jwt.verify(token, process.env.JWT_TOKEN_SECRET, (err, decoded) => {
       if (err) reject(new ErrorHandler(401, "unauthorized"));
       else resolve(decoded);
     });
@@ -167,7 +167,6 @@ const isAdminOrOwner = async (req, res, next) => {
 
     // if (!decoded.admin || !decoded.owner || decoded?.user?.role !== "admin") {
     
-
     if(decoded?.user?.role === "admin" || decoded.admin || decoded.owner){
       next();
     }else{

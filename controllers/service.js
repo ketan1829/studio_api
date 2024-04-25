@@ -111,8 +111,13 @@ exports.createNewService = async (req, res, next) => {
     const featuredReviews = req.body.starredReviews;
     const type = req.body.type || "c2";
     const isActive = [0,1,2].includes(req.body.isActive) ? req.body.isActive:1;
-
-
+    console.log(packages.length);
+    if(packages.length < 1){
+      return res.status(400).json({
+            status: false,
+            message: "Add at least one package for the service."
+        });
+    }
 
     logger.info("else is running",req.body);
     logger.info("else is running",type,isActive);
@@ -140,7 +145,6 @@ exports.createNewService = async (req, res, next) => {
       isActive,
       type
     );
-
     // saving in database
     return serviceObj
       .save()
@@ -157,17 +161,22 @@ exports.createNewService = async (req, res, next) => {
           data: resultData["ops"],
         });
       })
-      .catch((err) => logger.error(err));
+      .catch((err) =>{ logger.error(err,"Error saving service");
+      return res.status(500).json({
+          status: false,
+          message: err.message
+        })
+    });
   }
 };
 
 exports.getServices = (req, res, next) => {
 
-  logger.info("body---", req.query);
+ ;
   // const { serviceName, startingPrice, offerings, TotalServices, avgReview, serviceId } = req.query;
-  const filter = pick(req.query, ['serviceType', 'active', 'serviceName', 'startingPrice','endPrice','planId','TotalServices'])
+  const filter = pick(req.query, ['serviceType', 'active', 'serviceName', 'startPrice','endPrice','planId','TotalServices'])
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
-
+  console.log("body---", req.query)
   let mappedFilter = {}
 
   const collectionName = homeScreen.category?.[filter.serviceType]?.coll
@@ -181,11 +190,16 @@ exports.getServices = (req, res, next) => {
       // filter._id = o_id
       mappedFilter['packages.planId'] = +filter.planId
   }
+
   if (filter.serviceName) mappedFilter.fullName = filter.serviceName;
-  if (filter.startingPrice) mappedFilter.price = { $gte: parseInt(filter.startingPrice) }
-  if (filter.endPrice) {
-    mappedFilter.price.$lte = parseInt(filter.endPrice);
+  if(filter.startPrice && filter.endPrice){
+    mappedFilter.price = { $gte : +filter.startPrice, $lte: +filter.endPrice}
+  } else if(filter.startPrice){
+    mappedFilter.price = {$gte:+filter.startPrice}
+  } else if(filter.endPrice){
+    mappedFilter.price = {$lte:+filter.endPrice}
   }
+ 
   if (filter.TotalServices) mappedFilter.totalPlans = +filter.TotalServices;
   if (filter.avgReview) mappedFilter.featuredReviews.avgService = parseFloat(filter.avgReview);
 
