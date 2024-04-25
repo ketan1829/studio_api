@@ -5,6 +5,10 @@ const controller = require('../controllers/setting');
 const auth = require("../util/authCheck");
 
 
+//add price to all the packages
+router.post('/settings/addPrice',controller.addPricing);
+
+
 // router.post('/settings/create',controller.createNewSetting);
 
 router.get('/settings/banner',auth.isBoth,controller.getBanner);

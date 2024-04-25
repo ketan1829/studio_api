@@ -645,6 +645,9 @@ exports.getStudioAvailabilities = (req, res, next) => {
   const bufferTime = 15;
   const interval = bookingHours * 60;
 
+
+  console.log("bookingHours:",bookingHours)
+
   //get bookingDate from timestamp
   bookingDate = new Date(bookingDate);
   var yr = bookingDate.getUTCFullYear();
@@ -732,7 +735,7 @@ exports.getStudioAvailabilities = (req, res, next) => {
 
         let availSlotsNew = allSlots;
         //Filtering to remove past slots for current date
-        if (cTimeStamp == bTimeStamp) {
+        if (cTimeStamp <= bTimeStamp) {
           availSlotsNew = availSlotsNew.filter((i) => {
             var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
             var sMin =
@@ -745,6 +748,7 @@ exports.getStudioAvailabilities = (req, res, next) => {
             }
           });
         }
+        console.log("availSlotsNew:",availSlotsNew);
 
         if (bookingsData.length == 0) {
           //convert to 12 hour format

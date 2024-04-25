@@ -42,8 +42,8 @@ exports.createNewDiscount = (req, res, next) => {
 
 exports.getAllUserDiscounts = (req,res,next)=>{
 
-    const userId = req.params.userId;
-
+    let userId = req.params?.userId ? req.params.userId : req.params?.user_id ;
+    console.log(req.params)
     //get Current Date from timestamp
     let currDate = new Date();
     var yr = currDate.getUTCFullYear();
@@ -66,28 +66,32 @@ exports.getAllUserDiscounts = (req,res,next)=>{
         {
             return res.status(404).json({ status: false, message: "No user with this ID exists" });
         }
-        ChoiraDiscount.fetchAllChoiraDiscounts(0,0)
-        .then(discountsData=>{
+        ChoiraDiscount.fetchAllChoiraDiscounts(0,0).then(discountsData=>{
             if(discountsData.length==0)
             {
                 return res.json({status:true, message:"All discounts returned for this user",discounts:[]});
             }
             else{
                 const firstTimeDiscountIndex = discountsData.findIndex(i=>i.discountType==0);
+
+                console.log(firstTimeDiscountIndex)
                 if(firstTimeDiscountIndex==-1)
                 {
                     firstTimeDiscountIndex = 0;
                 }
                 // Transaction.fetchAllTransactionsByUserIdAndDiscountId(userId,discountsData[firstTimeDiscountIndex]._id.toString())
-                Transaction.fetchAllTransactionsByUserId(userId)
-                .then(transactionsData=>{
-                    // console.log("Transactions : "+transactionsData.length);
+                Transaction.fetchAllTransactionsByUserId(userId).then(transactionsData=>{
+                    console.log("Transactions : ",transactionsData.length);
                     if(transactionsData.length==0)
                     {
+
+                        console.log("first time user")
                         //Then user is eligible for FIRST TIME Discount (and not recurring)
                         discountsData = discountsData.filter(i=>i.discountType!=1);
                     }
                     else{
+                        console.log("NOT first time user")
+
                         //Then user is eligible for RECURRING Discount (and not first-time)
                         discountsData = discountsData.filter(i=>i.discountType!=0);
                     }
@@ -97,6 +101,9 @@ exports.getAllUserDiscounts = (req,res,next)=>{
                     // console.log(eventDiscountData);
                     if(eventDiscountData.length!=0)
                     {
+
+                        console.log("eventDiscountData")
+
                         // console.log(eventDiscountData);
                         let eventDate = new Date(eventDiscountData[0].discountDate);
                         var yr = eventDate.getUTCFullYear();
@@ -124,6 +131,7 @@ exports.getAllUserDiscounts = (req,res,next)=>{
                     // console.log(specialDiscountData);
                     if(specialDiscountData.length!=0)
                     {
+                        console.log("specialDiscountData")
                         const index = specialDiscountData[0].usersList.findIndex(i=>i.toString()==userId.toString());
                         if(index==-1)
                         {
