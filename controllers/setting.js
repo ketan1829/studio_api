@@ -20,7 +20,7 @@ const ObjectId = mongodb.ObjectId;
 
 
 
-exports.addPricing = async(req, res)=>{
+exports.addPricingInServicePackage = async(req, res)=>{
     try {
         const db = getDb();
         const services = await db.collection('services').find().toArray();
@@ -58,6 +58,29 @@ exports.addPricing = async(req, res)=>{
 }
 res.send({status:true, message:"Pricing details updated successfully"})
 }
+// exports.addPricingInService = async(req, res)=>{
+//     try {
+//         const db = getDb();
+//         const services = await db.collection('services').find().toArray();
+
+//         services.map(item => (
+//             item.pricing = {
+//                 "USA": {
+//                     "basePrice": item.price,
+//                 },
+//                 "IN": {
+//                     "basePrice": item.price,
+//                 },
+//                 "JP": {
+//                     "basePrice": item.price,
+//                 }
+//             }))
+//         console.log("Pricing details updated for all packages");
+// }catch (err) {
+//     console.error("Error updating pricing details:", err);
+// }
+// res.send({status:true, message:"Pricing details updated successfully"})
+// }
 
 exports.getBanner = (req,res,next)=>{
 
