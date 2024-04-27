@@ -6,7 +6,8 @@ const verifyToken = (token) => {
   // console.log("token", token);
 
   return new Promise((resolve, reject) => {
-    jwt.verify(token, process.env.JWT_TOKEN_SECRET, (err, decoded) => {
+   
+    jwt.verify(token,'myAppSecretKey', (err, decoded) => {
       if (err) reject(new ErrorHandler(401, "unauthorized"));
       else resolve(decoded);
     });
@@ -96,6 +97,7 @@ const isBoth = async (req, res, next) => {
   // console.log("in ---- both >>>")
 
   try {
+  
     let token = req.headers.authorization;
     let secret_by_pass = req.headers.secret_by_pass;
 
@@ -104,6 +106,7 @@ const isBoth = async (req, res, next) => {
     if (!token) throw new ErrorHandler(401, "unauthorized");
 
     token = token.split(" ")[1]; // remove "Bearer"
+    
 
 
     if ((secret_by_pass || token) === "debugTest") {
@@ -111,6 +114,7 @@ const isBoth = async (req, res, next) => {
       return next();
     } else {
       const decoded = await verifyToken(token);
+   
       if (!decoded.admin && !decoded.user) {
         console.log("isboth:====");
         throw new ErrorHandler(401, "unauthorized");

@@ -184,14 +184,22 @@ exports.signupUserV2 = async (req, res, next) => {
       // If user does not exist, create a new user
       await userObj.save();
     }
-
-    const token = jwt.sign({ user: user_data }, "myAppSecretKey");
+    const {_id,creationTimeStamp} = await User.findUserByPhone(phoneNumber);
+  
+    let user = {
+      ...user_data,
+      creationTimeStamp,
+      _id
+    }
+    const token = jwt.sign({ user:user }, "myAppSecretKey");
+ 
     // Only add to Brevo if the role is 'user' and it's a new signup
     if (role === "user" && !_userData) {
       await addContactBrevo(userObj);
       logger.info("Added to Brevo");
     }
-    return res.json({ status: true, message: "Signup successful", user: user_data, token });
+
+    return res.json({ status: true, message: "Signup successful", user, token });
 
   } catch (error) {
     console.error("Error in signupUserV2:", error);
@@ -199,11 +207,13 @@ exports.signupUserV2 = async (req, res, next) => {
   }
 };
 
+
 exports.loginUserOTP = async (req, res, next) => {
   try {
     const { phoneNumber, deviceId, userType, role } = req.body;
 
     logger.info({ phoneNumber, deviceId, userType, role });
+
 
     const userData = await User.findUserByPhone(phoneNumber);
 

@@ -3,6 +3,7 @@ const ObjectId = mongodb.ObjectId;
 const { getDB } = require('../util/database');
 
 
+
 const collectionName = 'services';
 
 class Service {
@@ -193,61 +194,54 @@ class Service {
     }
   }
 
-//   static async minStartPrice() {
-//     const db = getDB();
-//     const services = await db.collection("services").find().toArray();
-//     let minUsa = [];
-//     let minIn = [];
-//     let minJp = [];
-//     services.forEach(service => {
-//         service.packages.forEach(packageObj => {
-//         Object.entries(packageObj.pricing).forEach(([country, prices]) => {
-//           if(country === 'USA') minUsa.push(prices.basePrice);
-//           if(country === 'IN') minIn.push(prices.basePrice);
-//           if(country === 'JP') minJp.push(prices.basePrice);
-//         })
-//       })
+  static async minStartPrice(o_id) {
+    const db = getDB();
+    const services = await db.collection("services").find().toArray();
 
-//       // CAL MIN
-//       const minobj = {
-//         usa: Math.min(...minUsa),
-//       }
+    let minUsa = [];
+    let minIn = [];
+    let minJp = [];
 
+    services.forEach(service => {
+        service.packages.forEach(packageObj => {
+            Object.entries(packageObj.pricing).forEach(([country, prices]) => {
+                if (country === 'USA') minUsa.push(prices.basePrice);
+                if (country === 'IN') minIn.push(prices.basePrice);
+                if (country === 'JP') minJp.push(prices.basePrice);
+            });
+        });
+    });
 
-//       await db.collection("services").updateone({_id:ObjectId()},{$set:{}})
-//       minUsa = [];
-//       minIn = [];
-//       minJp = [];
+    // const minobj = {
+    //     usa:Math.min(...minUsa),
+    //     in:Math.min(...minIn),
+    //     jp:Math.min(...minJp),
+    // };
+    const minobj = {
+      "USA": {
+          "price":0,
+          "basePrice": Math.min(...minUsa),
+          "discountPercentage": 10
+      },"IN": {
+          "price":0,
+          "basePrice": Math.min(...minIn),
+          "discountPercentage": 10
+      },"JP": {
+          "price": 0,
+          "basePrice": Math.min(...minJp),
+          "discountPercentage": 10
+      },
+  }
+    
+    let result = await db.collection("services").updateOne(
+        { _id: new ObjectId(o_id) },
+        { $set: { pricing: minobj } }
+    );
+    console.log(result);
+}
 
-
-
-
-
-
-
-//     })
-//     console.log("minIn[0]",minIn[1]);
-//     console.log("minJp[0]",minJp[1]);
-//     console.log("minJp[0]",minUsa[1]);
-
-
-// }
 
 }
 module.exports = Service;
 
 
-// console.log(country)
-// if(country['USA']) minUsa.push(country['USA'])
-// if(country['IN']) minIn.push(country['IN'])
-// if(country['JP']) minJp.push(country['JP'])
-
-
-// map((packages) =>
-//       packages.map((plan)=>{
-//         for (const [key, value] of Object.entries(plan.pricing)) {
-//           console.log(`${key}: ${value}`);
-//         }
-//         }
-//       )
-//     );

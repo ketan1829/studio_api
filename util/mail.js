@@ -85,7 +85,7 @@ exports.addContactBrevo = async function (userData) {
         'api-key': process.env.SENDINBLUE_API_KEY,
         'Content-Type': 'application/json'
         };
-        const response = axios.post('https://api.sendinblue.com/v3/contacts', data, { headers });
+        const response = await axios.post('https://api.sendinblue.com/v3/contacts', data, { headers });
 
         if (response) {
             return { success: true };
