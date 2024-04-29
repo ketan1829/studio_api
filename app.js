@@ -3,13 +3,16 @@ const { logger, contextMiddleware } = require('./util/logger.js');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 
-require('dotenv').config({ path: __dirname + '/.env' })
+// require('dotenv').config({ path: __dirname + '/.env' })
+require('dotenv').config()
+
 
 const path = require('path');
 
 const mongoConnect = require('./util/database').mongoConnect;
 
 const app = express();
+
 
 const configRoutes = require('./routes/config');
 const adminRoutes = require('./routes/admin');

@@ -1,6 +1,10 @@
 # dependencies
 /node_modules
 /newFileUploads/*
+/.env.development
+.env.development
+/.env.local
+.env.local
 node_modules
 /.pnp
 .pnp.js
