@@ -172,7 +172,6 @@ exports.createNewService = async (req, res, next) => {
 
 exports.getServices = (req, res, next) => {
 
- ;
   // const { serviceName, startingPrice, offerings, TotalServices, avgReview, serviceId } = req.query;
   const filter = pick(req.query, ['serviceType', 'active', 'serviceName', 'startPrice','endPrice','planId','TotalServices'])
   const options = pick(req.query, ['sortBy', 'limit', 'page']);

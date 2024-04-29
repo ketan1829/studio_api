@@ -196,8 +196,8 @@ class Service {
 
   static async minStartPrice(o_id) {
     const db = getDB();
-    const services = await db.collection("services").find().toArray();
-
+    const objectId = new ObjectId(o_id);
+    const services = await db.collection("services").find({ _id: objectId }).toArray();
     let minUsa = [];
     let minIn = [];
     let minJp = [];
@@ -212,11 +212,7 @@ class Service {
         });
     });
 
-    // const minobj = {
-    //     usa:Math.min(...minUsa),
-    //     in:Math.min(...minIn),
-    //     jp:Math.min(...minJp),
-    // };
+
     const minobj = {
       "USA": {
           "price":0,
@@ -237,8 +233,10 @@ class Service {
         { _id: new ObjectId(o_id) },
         { $set: { pricing: minobj } }
     );
-    console.log(result);
-}
+    minIn = [];
+    minJp = [];
+    minUsa = [];
+  }
 
 
 }
