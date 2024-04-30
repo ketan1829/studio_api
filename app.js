@@ -28,6 +28,11 @@ const ownerRoutes = require('./routes/owner');
 const adminNotificationsRoutes = require('./routes/adminNotifications');
 const mailtestRoutes = require('./routes/mailtest');
 
+// TEST ROUTES
+
+const testRoutes = require('./routes/test');
+
+
 
 //SWAGGER
 const swaggerJsdoc = require("swagger-jsdoc");
@@ -134,6 +139,7 @@ app.use(`${first_route}`,notificationsRoutes);
 app.use(`${first_route}`,ownerRoutes);
 app.use(`${first_route}`,adminNotificationsRoutes);
 app.use(`${first_route}`,mailtestRoutes);
+app.use(`${first_route}`,testRoutes);
 
 // serve static folder (admin-panel)
 app.use(express.static("dist-payment/bms-webpayment"));

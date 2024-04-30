@@ -10,6 +10,10 @@ const auth = require("../util/authCheck");
 // //add price to all the service
 // router.post('/settings/addPriceInPackage',controller.addPricingInService);
 
+//add price to all the packages
+router.post('/settings/addPrice',controller.addPricing);
+
+
 // router.post('/settings/create',controller.createNewSetting);
 
 router.get('/settings/banner',auth.isBoth,controller.getBanner);

@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const ErrorHandler = require("./errorHandler");
 const { logger } = require("./logger");
+const User = require("../models/user");
 
 const verifyToken = (token) => {
   // console.log("token", token);
@@ -26,15 +27,44 @@ const isUser = async (req, res, next) => {
 
     const decoded = await verifyToken(token);
 
-    if (!decoded.user || !decoded.user._id) {
+    console.log(decoded)
+
+    // if (!decoded.user || !decoded.user._id) {
+    if (!decoded.user) {
+      console.log("UNNNNNNAUTHH")
       throw new ErrorHandler(401, "unauthorized");
     }
 
     next();
   } catch (error) {
-    console.log("user error:=",error)
+    console.log("user error:=", error)
     next(error);
   }
+};
+
+const isUserTest = async (req, res, next) => {
+  console.log("authCheckTest1");
+  const userData = await User.findUserByPhone(req.query.phoneNumber,1,false);
+  jwt.sign({ user: userData }, "myAppSecretKey",async (err,token)=>{
+    try {  
+
+      if (err) throw new ErrorHandler(402, "token creation failed !");
+  
+      if (!token) throw new ErrorHandler(401, "unauthorized.");
+        const decoded = await verifyToken(token);
+  
+      console.log("decoded:")  
+      if (!decoded.user || !decoded.user._id) {
+        throw new ErrorHandler(401, "unauthorized");
+      }
+  
+      next();
+    } catch (error) {
+      console.log("user error:=", error)
+      next(error);
+    }
+  });
+
 };
 
 const isAdminV2 = async (req, res, next) => {
@@ -122,7 +152,7 @@ const isBoth = async (req, res, next) => {
       next();
     }
   } catch (error) {
-    console.log("isboth error:=",error);
+    console.log("isboth error:=", error);
     next(error);
   }
 };
@@ -173,7 +203,7 @@ const isAdminOrOwner = async (req, res, next) => {
     
     if(decoded?.user?.role === "admin" || decoded.admin || decoded.owner){
       next();
-    }else{
+    } else {
       throw new ErrorHandler(401, "unauthorized admin or owner");
     }
 
@@ -208,4 +238,4 @@ const isAdminOrOwnerOrUser = async (req, res, next) => {
   }
 };
 
-module.exports = { isUser, isAdmin, isBoth, isAdminOrOwner, isAdminOrOwnerOrUser, isAdminV2 };
+module.exports = { isUser, isAdmin, isBoth, isAdminOrOwner, isAdminOrOwnerOrUser, isAdminV2, isUserTest };
