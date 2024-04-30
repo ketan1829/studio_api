@@ -17,17 +17,18 @@ const pick = require("../util/pick");
 const { paginate } = require("../util/plugins/paginate.plugin");
 const { getDB } = require("../util/database");
 const { json } = require("body-parser");
+const { logger } = require("../util/logger");
 
 const ObjectId = mongodb.ObjectId;
 
 exports.createNewService = async (req, res, next) => {
-  // console.log("req.body:", req.body);
+  // logger.info("req.body:", req.body);
 
   const { source, service_objs } = req.body;
 
   if (source === "google-sheet") {
     const addedData = [];
-    console.log("google sheet is running");
+    logger.info("google sheet is running");
     Object.keys(service_objs).map((key) => {
       const serviceData = service_objs[key];
 
@@ -57,7 +58,7 @@ exports.createNewService = async (req, res, next) => {
           })
           pack.amenites = amenities
           pack.photo_url = [pack.photo_url]
-          console.log("package amenities ---", pack.amenites);
+          logger.info("package amenities ---", pack.amenites);
       })
 
 
@@ -65,12 +66,12 @@ exports.createNewService = async (req, res, next) => {
       amenitiesData.split(",").map((amm, index)=>{
           amenities.push({name:amm, id: index+1})
       })
-      // console.log("amenities ---", amenities);
+      // logger.info("amenities ---", amenities);
       const serviceObj = new Service(service_id, fullName, price, amenities, totalPlans, packages,
           servicePhotos, aboutUs, workDetails, discographyDetails, clientPhotos, reviews, featuredReviews,isActive,type);
 
       
-      console.log("serviceObj---", serviceObj);
+      logger.info("serviceObj---", serviceObj);
       serviceObj.checkBeforeSave()
       .then((resultData) => {
         if (resultData.status == false) {
@@ -85,7 +86,7 @@ exports.createNewService = async (req, res, next) => {
           data: resultData["ops"],
         });
       })
-      .catch(err => console.log(err));
+      .catch(err => logger.error(err));
       
         
     });
@@ -109,9 +110,18 @@ exports.createNewService = async (req, res, next) => {
     const reviews = req.body.userReviews;
     const featuredReviews = req.body.starredReviews;
     const type = req.body.type || "c2";
-    const isActive = req.body.isActive || 1;
+    const isActive = [0,1,2].includes(req.body.isActive) ? req.body.isActive:1;
+    let pricing = {};
+    console.log(packages.length);
+    if(packages.length < 1){
+      return res.status(400).json({
+            status: false,
+            message: "Add at least one package for the service."
+        });
+    }
 
-    console.log("else is running",req.body);
+    logger.info("else is running",req.body);
+    logger.info("else is running",type,isActive);
     // const { error } = validateService(req.body);
     // if (error) {
     //   return res.status(400).json({ error: error.details[0].message });
@@ -134,36 +144,43 @@ exports.createNewService = async (req, res, next) => {
       reviews,
       featuredReviews,
       isActive,
-      type
+      type,
+      pricing
     );
-
     // saving in database
     return serviceObj
       .save()
-      .then((resultData) => {
+      .then(async(resultData) => {
         if (resultData.status == false) {
           return res.json({
             status: 400,
             message: resultData.message,
           });
         }
+         await Service.minStartPrice(resultData._id) // this caluculate minimum price and update the pricing field
         return res.json({
           status: true,
           message: "Service added successfully",
           data: resultData["ops"],
         });
       })
-      .catch((err) => console.log(err));
+      .catch((err) =>{ logger.error(err,"Error saving service");
+      return res.status(500).json({
+          status: false,
+          message: err.message
+        })
+    });
   }
 };
 
 exports.getServices = (req, res, next) => {
 
-  // console.log("body---", req.query);
-  // const { serviceName, startingPrice, offerings, TotalServices, avgReview, serviceId } = req.query;
-  const filter = pick(req.query, ['serviceType', 'active', 'serviceName', 'startingPrice','endPrice','planId','TotalServices'])
-  const options = pick(req.query, ['sortBy', 'limit', 'page']);
+  
 
+  // const { serviceName, startingPrice, offerings, TotalServices, avgReview, serviceId } = req.query;
+  const filter = pick(req.query, ['serviceType', 'active', 'serviceName', 'startPrice','endPrice','planId','TotalServices'])
+  const options = pick(req.query, ['sortBy', 'limit', 'page']);
+  console.log("body---", req.query)
   let mappedFilter = {}
 
   const collectionName = homeScreen.category?.[filter.serviceType]?.coll
@@ -177,15 +194,20 @@ exports.getServices = (req, res, next) => {
       // filter._id = o_id
       mappedFilter['packages.planId'] = +filter.planId
   }
+
   if (filter.serviceName) mappedFilter.fullName = filter.serviceName;
-  if (filter.startingPrice) mappedFilter.price = { $gte: parseInt(filter.startingPrice) }
-  if (filter.endPrice) {
-    mappedFilter.price.$lte = parseInt(filter.endPrice);
+  if(filter.startPrice && filter.endPrice){
+    mappedFilter.price = { $gte : +filter.startPrice, $lte: +filter.endPrice}
+  } else if(filter.startPrice){
+    mappedFilter.price = {$gte:+filter.startPrice}
+  } else if(filter.endPrice){
+    mappedFilter.price = {$lte:+filter.endPrice}
   }
+ 
   if (filter.TotalServices) mappedFilter.totalPlans = +filter.TotalServices;
   if (filter.avgReview) mappedFilter.featuredReviews.avgService = parseFloat(filter.avgReview);
 
-  console.log("collectionName----", collectionName, mappedFilter, options);
+  logger.info("collectionName----", collectionName, mappedFilter, options);
 
 
   // const { error } = validateFilterSchema(filter);
@@ -208,7 +230,7 @@ exports.getServices = (req, res, next) => {
 }
 
 exports.getServiceBookings = (req, res, next) => {
-  // console.log("body---", req.query);
+  logger.info("body---", req.query);
 
   const {
     bookingId,
@@ -244,7 +266,7 @@ exports.getServiceBookings = (req, res, next) => {
   if (bookingStartTime) filter.bookingTime.startTime = bookingStartTime;
   if (bookingEndTime) filter.bookingTime.endTime = bookingEndTime;
 
-  console.log("collectionName----", _collectionName, filter, options);
+  logger.info("collectionName----", _collectionName, filter, options);
 
   const { error } = validateServiceFilterSchema(filter);
   if (error) {
@@ -278,9 +300,9 @@ exports.getServiceBookings = (req, res, next) => {
 exports.getServiceBookingsDetails = async (req, res) => {
   let { last_id } = req.query || 0;
 
-  console.log("last_id:", last_id);
+  logger.info("last_id:", last_id);
   last_id = last_id === "0" ? 0 : last_id;
-  console.log("last_id:", typeof last_id);
+  logger.info("last_id:", typeof last_id);
 
   const db = getDB();
   const pipeline = [
@@ -365,7 +387,7 @@ exports.updateService = async (req, res) => {
   const type = req.body.type || "c2";
   const isActive = +req.body.isActive;
   const serviceData = await Service.findServiceById(sId);
-  console.log(sId);
+  logger.info(sId);
   if (!serviceData) {
     return res.status(400).json({
       status: false,
@@ -403,11 +425,44 @@ exports.updateService = async (req, res) => {
   };
 
   let newData = Service.filterEmptyFields(service_obj);
-  // console.log("newData===================", newData);
+  // logger.info("newData===================", newData);
   const updated_result = await Service.updateServiceById(sId, newData);
-  // console.log("updated_result===",updated_result)
+  // logger.info("updated_result===",updated_result)
   res.send(updated_result);
 };
+
+exports.editPackageDetails = async (req, res) => {
+  try {
+    const { service_id, plan_id, package_data } = req.body;
+    const db = getDB();
+    const serviceObjectId = new ObjectId(service_id);
+    const service = await db.collection('services').findOne({ _id: serviceObjectId });
+    if (!service) {
+      return res.send({ status: false, message: "Service not found" });
+    }
+    const updatedPackages = service.packages.map(pkg => {
+      if (pkg.planId === plan_id) {
+        return package_data;
+      } else {
+        return pkg;
+      }
+    });
+
+    await db.collection('services').updateOne(
+      { _id: serviceObjectId },
+      { $set: { packages: updatedPackages } }
+    );
+
+    console.log("Details updated for package in service with id:", service_id);
+    return res.send({ status: true, message: "Package updated" });
+  } catch (error) {
+    console.log("Error updating package details:", error);
+    return res.send({ status: false, message: "Package update failed" });
+  }
+}
+
+
+
 
 exports.exportServicesData = async (req, res) => {
   try {
@@ -429,7 +484,7 @@ exports.exportServicesData = async (req, res) => {
       });
     }
 
-    console.log("this is pipe======>", pipeline);
+    logger.info("this is pipe======>", pipeline);
     if (options.startDate && options.endDate) {
       let startDate = options.startDate;
       let endDate = options.endDate;
@@ -465,7 +520,7 @@ exports.exportServicesData = async (req, res) => {
       };
       pipeline.push(skipStage);
     }
-    console.log(JSON.stringify(pipeline));
+    logger.info(JSON.stringify(pipeline));
     let allService;
       if(filter || options) {
         allService = await Service.fetchAllServicesByAggregate(pipeline);
@@ -511,9 +566,9 @@ exports.exportServicesData = async (req, res) => {
     .then(() => {
       res.header({"Content-disposition" : "attachment; filename=services.xlsx" ,"Content-Type" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}).sendFile("services.xlsx", {root: `C:/Users/Choira Dev 2/Desktop/studio_api/files`}, function (err) {
         if (err) {
-            console.error('Error sending file:', err);
+            logger.error(err,'Error sending file:');
         } else {
-            console.log({
+            logger.info({
               status: "success",
               message: "file successfully downloaded",
               path: `${path}/services.xlsx`

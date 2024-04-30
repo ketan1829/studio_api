@@ -199,8 +199,22 @@ app.get("/studio-owner*", (req, res) => {
 //
 
 app.get('/',(req,res)=>{
-    logger.info('Test API check ---');
-    res.json({message:"Test api"});
+    // console.log('Test API check --->');
+    // logger.error('Congrats new errorrr->');
+    // try {
+    //   devide = (a,b)=>{
+    //     if(b==0){
+    //       throw new Error("Division by zero is not allowed")
+    //     }
+    //     return a/b
+    //   }
+    //   const result = devide(5,0)
+    //   // console.log("consoleresult",result)
+    //   // logger.info("result",result)
+     res.json({message:"Test api-->"});
+    // } catch (error) {
+    //   logger.error(error,"Error  occured during division");
+    // }
 });
 
 

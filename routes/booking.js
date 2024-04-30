@@ -19,29 +19,50 @@ const auth = require("../util/authCheck");
  *       content:
  *         application/json:
  *           schema:
- *             id: string
- *           example : 
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               studioId:
+ *                 type: string
+ *               roomId:
+ *                 type: string
+ *               bookingDate:
+ *                 type: string
+ *                 format: date-time
+ *               bookingTime:
+ *                 type: object
+ *                 properties:
+ *                   startTime:
+ *                     type: string
+ *                   endTime:
+ *                     type: string
+ *               totalPrice:
+ *                 type: number
+ *           example:
  *             userId: "62c7bf9832688b6c4442ee7b"
  *             studioId: "62c4e8805f9d4e0023327640"
  *             roomId: "1"
  *             bookingDate: "2022-07-06T00:00:00.000+00:00"
- *             bookingTime: {"startTime":"16:00","endTime":"17:00"}
- *             totalPrice: "100"
+ *             bookingTime:
+ *               startTime: "16:00"
+ *               endTime: "17:00"
+ *             totalPrice: 100
  *     responses:
  *       200:
  *         description: Booking created successfully
  *         content:
  *           application/json:
- *               example : 
- *                 status : true
- *                 message : "Booking created successfully"
- *                 booking : {}
+ *             example:
+ *               status: true
+ *               message: "Booking created successfully"
+ *               booking: {}
  *       400:
  *         description: Bad Request, check request body
  *       401:
  *         description: Unauthorized, enter valid token
  *       404:
- *         description: Studio or user does not exists
+ *         description: Studio or user does not exist
  *       500:
  *         description: Internal server error
  */
@@ -75,6 +96,7 @@ router.post('/bookings/delete',auth.isAdminOrOwnerOrUser, controller.deleteBooki
  *             bookingDate: "2022-07-06T00:00:00.000+00:00"
  *             bookingTime: {"startTime":"16:00","endTime":"17:00"}
  *             totalPrice: "100"
+ *             serviceType: "c2"
  *     responses:
  *       200:
  *         description: Booking created successfully
@@ -323,7 +345,7 @@ router.get('/bookings',auth.isAdminOrOwnerOrUser, controller.getAllBookings);
 // Get only Services Booking
 router.get('/bookings/services',auth.isAdminOrOwnerOrUser, controller.getServiceBookings);
 // Get Studio/Service Bookings dynamically
-router.get('/bookings-v2',auth.isAdminOrOwnerOrUser, controller.getAllBookingsOptimized);
+router.get('/bookings-all',auth.isAdminOrOwnerOrUser, controller.getAllBookingsOptimized);
 
 /**
 * @swagger

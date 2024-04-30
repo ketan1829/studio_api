@@ -22,6 +22,8 @@ const jwt = require("jsonwebtoken");
 const { send_mail } = require("../util/mail.js");
 const pick = require("../util/pick");
 const { getLogger } = require("nodemailer/lib/shared");
+const { logger } = require("../util/logger");
+const { json } = require("body-parser");
 
 function convertTo24HourFormat(time12h) {
   const [time, modifier] = time12h.split(" ");
@@ -146,13 +148,13 @@ function calculate_time_slot(start_time, end_time, interval = "30") {
 function addMinToTime(timeVal, minToAdd) {
   let timeCount = +timeVal.split(":")[0] * 60 + +timeVal.split(":")[1];
   let newTime = timeCount + +minToAdd;
-  // console.log(newTime);
+  // logger.info(newTime);
   let timeHr = ~~(newTime / 60); // removing decimal part with help of "~~"
   let timeMin = newTime % 60;
   if (timeMin.toString().length == 1) {
     timeMin = "0" + timeMin;
   }
-  // console.log(timeHr.toString()+":"+timeMin.toString());
+  // logger.info(timeHr.toString()+":"+timeMin.toString());
   return timeHr.toString() + ":" + timeMin.toString();
 }
 // addMinToTime("11:00",30)
@@ -246,9 +248,9 @@ function removeNextSlot(availableSlots, bookedSlots) {
   // Remove the next available slot if found
   if (nextAvailableIndex !== -1) {
     availableSlots.splice(nextAvailableIndex, 1);
-    console.log("Next available slot removed successfully.");
+    logger.info("Next available slot removed successfully.");
   } else {
-    console.log("No available slot found to remove.");
+    logger.info("No available slot found to remove.");
   }
 
   return availableSlots;
@@ -333,10 +335,10 @@ exports.createNewBooking2 = async (req, res, next) => {
   // else{
   //     bookingTime.startTime = bookingTime.startTime + ' AM'
   // }
-  // console.log(bookingTime);
+  // logger.info(bookingTime);
   bookingTime.startTime = convertTo24HourFormat(bookingTime.startTime);
   bookingTime.endTime = convertTo24HourFormat(bookingTime.endTime);
-  console.log(bookingTime);
+  logger.info(bookingTime);
 
   let userDeviceId = "";
 
@@ -389,7 +391,7 @@ exports.createNewBooking2 = async (req, res, next) => {
         .save()
         .then((resultData) => {
           let bookingData = resultData["ops"][0];
-          // console.log(bookingData);
+          logger.info(bookingData);
           bookingData.totalPrice = bookingData.totalPrice.toString();
           if (bookingData.totalPrice.split(".")[1] == undefined) {
             bookingData.totalPrice = bookingData.totalPrice + ".0";
@@ -414,7 +416,6 @@ exports.createNewBooking2 = async (req, res, next) => {
             },
           })
             .then(async (result) => {
-              // console.log("Success : ", result.data);
               if (result.data.recipients == 1) {
                 const notification = new Notifications(userId, title, message);
 
@@ -440,7 +441,6 @@ exports.createNewBooking2 = async (req, res, next) => {
                   });
                 });
               } else {
-                // console.log(result.data);
                 return res.json({
                   status: true,
                   message:
@@ -450,7 +450,7 @@ exports.createNewBooking2 = async (req, res, next) => {
               }
             })
             .catch((err) => {
-              console.log(err);
+              logger.error(err);
               return res.json({
                 status: true,
                 message: "Booking created successfully(Notification not sent)",
@@ -458,14 +458,13 @@ exports.createNewBooking2 = async (req, res, next) => {
               });
             });
         })
-        .catch((err) => console.log(err));
     });
   });
 };
 
 exports.createNewBooking = async (req, res, next) => {
   try {
-    console.log("req.body |", req.body);
+    logger.info("req.body |", req.body);
 
     // Validate input
     // const errors = validationResult(req);
@@ -557,7 +556,7 @@ exports.createNewBooking = async (req, res, next) => {
       });
     }
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     return res
       .status(500)
       .json({ status: false, message: "Internal Server Error" });
@@ -592,9 +591,14 @@ exports.createServiceBooking = async (req, res, next) => {
           return res.status(200).json({ status: false, message: "Something went wrong, Try again later" });
       }
 
-      if (ExistingServiceData.length) {
-          // console.log("ExistingServiceData:", ExistingServiceData);
-          return res.status(200).json({ status: false, message: "Requested Package booking has been pre-booked already!" });
+      if (ExistingServiceData.length){
+        logger.info("ExistingServiceData:", ExistingServiceData);
+        console.log({userId:userId,studioId:serviceId,roomId:planId,type:serviceType});
+        console.log("=============================bbbbbser");
+        const res_1 = await Service.updateOneRecord({userId:userId,studioId:serviceId,roomId:+planId,type:serviceType},{bookingStatus:0})
+        console.log("res===");
+        console.log(res_1);
+        return res.status(200).json({ status: false, message: "Requested Package booking has been pre-booked already!" });
       }
 
       const bookingObj = new Booking(userId, serviceId, parseInt(planId), bookingDate, bookingTime, parseFloat(totalPrice), bookingStatus, serviceType);
@@ -618,8 +622,6 @@ exports.createServiceBooking = async (req, res, next) => {
           }
       });
 
-      // console.log("oneSignal result:", result.status);
-
       if (result.status === 1) {
           const notification = new Notifications(userId, title, message);
           await notification.save();
@@ -632,7 +634,7 @@ exports.createServiceBooking = async (req, res, next) => {
           return res.json({ status: true, message: "Booking created successfully (Notification not sent)", booking: bookingData });
       }
   } catch (error) {
-      console.error(error);
+      logger.error(error);
       return res.status(500).json({ status: false, message: "Internal Server Error" });
   }
 };
@@ -660,7 +662,7 @@ exports.getStudioAvailabilities = (req, res, next) => {
   }
   bookingDate = yr + "-" + mth + "-" + dt;
   var bTimeStamp = new Date(bookingDate).getTime();
-  console.log("Booking Date : ", bookingDate);
+  logger.info("Booking Date :--> ", bookingDate);
 
   //get Current Date from timestamp
   let currDate = new Date();
@@ -675,11 +677,11 @@ exports.getStudioAvailabilities = (req, res, next) => {
   }
   currDate = yr + "-" + mth + "-" + dt;
   var cTimeStamp = new Date(currDate).getTime();
-  console.log("Current Date : ", currDate);
+  logger.info("Current Date : ", currDate);
   var currHr = new Date().getHours();
   var currMin = new Date().getMinutes();
   var currTime = currHr * 60 + currMin;
-  console.log("Current Time : " + currTime);
+  logger.info("Current Time : " + currTime);
 
   Studio.findStudioById(studioId).then((studioData) => {
     if (!studioData) {
@@ -702,12 +704,12 @@ exports.getStudioAvailabilities = (req, res, next) => {
     let roomTotalAvailability =
       studioData.roomsDetails[roomIndex].availabilities;
     // roomTotalAvailability = [{startTime:"09:00",endTime:"13:00"},{startTime:"15:00",endTime:"19:00"}];
-    console.log("Rooms Hours : ", roomTotalAvailability);
+    logger.info("Rooms Hours : ", roomTotalAvailability);
 
     //Getting all slots first
     let allSlots = [];
     roomTotalAvailability.forEach((singleAvail) => {
-      // console.log(singleAvail);
+      // logger.info(singleAvail);
       var startTime = singleAvail.startTime;
       var endTime = singleAvail.endTime;
 
@@ -723,14 +725,14 @@ exports.getStudioAvailabilities = (req, res, next) => {
       }
       //removing last extra element of "allSlots"
       timeslots.splice(timeslots.length - 1, 1);
-      // console.log(timeslots);
+      // logger.info(timeslots);
       allSlots = allSlots.concat(timeslots);
     });
-    console.log("All Slots : ", allSlots);
+    // logger.info("All Slots : ", allSlots);
 
     Booking.fetchBookingsByStudioIdAndBookingDate(studioId, bookingDate).then(
       (bookingsData) => {
-        // console.log(bookingsData);
+        // logger.info(bookingsData);
 
         let availSlotsNew = allSlots;
         //Filtering to remove past slots for current date
@@ -739,7 +741,7 @@ exports.getStudioAvailabilities = (req, res, next) => {
             var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
             var sMin =
               +i.startTime.split(":")[0] * 60 + +i.startTime.split(":")[1];
-            console.log(sMin, eMin, currTime);
+            logger.info(sMin, eMin, currTime);
             if (eMin < currTime || sMin < currTime) {
               return false;
             } else {
@@ -773,7 +775,7 @@ exports.getStudioAvailabilities = (req, res, next) => {
         // allSlots.forEach(singleSlot=>{
         //     let startMin = (+singleSlot.startTime.split(':')[0] * 60) + (+singleSlot.startTime.split(':')[1]);
         //     let endMin = (+singleSlot.endTime.split(':')[0] * 60) + (+singleSlot.endTime.split(':')[1]);
-        //     // console.log(startMin,endMin);
+        //     // logger.info(startMin,endMin);
         bookedSlots.forEach((singleBookedSlot) => {
           let startMinBooked =
             +singleBookedSlot.startTime.split(":")[0] * 60 +
@@ -790,7 +792,7 @@ exports.getStudioAvailabilities = (req, res, next) => {
               +singleRoomAvail.endTime.split(":")[0] * 60 +
               +singleRoomAvail.endTime.split(":")[1];
             if (startMinBooked >= startMinRoom && endMinBooked <= endMinRoom) {
-              // console.log("Single Room Avail : ",singleRoomAvail);
+              // logger.info("Single Room Avail : ",singleRoomAvail);
               //remove this booked slot from total room slot
               let splitSlot1 = {
                 startTime: singleRoomAvail.startTime,
@@ -800,7 +802,7 @@ exports.getStudioAvailabilities = (req, res, next) => {
                 startTime: singleBookedSlot.endTime,
                 endTime: singleRoomAvail.endTime,
               };
-              console.log("Split Slot : ", splitSlot1, splitSlot2);
+              logger.info("Split Slot : ", splitSlot1, splitSlot2);
               roomTotalAvailability.push(splitSlot1);
               roomTotalAvailability.push(splitSlot2);
 
@@ -817,7 +819,7 @@ exports.getStudioAvailabilities = (req, res, next) => {
           });
         });
         // });
-        console.log("Availability Sets : ", roomTotalAvailability);
+        logger.info("Availability Sets : ", roomTotalAvailability);
         //add 30 min interval before starting next slot
         for (let i = 1; i < roomTotalAvailability.length; i++) {
           const index = bookedSlots.findIndex((s) =>
@@ -832,11 +834,11 @@ exports.getStudioAvailabilities = (req, res, next) => {
             );
           }
         }
-        console.log("Availability Sets : ", roomTotalAvailability);
+        logger.info("Availability Sets : ", roomTotalAvailability);
         let allAvailSlots = [];
         //Now split these based on SLOT timing
         roomTotalAvailability.forEach((singleAvail) => {
-          // console.log(singleAvail);
+          // logger.info(singleAvail);
           var startTime = singleAvail.startTime;
           var endTime = singleAvail.endTime;
 
@@ -855,11 +857,11 @@ exports.getStudioAvailabilities = (req, res, next) => {
           }
           //removing last extra element of "allSlots"
           timeslots.splice(timeslots.length - 1, 1);
-          // console.log(timeslots);
+          // logger.info(timeslots);
           allAvailSlots = allAvailSlots.concat(timeslots);
         });
         //Filtering to remove past slots for current date
-        if (cTimeStamp == bTimeStamp) {
+        if (cTimeStamp <= bTimeStamp) {
           allAvailSlots = allAvailSlots.filter((i) => {
             var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
             var sMin =
@@ -891,7 +893,7 @@ exports.getStudioAvailabilities = (req, res, next) => {
 };
 
 exports.getStudioAvailabilitiesLate = (req, res, next) => {
-  console.log("req.body | ", req.body);
+  logger.info("req.body | ", req.body);
 
   const studioId = req.body.studioId;
   const roomId = req.body.roomId;
@@ -915,7 +917,7 @@ exports.getStudioAvailabilitiesLate = (req, res, next) => {
   }
   bookingDate = yr + "-" + mth + "-" + dt;
   var bTimeStamp = new Date(bookingDate).getTime();
-  console.log("Booking Date : ", bookingDate);
+  logger.info("Booking Date : ", bookingDate);
 
   //get Current Date from timestamp
   let currDate = new Date();
@@ -930,11 +932,11 @@ exports.getStudioAvailabilitiesLate = (req, res, next) => {
   }
   currDate = yr + "-" + mth + "-" + dt;
   var cTimeStamp = new Date(currDate).getTime();
-  console.log("Current Date : ", currDate);
+  logger.info("Current Date : ", currDate);
   var currHr = new Date().getHours();
   var currMin = new Date().getMinutes();
   var currTime = currHr * 60 + currMin;
-  console.log("Current Time : " + currTime);
+  logger.info("Current Time : " + currTime);
 
   Studio.findStudioById(studioId).then((studioData) => {
     if (!studioData) {
@@ -957,12 +959,12 @@ exports.getStudioAvailabilitiesLate = (req, res, next) => {
     let roomTotalAvailability =
       studioData.roomsDetails[roomIndex].availabilities;
     // roomTotalAvailability = [{startTime:"09:00",endTime:"13:00"},{startTime:"15:00",endTime:"19:00"}];
-    console.log("Rooms Hours : ", roomTotalAvailability);
+    logger.info("Rooms Hours : ", roomTotalAvailability);
 
     //Getting all slots first
     let allSlots = [];
     roomTotalAvailability.forEach((singleAvail) => {
-      console.log("singleAvail:::", singleAvail);
+      logger.info("singleAvail:::", singleAvail);
       var startTime = singleAvail.startTime;
       var endTime = singleAvail.endTime;
 
@@ -972,7 +974,7 @@ exports.getStudioAvailabilitiesLate = (req, res, next) => {
 
       var timeslots = calculate_time_slot(start_time, end_time, interval);
 
-      console.log("|||timeslots --", timeslots);
+      logger.info("|||timeslots --", timeslots);
 
       //Creating range for slots
       for (let s = 0; s < timeslots.length - 1; s++) {
@@ -980,18 +982,18 @@ exports.getStudioAvailabilitiesLate = (req, res, next) => {
       }
       //removing last extra element of "allSlots"
       timeslots.splice(timeslots.length - 1, 1);
-      // console.log(timeslots);
+      // logger.info(timeslots);
       allSlots = allSlots.concat(timeslots);
     });
-    console.log("\n\n----All Slots : ", allSlots);
+    logger.info("\n\n----All Slots : ", allSlots);
 
     Booking.fetchBookingsByStudioIdAndBookingDate(studioId, bookingDate).then(
       (bookingsData) => {
-        // console.log(bookingsData);
+        // logger.info(bookingsData);
 
         let availSlotsNew = allSlots;
         //Filtering to remove past slots for current date
-        console.log(
+        logger.info(
           "\nRemove Filtered Past slots---",
           cTimeStamp == bTimeStamp
         );
@@ -1000,7 +1002,7 @@ exports.getStudioAvailabilitiesLate = (req, res, next) => {
             var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
             var sMin =
               +i.startTime.split(":")[0] * 60 + +i.startTime.split(":")[1];
-            console.log("-------", sMin, eMin, currTime);
+            logger.info("-------", sMin, eMin, currTime);
             if (eMin < currTime || sMin < currTime) {
               return false;
             } else {
@@ -1015,7 +1017,7 @@ exports.getStudioAvailabilitiesLate = (req, res, next) => {
             singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
             singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
           });
-          console.log("allSlots", allSlots, "availableSlots", availSlotsNew);
+          logger.info("allSlots", allSlots, "availableSlots", availSlotsNew);
           return res.json({
             status: true,
             message: "Availability returned",
@@ -1027,7 +1029,7 @@ exports.getStudioAvailabilitiesLate = (req, res, next) => {
 
         let bookedSlots = [];
         bookingsData.forEach((singleBooking) => {
-          console.log("singleBooking.bookingTime:::", singleBooking);
+          logger.info("singleBooking.bookingTime:::", singleBooking);
           bookedSlots.push(singleBooking.bookingTime);
         });
 
@@ -1036,7 +1038,7 @@ exports.getStudioAvailabilitiesLate = (req, res, next) => {
         // allSlots.forEach(singleSlot=>{
         //     let startMin = (+singleSlot.startTime.split(':')[0] * 60) + (+singleSlot.startTime.split(':')[1]);
         //     let endMin = (+singleSlot.endTime.split(':')[0] * 60) + (+singleSlot.endTime.split(':')[1]);
-        //     // console.log(startMin,endMin);
+        //     // logger.info(startMin,endMin);
         bookedSlots.forEach((singleBookedSlot) => {
           let startMinBooked =
             +singleBookedSlot.startTime.split(":")[0] * 60 +
@@ -1044,7 +1046,7 @@ exports.getStudioAvailabilitiesLate = (req, res, next) => {
           let endMinBooked =
             +singleBookedSlot.endTime.split(":")[0] * 60 +
             +singleBookedSlot.endTime.split(":")[1];
-          console.log(
+          logger.info(
             "\n\nstartMinBooked:",
             startMinBooked,
             "endMinBooked:",
@@ -1055,14 +1057,14 @@ exports.getStudioAvailabilitiesLate = (req, res, next) => {
           );
 
           roomTotalAvailability.forEach((singleRoomAvail) => {
-            console.log("roomTotalAvailability:", roomTotalAvailability);
+            logger.info("roomTotalAvailability:", roomTotalAvailability);
             let startMinRoom =
               +singleRoomAvail.startTime.split(":")[0] * 60 +
               +singleRoomAvail.startTime.split(":")[1];
             let endMinRoom =
               +singleRoomAvail.endTime.split(":")[0] * 60 +
               +singleRoomAvail.endTime.split(":")[1];
-            console.log(
+            logger.info(
               "\n-----------------------------------\nstartMinRoom",
               startMinRoom,
               "endMinRoom",
@@ -1071,13 +1073,13 @@ exports.getStudioAvailabilitiesLate = (req, res, next) => {
               singleRoomAvail,
               "\n-----------------------------------"
             );
-            console.log(
+            logger.info(
               "CHECK:::",
               startMinBooked >= startMinRoom && endMinBooked <= endMinRoom
             );
             // check if the Slots Booked from available slots
             if (startMinBooked >= startMinRoom && endMinBooked <= endMinRoom) {
-              // console.log("Single Room Avail : ",singleRoomAvail);
+              // logger.info("Single Room Avail : ",singleRoomAvail);
               //remove this booked slot from total room slot
 
               const newSingleBookedSlotEnd = addMinToTime(
@@ -1095,7 +1097,7 @@ exports.getStudioAvailabilitiesLate = (req, res, next) => {
                 startTime: newSingleBookedSlotEnd,
                 endTime: singleRoomAvail.endTime,
               };
-              console.log(
+              logger.info(
                 "\nnewSingleBookedSlotEnd",
                 newSingleBookedSlotEnd,
                 "\nSplit Slot : ",
@@ -1121,7 +1123,7 @@ exports.getStudioAvailabilitiesLate = (req, res, next) => {
         // });
         // const updatedAvailabilitySets = removeBookedSlots(roomTotalAvailability, bookedSlots);
         // roomTotalAvailability = updatedAvailabilitySets
-        console.log("Availability Sets : ", roomTotalAvailability);
+        logger.info("Availability Sets : ", roomTotalAvailability);
         //add 30 min interval before starting next slot
         // for(let i=1;i<roomTotalAvailability.length;i++)
         // {
@@ -1158,7 +1160,7 @@ exports.getStudioAvailabilitiesLate = (req, res, next) => {
             );
 
             // Print the adjusted end time
-            console.log(
+            logger.info(
               `Adjusted End Time for Slot ${index + 1}: ${adjustedEndTime}`
             );
 
@@ -1171,11 +1173,11 @@ exports.getStudioAvailabilitiesLate = (req, res, next) => {
             );
 
             // Print the match index
-            console.log(`Match Index for Slot ${index + 1}: ${matchIndex}`);
+            logger.info(`Match Index for Slot ${index + 1}: ${matchIndex}`);
             // return index
           });
 
-          console.log("bookedSlots Index:", index);
+          logger.info("bookedSlots Index:", index);
           if (index !== -1) {
             const bufferStart = addMinToTime(
               bookedSlots[index].endTime,
@@ -1188,7 +1190,7 @@ exports.getStudioAvailabilitiesLate = (req, res, next) => {
 
             if (bufferStart < bufferEnd) {
               // Only adjust if the bufferStart is before bufferEnd
-              console.log(
+              logger.info(
                 "bufferStart",
                 bufferStart,
                 "bufferEnd",
@@ -1196,11 +1198,11 @@ exports.getStudioAvailabilitiesLate = (req, res, next) => {
                 "push:",
                 addMinToTime(bookedSlots[index].endTime, interval)
               );
-              // console.log("pushed", ({ startTime: bufferStart, endTime: bufferEnd }));
+              // logger.info("pushed", ({ startTime: bufferStart, endTime: bufferEnd }));
               // roomTotalAvailability.push({ startTime: bufferStart, endTime: bufferEnd }); // pushed { startTime: '14:30', endTime: '15:30' }
-              // console.log("pop",bookedSlots[index]); // pop { startTime: '13:00', endTime: '14:00' }
+              // logger.info("pop",bookedSlots[index]); // pop { startTime: '13:00', endTime: '14:00' }
               // roomTotalAvailability.pop(bookedSlots[index]);
-              // console.log("splice",{ startTime: bufferStart, endTime: bufferEnd }, "IND:0,",i);
+              // logger.info("splice",{ startTime: bufferStart, endTime: bufferEnd }, "IND:0,",i);
               // roomTotalAvailability.splice(i, 0, { startTime: bufferStart, endTime: bufferEnd }); // splice { startTime: '14:30', endTime: '15:30' } IND:0, 1
               roomTotalAvailability.push({
                 startTime: bufferStart,
@@ -1212,11 +1214,11 @@ exports.getStudioAvailabilitiesLate = (req, res, next) => {
           }
         }
 
-        console.log("Availability Sets : ", roomTotalAvailability);
+        logger.info("Availability Sets : ", roomTotalAvailability);
         let allAvailSlots = [];
         //Now split these based on SLOT timing
         roomTotalAvailability.forEach((singleAvail) => {
-          // console.log(singleAvail);
+          // logger.info(singleAvail);
           var startTime = singleAvail.startTime;
           var endTime = singleAvail.endTime;
 
@@ -1226,7 +1228,7 @@ exports.getStudioAvailabilitiesLate = (req, res, next) => {
 
           var timeslots = calculate_time_slot(start_time, end_time, interval);
 
-          console.log("Timeslots:", timeslots);
+          logger.info("Timeslots:", timeslots);
           //Creating range for slots
           for (let s = 0; s < timeslots.length - 1; s++) {
             timeslots[s] = {
@@ -1236,7 +1238,7 @@ exports.getStudioAvailabilitiesLate = (req, res, next) => {
           }
           //removing last extra element of "allSlots"
           timeslots.splice(timeslots.length - 1, 1);
-          // console.log(timeslots);
+          // logger.info(timeslots);
           allAvailSlots = allAvailSlots.concat(timeslots);
         });
         //Filtering to remove past slots for current date
@@ -1259,7 +1261,7 @@ exports.getStudioAvailabilitiesLate = (req, res, next) => {
           singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
           singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
         });
-        console.log(
+        logger.info(
           "availableSlots",
           allAvailSlots,
           "bookedSlots",
@@ -1296,7 +1298,7 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
   }
   bookingDate = yr + "-" + mth + "-" + dt;
   var bTimeStamp = new Date(bookingDate).getTime();
-  console.log("Booking Date : ", bookingDate);
+  logger.info("Booking Date : ", bookingDate);
 
   //get Current Date from timestamp
   let currDate = new Date();
@@ -1311,11 +1313,11 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
   }
   currDate = yr + "-" + mth + "-" + dt;
   var cTimeStamp = new Date(currDate).getTime();
-  console.log("Current Date : ", currDate);
+  logger.info("Current Date : ", currDate);
   var currHr = new Date().getHours();
   var currMin = new Date().getMinutes();
   var currTime = currHr * 60 + currMin;
-  console.log("Current Time : " + currTime);
+  logger.info("Current Time : " + currTime);
 
   Studio.findStudioById(studioId).then((studioData) => {
     if (!studioData) {
@@ -1338,12 +1340,12 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
     let roomTotalAvailability =
       studioData.roomsDetails[roomIndex].availabilities;
     // roomTotalAvailability = [{startTime:"09:00",endTime:"13:00"},{startTime:"15:00",endTime:"19:00"}];
-    console.log("Rooms Hours : ", roomTotalAvailability);
+    logger.info("Rooms Hours : ", roomTotalAvailability);
 
     //Getting all slots first
     let allSlots = [];
     roomTotalAvailability.forEach((singleAvail) => {
-      // console.log(singleAvail);
+      // logger.info(singleAvail);
       var startTime = singleAvail.startTime;
       var endTime = singleAvail.endTime;
 
@@ -1359,14 +1361,14 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
       }
       //removing last extra element of "allSlots"
       timeslots.splice(timeslots.length - 1, 1);
-      // console.log(timeslots);
+      // logger.info(timeslots);
       allSlots = allSlots.concat(timeslots);
     });
-    // console.log("All Slots : ", allSlots);
+    // logger.info("All Slots : ", allSlots);
 
     Booking.fetchBookingsByStudioIdAndBookingDate(studioId, bookingDate).then(
       (bookingsData) => {
-        // console.log(bookingsData);
+        // logger.info(bookingsData);
 
         let availSlotsNew = allSlots;
         //Filtering to remove past slots for current date
@@ -1375,7 +1377,7 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
             var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
             var sMin =
               +i.startTime.split(":")[0] * 60 + +i.startTime.split(":")[1];
-            console.log(sMin, eMin, currTime);
+            logger.info(sMin, eMin, currTime);
             if (eMin < currTime || sMin < currTime) {
               return false;
             } else {
@@ -1408,7 +1410,7 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
         // allSlots.forEach(singleSlot=>{
         //     let startMin = (+singleSlot.startTime.split(':')[0] * 60) + (+singleSlot.startTime.split(':')[1]);
         //     let endMin = (+singleSlot.endTime.split(':')[0] * 60) + (+singleSlot.endTime.split(':')[1]);
-        //     // console.log(startMin,endMin);
+        //     // logger.info(startMin,endMin);
         bookedSlots.forEach((singleBookedSlot) => {
           let startMinBooked =
             +singleBookedSlot.startTime.split(":")[0] * 60 +
@@ -1425,7 +1427,7 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
               +singleRoomAvail.endTime.split(":")[0] * 60 +
               +singleRoomAvail.endTime.split(":")[1];
             if (startMinBooked >= startMinRoom && endMinBooked <= endMinRoom) {
-              // console.log("Single Room Avail : ",singleRoomAvail);
+              // logger.info("Single Room Avail : ",singleRoomAvail);
               //remove this booked slot from total room slot
               let splitSlot1 = {
                 startTime: singleRoomAvail.startTime,
@@ -1435,7 +1437,7 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
                 startTime: singleBookedSlot.endTime,
                 endTime: singleRoomAvail.endTime,
               };
-              console.log("Split Slot : ", splitSlot1, splitSlot2);
+              logger.info("Split Slot : ", splitSlot1, splitSlot2);
               roomTotalAvailability.push(splitSlot1);
               roomTotalAvailability.push(splitSlot2);
 
@@ -1448,7 +1450,7 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
               if (availIndex1 != -1) {
                 roomTotalAvailability.splice(availIndex1, 1);
               }
-              // console.log(roomTotalAvailability);
+              // logger.info(roomTotalAvailability);
 
               // //For Split SLOT 1
               // var startTime1 = splitSlot1.startTime;
@@ -1469,7 +1471,7 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
               // timeslots1.splice((timeslots1.length-1),1);
               // // timeslots1.forEach(singleTimeSlot=>{
               // //     const index2 = availableSlots.findIndex(q=>q.startTime.split(':')[0].startsWith(singleTimeSlot.startTime.split(':')[0]));
-              // //     // console.log("Index : ",index2);
+              // //     // logger.info("Index : ",index2);
               // //     if(index2==-1)
               // //     {
               // //         availableSlots.push(singleTimeSlot);
@@ -1496,7 +1498,7 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
               // timeslots2.splice((timeslots2.length-1),1);
               // // timeslots2.forEach(singleTimeSlot=>{
               // //     const index2 = availableSlots.findIndex(q=>q.startTime.split(':')[0].startsWith(singleTimeSlot.startTime.split(':')[0]));
-              // //     // console.log("Index : ",index2);
+              // //     // logger.info("Index : ",index2);
               // //     if(index2==-1)
               // //     {
               // //         availableSlots.push(singleTimeSlot);
@@ -1505,7 +1507,7 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
               // availableSlots = availableSlots.concat(timeslots2);
             }
             // else{
-            //     // console.log("Other Slot: ",singleRoomAvail);
+            //     // logger.info("Other Slot: ",singleRoomAvail);
             //     var startTimeOther = singleRoomAvail.startTime;
             //     var endTimeOther = singleRoomAvail.endTime;
 
@@ -1527,7 +1529,7 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
           });
         });
         // });
-        console.log("Availability Sets : ", roomTotalAvailability);
+        logger.info("Availability Sets : ", roomTotalAvailability);
         //add 30 min interval before starting next slot
         for (let i = 1; i < roomTotalAvailability.length; i++) {
           const index = bookedSlots.findIndex((s) =>
@@ -1542,11 +1544,11 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
             );
           }
         }
-        console.log("Availability Sets : ", roomTotalAvailability);
+        logger.info("Availability Sets : ", roomTotalAvailability);
         let allAvailSlots = [];
         //Now split these based on SLOT timing
         roomTotalAvailability.forEach((singleAvail) => {
-          // console.log(singleAvail);
+          // logger.info(singleAvail);
           var startTime = singleAvail.startTime;
           var endTime = singleAvail.endTime;
 
@@ -1565,7 +1567,7 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
           }
           //removing last extra element of "allSlots"
           timeslots.splice(timeslots.length - 1, 1);
-          // console.log(timeslots);
+          // logger.info(timeslots);
           allAvailSlots = allAvailSlots.concat(timeslots);
         });
         //Filtering to remove past slots for current date
@@ -1601,7 +1603,7 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
 };
 
 exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
-  console.log("req.body | ", req.body);
+  logger.info("req.body | ", req.body);
 
   const studioId = req.body.studioId;
   const roomId = req.body.roomId;
@@ -1621,7 +1623,7 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
   }
   bookingDate = yr + "-" + mth + "-" + dt;
   var bTimeStamp = new Date(bookingDate).getTime();
-  console.log("Booking Date : ", bookingDate);
+  logger.info("Booking Date : ", bookingDate);
 
   //get Current Date from timestamp
   let currDate = new Date();
@@ -1636,11 +1638,11 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
   }
   currDate = yr + "-" + mth + "-" + dt;
   var cTimeStamp = new Date(currDate).getTime();
-  console.log("Current Date : ", currDate);
+  logger.info("Current Date : ", currDate);
   var currHr = new Date().getHours();
   var currMin = new Date().getMinutes();
   var currTime = currHr * 60 + currMin;
-  console.log("Current Time : " + currTime);
+  logger.info("Current Time : " + currTime);
 
   Studio.findStudioById(studioId).then((studioData) => {
     if (!studioData) {
@@ -1663,12 +1665,12 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
     let roomTotalAvailability =
       studioData.roomsDetails[roomIndex].availabilities;
     // roomTotalAvailability = [{startTime:"09:00",endTime:"13:00"},{startTime:"15:00",endTime:"19:00"}];
-    console.log("Rooms Hours : ", roomTotalAvailability);
+    logger.info("Rooms Hours : ", roomTotalAvailability);
 
     //Getting all slots first
     let allSlots = [];
     roomTotalAvailability.forEach((singleAvail) => {
-      console.log("singleAvail:::", singleAvail);
+      logger.info("singleAvail:::", singleAvail);
       var startTime = singleAvail.startTime;
       var endTime = singleAvail.endTime;
 
@@ -1678,7 +1680,7 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
 
       var timeslots = calculate_time_slot(start_time, end_time, interval);
 
-      console.log("|||timeslots --", timeslots);
+      logger.info("|||timeslots --", timeslots);
 
       //Creating range for slots
       for (let s = 0; s < timeslots.length - 1; s++) {
@@ -1686,14 +1688,14 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
       }
       //removing last extra element of "allSlots"
       timeslots.splice(timeslots.length - 1, 1);
-      // console.log(timeslots);
+      // logger.info(timeslots);
       allSlots = allSlots.concat(timeslots);
     });
-    // console.log("All Slots : ", allSlots);
+    // logger.info("All Slots : ", allSlots);
 
     Booking.fetchBookingsByStudioIdAndBookingDate(studioId, bookingDate).then(
       (bookingsData) => {
-        // console.log(bookingsData);
+        // logger.info(bookingsData);
 
         let availSlotsNew = allSlots;
         //Filtering to remove past slots for current date
@@ -1702,7 +1704,7 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
             var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
             var sMin =
               +i.startTime.split(":")[0] * 60 + +i.startTime.split(":")[1];
-            console.log("-------", sMin, eMin, currTime);
+            logger.info("-------", sMin, eMin, currTime);
             if (eMin < currTime || sMin < currTime) {
               return false;
             } else {
@@ -1717,7 +1719,7 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
             singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
             singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
           });
-          console.log("allSlots", allSlots, "availableSlots", availSlotsNew);
+          logger.info("allSlots", allSlots, "availableSlots", availSlotsNew);
           return res.json({
             status: true,
             message: "Availability returned",
@@ -1728,7 +1730,7 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
         }
         let bookedSlots = [];
         bookingsData.forEach((singleBooking) => {
-          console.log("singleBooking.bookingTime:::", singleBooking);
+          logger.info("singleBooking.bookingTime:::", singleBooking);
           bookedSlots.push(singleBooking.bookingTime);
         });
 
@@ -1737,7 +1739,7 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
         // allSlots.forEach(singleSlot=>{
         //     let startMin = (+singleSlot.startTime.split(':')[0] * 60) + (+singleSlot.startTime.split(':')[1]);
         //     let endMin = (+singleSlot.endTime.split(':')[0] * 60) + (+singleSlot.endTime.split(':')[1]);
-        //     // console.log(startMin,endMin);
+        //     // logger.info(startMin,endMin);
         // Loop through bookedSlots to add buffer and split slots
         bookedSlots.forEach((singleBookedSlot) => {
           // Add an extra slot
@@ -1754,7 +1756,7 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
           let endMinBooked =
             +singleBookedSlot.endTime.split(":")[0] * 60 +
             +singleBookedSlot.endTime.split(":")[1];
-          console.log(
+          logger.info(
             "startMinBooked:",
             startMinBooked,
             "endMinBooked",
@@ -1779,7 +1781,7 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
                 startTime: singleBookedSlot.endTime,
                 endTime: singleRoomAvail.endTime,
               };
-              console.log("Split Slot : ", splitSlot1, splitSlot2);
+              logger.info("Split Slot : ", splitSlot1, splitSlot2);
               roomTotalAvailability.push(splitSlot1);
               roomTotalAvailability.push(splitSlot2);
 
@@ -1797,7 +1799,7 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
         });
 
         // });
-        console.log("Availability Sets : ", roomTotalAvailability);
+        logger.info("Availability Sets : ", roomTotalAvailability);
         // Loop through roomTotalAvailability to add 30 min buffer before starting next slot
         for (let i = 1; i < roomTotalAvailability.length; i++) {
           const index = bookedSlots.findIndex((s) =>
@@ -1812,10 +1814,10 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
             );
           }
         }
-        console.log("Availability Sets : ", roomTotalAvailability);
+        logger.info("Availability Sets : ", roomTotalAvailability);
         let allAvailSlots = [];
         roomTotalAvailability.forEach((singleAvail) => {
-          // console.log(singleAvail);
+          // logger.info(singleAvail);
           var startTime = singleAvail.startTime;
           var endTime = singleAvail.endTime;
 
@@ -1825,7 +1827,7 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
 
           var timeslots = calculate_time_slot(start_time, end_time, interval);
 
-          console.log("Timeslots:", timeslots);
+          logger.info("Timeslots:", timeslots);
           // Creating range for slots
           for (let s = 0; s < timeslots.length - 1; s++) {
             timeslots[s] = {
@@ -1835,7 +1837,7 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
           }
           // Removing the last extra element of "allSlots"
           timeslots.splice(timeslots.length - 1, 1);
-          // console.log(timeslots);
+          // logger.info(timeslots);
           allAvailSlots = allAvailSlots.concat(timeslots);
         });
 
@@ -1861,7 +1863,7 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
           singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
         });
 
-        console.log(
+        logger.info(
           "allSlots",
           allSlots,
           "availableSlots",
@@ -1896,10 +1898,10 @@ function getCompletedBookings(allBookings, _callback) {
   }
   var fullDate = currDate.getFullYear() + "-" + mth + "-" + dt;
   fullDate = new Date(fullDate).getTime();
-  // console.log(fullDate);
+  // logger.info(fullDate);
 
   var currTotalMin = currDate.getHours() * 60 + currDate.getMinutes();
-  console.log(currTotalMin);
+  logger.info(currTotalMin);
 
   if (allBookings.length == 0) {
     return _callback([], []);
@@ -1918,11 +1920,11 @@ function getCompletedBookings(allBookings, _callback) {
       if (bDate < fullDate) {
         completedBookings.push(singleBooking);
       } else if (bDate == fullDate) {
-        console.log("Same");
+        logger.info("Same");
         var bTotalMin =
           +singleBooking.bookingTime.endTime.split(":")[0] * 60 +
           +singleBooking.bookingTime.endTime.split(":")[1];
-        console.log(bTotalMin);
+        logger.info(bTotalMin);
         if (bTotalMin < currTotalMin) {
           completedBookings.push(singleBooking);
         } else {
@@ -1933,7 +1935,7 @@ function getCompletedBookings(allBookings, _callback) {
       }
 
       if (count == allBookings.length) {
-        console.log(activeBookings.length, completedBookings.length);
+        logger.info(activeBookings.length, completedBookings.length);
         return _callback(activeBookings, completedBookings);
       }
     });
@@ -1951,7 +1953,7 @@ function checkBookingRating(completedBookings, _callback) {
         singleBooking._id.toString(),
         singleBooking.userId
       );
-      // console.log("Rating Data : "+ratingData);
+      // logger.info("Rating Data : "+ratingData);
       if (ratingData != null) {
         singleBooking.isRated = 1;
       }
@@ -2007,7 +2009,7 @@ exports.getBookingsOfParticularUser = (req, res, next) => {
                     new Date(a.bookingDate).toString() ==
                     new Date(b.bookingDate).toString()
                   ) {
-                    console.log("Same startTime");
+                    logger.info("Same startTime");
                     let startTime =
                       +a.bookingTime.startTime.split(":")[0] * 60 +
                       +a.bookingTime.startTime.split(":")[1];
@@ -2097,7 +2099,7 @@ exports.cancelParticularBooking = (req, res, next) => {
             },
           })
             .then(async (result) => {
-              console.log("Success : ", result.data);
+              logger.info("Success : ", result.data);
               if (result.data.recipients == 1) {
                 const notification = new Notifications(
                   userData._id.toString(),
@@ -2125,7 +2127,7 @@ exports.cancelParticularBooking = (req, res, next) => {
                   });
                 });
               } else {
-                console.log(result.data);
+                logger.info(result.data);
                 return res.json({
                   status: true,
                   message:
@@ -2135,7 +2137,7 @@ exports.cancelParticularBooking = (req, res, next) => {
               }
             })
             .catch((err) => {
-              console.log(err);
+              logger.error(err);
               return res.json({
                 status: true,
                 message:
@@ -2409,12 +2411,12 @@ exports.getAllBookings3 = async (req, res, next) => {
     let limitValue = parseInt(req.query.limit) || 10;
     let bookingTypeValue = parseInt(req.query.bookingType); // || -1;
     let bookingCategory = req.query.category;
-    // console.log("Parsed bookingType value:", bookingTypeValue);
+    // logger.info("Parsed bookingType value:", bookingTypeValue);
 
     const filters = buildFilters(req.query);
     const sort = buildSort(req.query);
 
-    console.log("oprions----", filters, sort);
+    logger.info("oprions----", filters, sort);
 
     let bookingsData;
 
@@ -2442,10 +2444,10 @@ exports.getAllBookings3 = async (req, res, next) => {
       return res.json({ status: true, message: "No bookings found", data: [] });
     }
 
-    console.log("bookingsData---", bookingsData);
+    logger.info("bookingsData---", bookingsData);
 
     const totalBookings = await Booking.fetchAllBookingsCount(bookingTypeValue);
-    // console.log("totalBookings------", totalBookings);
+    // logger.info("totalBookings------", totalBookings);
     const totalPages = Math.ceil((totalBookings + limitValue - 1) / limitValue);
 
     const mappedBookings = await Promise.all(
@@ -2458,7 +2460,7 @@ exports.getAllBookings3 = async (req, res, next) => {
               SubAdmin.findSubAdminById(booking.userId) ||
               Owner.findOwnerByOwnerId(booking.userId),
           ]);
-          console.log("studioInfo-------", studioInfo);
+          logger.info("studioInfo-------", studioInfo);
           booking.studioName = studioInfo?.fullName || "";
           booking.userName = userData
             ? userData.fullName || `${userData.firstName} ${userData.lastName}`
@@ -2474,13 +2476,13 @@ exports.getAllBookings3 = async (req, res, next) => {
 
           return booking;
         } catch (error) {
-          console.error("Error while processing booking:", error);
+          logger.error(error,"Error while processing booking:",);
           throw error; // Rethrow the error to be caught by the outer try-catch
         }
       })
     );
 
-    // console.log("mappedBookings---", mappedBookings[0]);
+    // logger.info("mappedBookings---", mappedBookings[0]);
 
     const groupedBookings = {
       activeBookings: [],
@@ -2498,8 +2500,8 @@ exports.getAllBookings3 = async (req, res, next) => {
       }
     });
 
-    // console.log("Mapped bookings:", mappedBookings[0]);
-    // console.log("Grouped bookings:", groupedBookings);
+    // logger.info("Mapped bookings:", mappedBookings[0]);
+    // logger.info("Grouped bookings:", groupedBookings);
 
     return res.json({
       status: true,
@@ -2513,7 +2515,7 @@ exports.getAllBookings3 = async (req, res, next) => {
       },
     });
   } catch (error) {
-    console.error("Internal server error:", error);
+    logger.error(error,"Internal server error:");
     return res
       .status(500)
       .json({ status: false, message: "Internal server error" });
@@ -2523,16 +2525,16 @@ exports.getAllBookings3 = async (req, res, next) => {
 // only Studio Bookings
 exports.getAllBookings = async (req, res, next) => {
 
-  console.log("HITTTT")
-  console.log("data:", req.query)
+  logger.info("HITTTT")
+  logger.info("data:", req.query)
   try {
       let skip = +req.query.skip || 0;
-      let limit = +req.query.limit || 0;
+      let limit = +req.query.limit || 10;
       let bookingType = [0, 1, 2].includes(+req.query.bookingType) ? +req.query.bookingType : -1;
-      let booking_category = req.query.category || "c1";
-
-      console.log({ booking_category, bookingType });
-
+      let booking_category = req.query.category || "c1";                                                                              
+      logger.info("bookingType",bookingType);
+      logger.info({ booking_category, bookingType });                                         
+logger.info("hello");
       if (isNaN(skip)) {
           skip = 0;
           // limit = 0;
@@ -2541,8 +2543,7 @@ exports.getAllBookings = async (req, res, next) => {
       const pipeline_lane = [];
 
       if (bookingType === -1) {
-          pipeline_lane.push({ $skip: skip });
-          pipeline_lane.push({ $limit: limit });
+
           pipeline_lane.push({
               $lookup: {
                   from: "studios",
@@ -2580,6 +2581,8 @@ exports.getAllBookings = async (req, res, next) => {
                   userType: { $cond: [{ $eq: ["$userInfo", []] }, "", "USER"] }
               }
           });
+          pipeline_lane.push({ $skip: skip });
+          pipeline_lane.push({ $limit: limit });
           pipeline_lane.push({
               $project: {
                   studioInfo: 0,
@@ -2664,7 +2667,8 @@ exports.getAllBookings = async (req, res, next) => {
                   }
               }
           );
-
+          pipeline_lane.push({ $limit: limit });
+          pipeline_lane.push({ $skip: skip });
           pipeline_lane.push({
               $project: {
 
@@ -2675,9 +2679,9 @@ exports.getAllBookings = async (req, res, next) => {
           });
       }
       const bookingsData = await Booking.aggregate(pipeline_lane);
-      console.log("bookingsData")
-      console.log(bookingsData.length)
-      console.log(bookingsData[0])
+      logger.info("bookingsData")
+      logger.info(bookingsData.length)
+      logger.info(bookingsData[0])
 
 
       const activeBookings = bookingsData.filter(booking => booking.bookingStatus === 0);
@@ -2691,7 +2695,7 @@ exports.getAllBookings = async (req, res, next) => {
       // return res.json({ status: true, message: "All booking(s) returned", data: bookingsstatus_wise, bookings: { activeBookings, completedBookings, cancelledBookings } });
       return res.json({ status: true, message: "All booking(s) returned", data: bookingsstatus_wise });
   } catch (error) {
-      console.error("Internal server error:", error);
+      logger.error(error,"Internal server error:");
       return res.status(500).json({ status: false, message: "Internal server error" });
   }
 };
@@ -2702,13 +2706,16 @@ exports.getServiceBookings = async (req, res) => {
   const matchStage = {};
 
   if (bookingType) {
-      matchStage.type = bookingType;
+    matchStage.type = bookingType;
   } else {
-      matchStage.type = { $in: ["c2", "c3"] };
-  } if (userId) matchStage.userId = userId;
-  if (phoneNumber) {
-      matchStage['user.phone'] = phoneNumber;
+    matchStage.type = { $in: ["c2", "c3"] };
   }
+  if (userId) matchStage.userId = userId;
+  if (phoneNumber) {
+    matchStage["user.phone"] = phoneNumber;
+  }
+
+  matchStage.bookingStatus = 0;
 
 
   const db = getDb();
@@ -2787,26 +2794,28 @@ exports.getServiceBookings = async (req, res) => {
 // update booking status of any category
 exports.updateServiceBooking = async (req, res) => {
   const { bookingId, bookingStatus } = req.body;
-  console.log(req.body);
+  logger.info(req.body);
   const bookingData = await getSingleBooking(bookingId);
   if (!bookingData || !bookingId) {
       return res.status(404).json({ status: false, message: "No Booking with this ID exists" });
   }
 
-  console.log(">>>>>>>>>bbbbb:",+bookingStatus)
+  logger.info(">>>>>>>>>bbbbb:",+bookingStatus)
   if ([0,1,2].includes(+bookingStatus)) bookingData.bookingStatus = +bookingStatus;
   const db = getDb();
   var o_id = new ObjectId(bookingId);
-  console.log(">>>>>>>>>>>>>.bookingData:",bookingData);
+  logger.info(">>>>>>>>>>>>>.bookingData:",bookingData);
   db.collection('bookings').updateOne({ _id: o_id }, { $set: bookingData })
       .then(resultData => {
           res.status(200).json({ status: true, message: 'Bookings Status updated successfully' });
       })
-      .catch(err => console.log(err));
+      .catch(err => logger.error(err));
 }
 
 
 exports.deleteBooking = async (req, res) => {
+
+  console.log("DEDDDDDDDD");
   const { bookingId } = req.body;
 
   if (!bookingId) {
@@ -2821,18 +2830,67 @@ exports.deleteBooking = async (req, res) => {
 
   const db = getDb();
   try {
-      const result = await db.collection('bookings').deleteOne({ _id: ObjectId(bookingId) });
-      if (result.deletedCount === 1) {
+      // const result = await db.collection('bookings').deleteOne({ _id: ObjectId(bookingId) });
+      const result = await db.collection('bookings').updateOne({ _id: ObjectId(bookingId) },{$set: {bookingStatus:2}});
+      console.log(result?.matchedCount);
+      if (result?.matchedCount === 1) {
           return res.status(200).json({ status: true, message: "Booking deleted successfully" });
       } else {
           return res.status(200).json({ status: false, message: "Failed to delete booking" });
       }
   } catch (error) {
-      console.error("Error deleting booking:", error);
+      logger.error(error,"Error deleting booking");
       return res.status(500).json({ status: false, message: "Internal server error" });
   }
 };
 
+// exports.getAllBookingsOptimized = async (req, res, next) => {
+// try {
+//   const filter = pick(req.query, ['type','startPrice','endPrice'])
+//   const options = pick(req.query, ['sortBy', 'limit', 'page']);
+//   let aggregationPipeline = []
+//   if(filter){
+//     aggregationPipeline.push({$match:{}})
+//   }
+//   if(filter.type){
+//     aggregationPipeline.push({$match:{type:filter.type}})
+//   }
+
+//   if (filter.startPrice && filter.endPrice) {
+//     let startPrice = +filter.startPrice;
+//     let endPrice = +filter.endPrice;
+//     aggregationPipeline.push({
+//       $match: {
+//         totalPrice: { $gte: startPrice, $lte: endPrice },
+//       },
+//     });
+//   }
+
+//   if (filter.creationTimeStamp) {
+//     const startDate = new Date(filter.startDate);
+//     const endDate = new Date(filter.endDate);
+//     aggregationPipeline.push({
+//       $match: {
+//         creationTimeStamp: {
+//           $gte: startDate,
+//           $lt: endDate     
+//         }
+//       }
+//     });
+//   }
+  
+
+ 
+//   logger.info(filter);
+//   const bookingData = await Booking.aggregate(aggregationPipeline);
+//   res.status(200).json({
+//     success:true,
+//     data: bookingData,
+//   })
+// } catch (error) {
+//   logger.error(error.message);
+// }
+// }
 
 exports.getAllBookingsOptimized = async (req, res, next) => {
   try {
@@ -2840,12 +2898,12 @@ exports.getAllBookingsOptimized = async (req, res, next) => {
       let limitValue = parseInt(req.query.limit) || 10;
       let bookingTypeValue = parseInt(req.query.bookingType) // || -1;
       let bookingCategory = req.query.category
-      // console.log("Parsed bookingType value:", bookingTypeValue);
+      // logger.info("Parsed bookingType value:", bookingTypeValue);
 
       const filters = buildFilters(req.query)
       const sort = buildSort(req.query)
 
-      console.log("oprions----", filters, sort)
+      logger.info("oprions----", filters, sort)
 
       const aggregationPipeline = [];
 
@@ -2907,14 +2965,14 @@ exports.getAllBookingsOptimized = async (req, res, next) => {
 
 
 
-      // console.log("aggregationPipeline---", aggregationPipeline);
+      // logger.info("aggregationPipeline---", aggregationPipeline);
 
 
       const bookingData = await Booking.aggregate(aggregationPipeline);
-      console.log("bookingData bookings:", bookingData);
+      logger.info("bookingData bookings:", bookingData);
 
-      // console.log("Mapped bookings:", mappedBookings[0]);
-      // console.log("Grouped bookings:", groupedBookings);
+      // logger.info("Mapped bookings:", mappedBookings[0]);
+      // logger.info("Grouped bookings:", groupedBookings);
 
       return res.json({
           status: true,
@@ -2928,7 +2986,7 @@ exports.getAllBookingsOptimized = async (req, res, next) => {
           // }
       });
   } catch (error) {
-      console.error("Internal server error:", error);
+      logger.error(error,"Internal server error");
       return res.status(500).json({ status: false, message: "Internal server error" });
   }
 };
@@ -3022,7 +3080,7 @@ exports.getBookingsByDate = (req, res, next) => {
   }
   startDate = yr + "-" + mth + "-" + dt;
   var sTimeStamp = new Date(startDate).getTime();
-  console.log("Start Date : ", startDate);
+  logger.info("Start Date : ", startDate);
 
   //get endDate from timestamp
   endDate = new Date(endDate);
@@ -3037,7 +3095,7 @@ exports.getBookingsByDate = (req, res, next) => {
   }
   endDate = yr + "-" + mth + "-" + dt;
   var eTimeStamp = new Date(endDate).getTime();
-  console.log("End Date : ", endDate);
+  logger.info("End Date : ", endDate);
 
   Booking.fetchBookingsByBookingDateRange(startDate, endDate)
       .then(bookingsData => {
@@ -3088,7 +3146,7 @@ exports.getAllBookingsGraphDetails = (req, res, next) => {
   var d = new Date();
   var month;
   var year = d.getFullYear();
-  // console.log(year)
+  // logger.info(year)
 
   //for last 6 months(including current month)
   // for(var i = 5; i > -1; i -= 1) {
@@ -3096,12 +3154,12 @@ exports.getAllBookingsGraphDetails = (req, res, next) => {
   //for last 6 months(excluding current month)
   for (var i = 6; i > 0; i -= 1) {
       d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      //   console.log(d.getFullYear())
+      //   logger.info(d.getFullYear())
 
       months.push({ month: d.getMonth(), year: d.getFullYear(), key: keyData, bookingCount: 0 });
       keyData = keyData + 1;
   }
-  console.log(months);
+  logger.info(months);
 
   Booking.fetchAllBookings(0, 0)
       .then(bookingsData => {
@@ -3191,7 +3249,7 @@ exports.getAllBookingsGraphDetailsForParticularStudio = (req, res, next) => {
   var d = new Date();
   var month;
   var year = d.getFullYear();
-  // console.log(year)
+  // logger.info(year)
 
   //for last 6 months(including current month)
   // for(var i = 5; i > -1; i -= 1) {
@@ -3199,12 +3257,12 @@ exports.getAllBookingsGraphDetailsForParticularStudio = (req, res, next) => {
   //for last 6 months(excluding current month)
   for (var i = 6; i > 0; i -= 1) {
       d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      //   console.log(d.getFullYear())
+      //   logger.info(d.getFullYear())
 
       months.push({ month: d.getMonth(), year: d.getFullYear(), key: keyData, bookingCount: 0 });
       keyData = keyData + 1;
   }
-  console.log(months);
+  logger.info(months);
 
   Booking.fetchAllBookingsByStudioId(studioId, 0, 0)
       .then(bookingsData => {
@@ -3597,13 +3655,13 @@ exports.exportBookingData = async (req, res) => {
     let workbook;
     let path;
     let counter;
-    // console.log(type);
+    // logger.info(type);
     if (type == "c2" || type == "c3") {
-      console.log("Service is running");
+      logger.info("Service is running");
       allBookingsforServices = await Booking.AggregateForServiceData(
         pipeline_service
       );
-      console.log(allBookingsforServices);
+      logger.info(allBookingsforServices);
        workbook = new excelJS.Workbook();
        worksheet = workbook.addWorksheet("bookingDataForServices");
        path = "./files";
@@ -3634,7 +3692,7 @@ exports.exportBookingData = async (req, res) => {
       counter++;
     });
     } else {
-      // console.log("Studio is running");
+      // logger.info("Studio is running");
       allBookings = await Booking.aggregate(pipelineForStudio);
          workbook = new excelJS.Workbook();
          worksheet = workbook.addWorksheet("bookingData");
@@ -3687,9 +3745,9 @@ exports.exportBookingData = async (req, res) => {
             { root: `C:/Users/Choira Dev 2/Desktop/studio_api/files` },
             function (err) {
               if (err) {
-                console.error("Error sending file:", err);
+                logger.error(err,"Error sending file");
               } else {
-                console.log({
+                logger.info({
                   status: "success",
                   message: "file successfully downloaded",
                   path: `${path}/bookings.xlsx`,
@@ -3699,7 +3757,7 @@ exports.exportBookingData = async (req, res) => {
           );
       });
   } catch (error) {
-    console.log(error);
+    logger.error(error);
     res.send({
       status: "error",
       message: "Something went wrong",
@@ -3768,10 +3826,10 @@ async function sendMailToUserAndAdmin(datas) {
 
 //Automatch API for cronjob
 cron.schedule("*/10 * * * * *", function () {
-  // console.log("running a task every 10 second");
+  // logger.info("running a task every 10 second");
   Booking.fetchAllBookingsByType(0, 0, 0)
       .then(bookingsData => {
-          // console.log(bookingsData.length);
+          // logger.info(bookingsData.length);
 
           var currDate = new Date();
           var mth = currDate.getMonth() + 1;
@@ -3784,10 +3842,10 @@ cron.schedule("*/10 * * * * *", function () {
           }
           var fullDate = currDate.getFullYear() + "-" + mth + "-" + dt;
           fullDate = new Date(fullDate).getTime();
-          // console.log(fullDate);
+          // logger.info(fullDate);
 
           var currTotalMin = ((currDate.getHours() * 60) + (currDate.getMinutes()));
-          // console.log(currTotalMin);
+          // logger.info(currTotalMin);
 
           if (bookingsData.length != 0) {
               let count = 0;
@@ -3803,9 +3861,9 @@ cron.schedule("*/10 * * * * *", function () {
                           completedBookings.push(singleBooking);
                       }
                       else if (bDate == fullDate) {
-                          // console.log("Same");
+                          // logger.info("Same");
                           var bTotalMin = ((+singleBooking.bookingTime.endTime.split(':')[0]) * 60) + (+singleBooking.bookingTime.endTime.split(':')[1])
-                          // console.log(bTotalMin);
+                          // logger.info(bTotalMin);
                           if (bTotalMin < currTotalMin) {
                               completedBookings.push(singleBooking);
                           }
@@ -3818,16 +3876,16 @@ cron.schedule("*/10 * * * * *", function () {
                       }
 
                       if (count == bookingsData.length) {
-                          // console.log(activeBookings.length,completedBookings.length);
+                          // logger.info(activeBookings.length,completedBookings.length);
                           completedBookings.forEach(singleBooking => {
-                              // console.log(singleBooking._id.toString());
+                              // logger.info(singleBooking._id.toString());
                               singleBooking.bookingStatus = 1;
                               const db = getDb();
                               var o_id = new ObjectId(singleBooking._id.toString());
 
                               db.collection('bookings').updateOne({ _id: o_id }, { $set: singleBooking })
                                   .then(resultData => {
-                                      console.log("Updated");
+                                      logger.info("Updated");
                                   })
                           });
                       }

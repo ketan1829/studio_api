@@ -19,6 +19,7 @@ const httpStatus = require("http-status");
 var nodemailer = require("nodemailer");
 const { sendOTP, addContactBrevo } = require("../util/mail");
 const { json } = require("express");
+const { logger } = require("../util/logger");
 
 const { send_mail } = require("../util/mail.js");
 
@@ -126,13 +127,13 @@ exports.signupUser = async (req, res, next) => {
             });
           });
         })
-        .catch((err) => console.log(err));
+        .catch((err) => logger.info(err,"Error while signiing up user"));
     });
   });
 };
 
 exports.loginUserOTP2 = (req, res, next) => {
-  console.log("LOGIN-OTP", req.body);
+  logger.log("LOGIN-OTP", req.body);
   return res.json({ status: true, message: "Login-OTP" });
 };
 
@@ -142,11 +143,11 @@ exports.signupUserV2 = async (req, res, next) => {
   try {
     const { fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role } = req.body;
 
-    console.log({ fullName, dateOfBirth, email, phoneNumber, deviceId });
+    logger.info({ fullName, dateOfBirth, email, phoneNumber, deviceId });
 
     let _userData = await User.findUserByPhone(phoneNumber, 0);
 
-    console.log("REGISTER USER DATA", _userData?.fullName);
+    logger.info("REGISTER USER DATA", _userData);
 
     const user_data = {
       fullName: fullName.trim(),
@@ -209,13 +210,22 @@ exports.signupUserV2 = async (req, res, next) => {
       
     }
 
-    const token = jwt.sign({ user: userObj }, "myAppSecretKey");
+    const {_id,creationTimeStamp} = await User.findUserByPhone(phoneNumber);
+  
+    let user = {
+      ...user_data,
+      creationTimeStamp,
+      _id
+    }
+    const token = jwt.sign({ user:user }, "myAppSecretKey");
+ 
     // Only add to Brevo if the role is 'user' and it's a new signup
     if (role === "user" && !_userData) {
       await addContactBrevo(userObj);
-      console.log("Added to Brevo");
+      logger.info("Added to Brevo");
     }
-    return res.json({ status: true, message: "Signup successful", user: userObj, token });
+
+    return res.json({ status: true, message: "Signup successful", user, token });
 
   } catch (error) {
     console.error("Error in signupUserV2:", error);
@@ -223,16 +233,17 @@ exports.signupUserV2 = async (req, res, next) => {
   }
 };
 
+
 exports.loginUserOTP = async (req, res, next) => {
   try {
-    console.log("LOGIN======>");
     const { phoneNumber, deviceId, userType, role } = req.body;
 
-    console.log({ phoneNumber, deviceId, userType, role });
+    logger.info({ phoneNumber, deviceId, userType, role });
+
 
     const userData = await User.findUserByPhone(phoneNumber,1,false);
 
-    console.log("DATA::::", userData);
+    logger.info("DATA::::", userData);
 
     let statusInfo = { status: false, message: "something went wrong" };
 
@@ -329,12 +340,10 @@ exports.loginUserOTP = async (req, res, next) => {
         statusInfo.otp = otp;
       }
     }
-
-    console.log("statusInfo:", statusInfo);
     return res.status(200).json(statusInfo);
 
   } catch (error) {
-    console.error("Error in loginUserOTP:", error);
+    logger.error(error,"Error in loginUserOTP:");
     return res.status(500).json({ message: "Please try after some time" });
   }
 };
@@ -363,11 +372,11 @@ exports.TestloginUserOTP = async (req, res, next) => {
 
     const userData = await User.findUserByPhone(phoneNumber);
 
-    console.log("userdata ==========>", userData);
+    logger.info("userdata ==========>", userData);
 
     if (userType === "NUMBER") {
       const token = generateRandomCode(4);
-      console.log("test mobile otp:", token);
+      logger.info("test mobile otp:", token);
       statusInfo.message = "Test OTP sent successfully";
       statusInfo.otp = token;
       statusInfo.status = true;
@@ -411,7 +420,7 @@ exports.TestloginUserOTP = async (req, res, next) => {
 
     return res.json(statusInfo);
   } catch (err) {
-    console.log("===>", err.message);
+    logger.error(err,"Error in TestloginUserOTP");
     return res.status(200).json({ message: "Please try after some Time" });
   }
 };
@@ -464,12 +473,11 @@ exports.loginUser = (req, res, next) => {
           });
         });
       })
-      .catch((err) => console.log(err));
+      .catch((err) => logger.error(err,"  Error in loginUser"));
   });
 };
 
 exports.sendSignUpOtp = (req, res, next) => {
-  console.log("SEND SIGN UP OTP");
 
   const email = req.body.email;
   const phone = req.body.phone;
@@ -490,7 +498,7 @@ exports.sendSignUpOtp = (req, res, next) => {
           });
       }
       let token = generateRandomCode(4);
-      console.log("phone token otp :", token);
+      logger.info("phone token otp :", token);
       // let token = "123456";
       //send OTP to both email and OTP
       //To Phone
@@ -504,7 +512,6 @@ exports.sendSignUpOtp = (req, res, next) => {
           phone
         )
         .then(function (response) {
-          // console.log(response.data);
           if (
             response.data != undefined &&
             response.data.return == true &&
@@ -521,14 +528,14 @@ exports.sendSignUpOtp = (req, res, next) => {
 
             transporter.sendMail(mailOptions, function (error, info) {
               if (error) {
-                console.log(error);
+                logger.error(error);
                 return res.json({
                   status: false,
                   message: "Error Occured",
                   error: error,
                 });
               } else {
-                console.log("Email sent: " + info.response);
+                logger.error("Email sent: " + info.response);
                 return res.json({
                   status: true,
                   message: "OTP sent successfully",
@@ -567,7 +574,7 @@ exports.getAllUsers = (req, res, next) => {
 exports.getParticularUserDetails = (req, res, next) => {
   const userId = req.params.userId;
 
-  console.log("userId===>", userId);
+  logger.info("userId===>", userId);
 
   User.findUserByUserId(userId).then((userData) => {
     if (!userData) {
@@ -614,7 +621,7 @@ exports.addEditUserLocation = (req, res, next) => {
           });
         });
       })
-      .catch((err) => console.log(err));
+      .catch((err) => logger.error(err));
   });
 };
 
@@ -653,7 +660,7 @@ exports.editUserProfile = (req, res, next) => {
           });
         });
       })
-      .catch((err) => console.log(err));
+      .catch((err) => logger.error(err));
   });
 };
 
@@ -682,14 +689,14 @@ exports.sendEmailOtpForEdit = (req, res, next) => {
 
     transporter.sendMail(mailOptions, function (error, info) {
       if (error) {
-        console.log(error);
+        logger.error(error);
         return res.json({
           status: false,
           message: "Error Occured",
           error: error,
         });
       } else {
-        console.log("Email sent: " + info.response);
+        logger.error("Email sent: " + info.response);
         return res.json({
           status: true,
           message: "OTP sent successfully",
@@ -752,13 +759,12 @@ exports.editUserEmail = (req, res, next) => {
             });
           });
         })
-        .catch((err) => console.log(err));
+        .catch((err) => logger.error(err));
     });
   });
 };
 
 exports.sendPhoneOtpForEdit = (req, res, next) => {
-  console.log("OTPPP=>");
 
   const phone = req.body.phone;
 
@@ -856,7 +862,7 @@ exports.editUserPhone = (req, res, next) => {
             });
           });
         })
-        .catch((err) => console.log(err));
+        .catch((err) => logger.error(err));
     });
   });
 };
@@ -918,7 +924,7 @@ exports.editUserPasswordDetails = (req, res, next) => {
           });
         });
       })
-      .catch((err) => console.log(err));
+      .catch((err) => logger.error(err));
   });
 };
 
@@ -946,14 +952,14 @@ exports.sendForgotPasswordOtp = (req, res, next) => {
 
       transporter.sendMail(mailOptions, function (error, info) {
         if (error) {
-          console.log(error);
+          logger.error(error);
           return res.json({
             status: false,
             message: "Error Occured",
             error: error,
           });
         } else {
-          console.log("Email sent: " + info.response);
+          logger.error("Email sent: " + info.response);
           return res.json({
             status: true,
             message: "OTP sent successfully",
@@ -1044,7 +1050,7 @@ exports.editUserPassword = (req, res, next) => {
             user: userData,
           });
         })
-        .catch((err) => console.log(err));
+        .catch((err) => logger.error(err));
     });
   } else if (identityType == 1) {
     User.findUserByPhone(identity).then((userData) => {
@@ -1065,7 +1071,7 @@ exports.editUserPassword = (req, res, next) => {
             user: userData,
           });
         })
-        .catch((err) => console.log(err));
+        .catch((err) => logger.error(err));
     });
   } else {
     return res
@@ -1138,7 +1144,7 @@ exports.addRemoveUserFavourites = (req, res, next) => {
               });
             }
           })
-          .catch((err) => console.log(err));
+          .catch((err) => logger.error(err));
       });
     } else {
       return res.json({
@@ -1205,7 +1211,7 @@ exports.deleteParticularUser = (req, res, next) => {
       .then((resultData) => {
         return res.json({ status: true, message: "User deleted successfully" });
       })
-      .catch((err) => console.log(err));
+      .catch((err) => logger.error(err));
   });
 };
 
@@ -1258,7 +1264,7 @@ exports.getAllUsersGraphDetails = (req, res, next) => {
     });
     keyData = keyData + 1;
   }
-  console.log(months);
+  logger.info(months);
 
   User.fetchAllUsers(0, 0).then((usersData) => {
     usersData.forEach((user) => {
@@ -1345,7 +1351,7 @@ exports.getUserNearyByLocations = async (req, res, next) => {
   const longitude = 72.9050809;
   const range = 100;
   var point1 = new GeoPoint(+latitude, +longitude);
-  console.log("point1", point1);
+  logger.info("point1", point1);
   return res.json({ msg: "near by places" });
 };
 
@@ -1364,19 +1370,19 @@ exports.exportUserData = async (req, res) => {
     }
 
 
-    console.log("this is pipe======>", pipeline);
-    if (options.startDate && options.endDate) {
-      let startDate = options.startDate
-      let endDate = options.endDate
-      pipeline.push({
-        $match: {
-          creationTimeStamp: {
-            $gte: new Date(startDate),
-            $lte: new Date(endDate)
+    logger.info("this is pipe======>",pipeline);
+      if (options.startDate && options.endDate) {
+        let startDate=options.startDate
+        let endDate=options.endDate
+        pipeline.push({
+          $match: {
+            creationTimeStamp: {
+              $gte: new Date(startDate),
+              $lte: new Date(endDate)
+            },
           },
-        },
-      });
-    }
+        });
+      }
 
 
 
@@ -1450,21 +1456,20 @@ exports.exportUserData = async (req, res) => {
     const data = await workbook.xlsx
       .writeFile(`C:/Users/Choira Dev 2/Desktop/studio_api/files/users.xlsx`)
       .then(() => {
-        console.log(__dirname);
-        res.header({ "Content-disposition": "attachment; filename=users.xlsx", "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }).sendFile("users.xlsx", { root: `C:/Users/Choira Dev 2/Desktop/studio_api/files` }, function (err) {
+        res.header({"Content-disposition" : "attachment; filename=users.xlsx" ,"Content-Type" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}).sendFile("users.xlsx", {root: `C:/Users/Choira Dev 2/Desktop/studio_api/files`}, function (err) {
           if (err) {
-            console.error('Error sending file:', err);
+              logger.error(err,'Error sending file');
           } else {
-            console.log({
-              status: "success",
-              message: "file successfully downloaded",
-              path: `${mypath}/users.xlsx`
-            });
+            logger.info({
+                status: "success",
+                message: "file successfully downloaded",
+                path: `${mypath}/users.xlsx`
+              });
           }
         })
       });
   } catch (error) {
-    console.log(error)
+    logger.error(error)
     res.send({
       status: "error",
       message: "Something went wrong",

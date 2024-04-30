@@ -7,9 +7,8 @@ const verifyToken = (token) => {
   // console.log("token", token);
 
   return new Promise((resolve, reject) => {
-    jwt.verify(token, 'myAppSecretKey', (err, decoded) => {
-      console.log("==err==>")
-      console.log(err)
+   
+    jwt.verify(token,'myAppSecretKey', (err, decoded) => {
       if (err) reject(new ErrorHandler(401, "unauthorized"));
       else resolve(decoded);
     });
@@ -128,6 +127,7 @@ const isBoth = async (req, res, next) => {
   // console.log("in ---- both >>>")
 
   try {
+  
     let token = req.headers.authorization;
     let secret_by_pass = req.headers.secret_by_pass;
 
@@ -136,6 +136,7 @@ const isBoth = async (req, res, next) => {
     if (!token) throw new ErrorHandler(401, "unauthorized");
 
     token = token.split(" ")[1]; // remove "Bearer"
+    
 
 
     if ((secret_by_pass || token) === "debugTest") {
@@ -143,6 +144,7 @@ const isBoth = async (req, res, next) => {
       return next();
     } else {
       const decoded = await verifyToken(token);
+   
       if (!decoded.admin && !decoded.user) {
         console.log("isboth:====");
         throw new ErrorHandler(401, "unauthorized");
@@ -198,9 +200,8 @@ const isAdminOrOwner = async (req, res, next) => {
     console.log(decoded, "<<<<<");
 
     // if (!decoded.admin || !decoded.owner || decoded?.user?.role !== "admin") {
-
-
-    if (decoded?.user?.role === "admin" || decoded.admin || decoded.owner) {
+    
+    if(decoded?.user?.role === "admin" || decoded.admin || decoded.owner){
       next();
     } else {
       throw new ErrorHandler(401, "unauthorized admin or owner");

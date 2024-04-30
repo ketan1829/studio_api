@@ -24,9 +24,17 @@ async function paginate(collectionName, filter, options) {
         const skip = (page - 1) * limit;
 
         // console.log("sort--", sort)
-        const countPromise = db.collection(collectionName).countDocuments(filter);
-        let docsPromise = db.collection(collectionName).find(filter).sort(sort).skip(skip).limit(limit);
-
+        let countPromise;
+    
+        let docsPromise;
+        if(filter.fullName){
+            // db.collection(collectionName).createIndex({ fullName: 'text'});
+            countPromise = db.collection(collectionName).countDocuments({ $text: { $search: filter.fullName } });
+            docsPromise = db.collection(collectionName).find({ $text: { $search: filter.fullName } });
+        }else {
+            countPromise = db.collection(collectionName).countDocuments(filter);
+            docsPromise = db.collection(collectionName).find(filter).sort(sort).skip(skip).limit(limit);
+        }
         if (options.populate) {
             console.log("populate ---", options.populate);
             options.populate.split(',').forEach(populateOption => {
@@ -36,10 +44,7 @@ async function paginate(collectionName, filter, options) {
             });
         }
 
-        
-
         const [totalResults, results] = await Promise.all([countPromise, docsPromise.toArray()]);
-
         const totalPages = Math.ceil(totalResults / limit);
         
         return {

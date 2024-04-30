@@ -244,10 +244,54 @@ router.post('/studios/dashboard-filter',controller.getDashboardStudios);
  *         name: limit
  *         description: limitCount
  *         required: false
+ *       - in : query
+ *         name: city
+ *         description: city filter on studio
+ *         required: false
+ *       - in : query
+ *         name: state
+ *         description: state filter on studio
+ *         required: false
+ *       - in : query
+ *         name: minArea
+ *         description: minArea filter on studio
+ *         required: false
+ *       - in : query
+ *         name: minPricePerHour
+ *         description: minPricePerHour filter on studio
+ *         required: false
+ *       - in : query
+ *         name: amenity
+ *         description: amenity filter on studio
+ *         required: false
+ *       - in : query
+ *         name: availabilityDay
+ *         description: availabilityDay filter on studio
+ *         required: false
+ *       - in : query
+ *         name: latitude
+ *         description: latitude filter on studio
+ *         required: false
+ *       - in : query
+ *         name: longitude
+ *         description: longitude filter on studio
+ *         required: false
+ *       - in : query
+ *         name: range
+ *         description: range filter on studio
+ *         required: false
+ *       - in : query
+ *         name: studioId
+ *         description: studioId filter on studio
+ *         required: false
+ *       - in : query
+ *         name: searchText
+ *         description: searchText filter on studio
+ *         required: false
  *     requestBody:
  *       description: | 
  *          #
- *          skip and Limit are optional Query Params
+ *          city, state, minArea, minPricePerHour, amenity, availabilityDay, latitude, longitude, range, active, studioId, searchText,skip and Limit are optional Query Params
  *          #
  *          (First admin login is needed to generate token, then use "AUTHORIZE" button above to validate)
  *     responses:
@@ -297,12 +341,8 @@ router.get('/studios-all',auth.isBoth,controller.getStudios);
  *       content:
  *         application/json:
  *           schema:
- *             city: string
- *           example : 
- *             creationDate: "Andheri"
- *             city: state
- *           example1 : 
- *             creationDate: "Maharashtra"
+ *             limit: number,
+ *             skip: number,
  *     responses:
  *       200:
  *         description: The post was successfully created
@@ -405,21 +445,18 @@ router.post('/studios/date-filter',auth.isAdminOrOwner,controller.getStudiosByDa
  *   get:
  *     summary: Get filtered studios--
  *     tags: [Studios]
- *     parameters:
- *       - in : query
- *         name: skip
- *         description: skipCount
- *         required: false
- *       - in : query
- *         name: limit
- *         description: limitCount
- *         required: false
  *     requestBody:
  *       description: | 
  *          #
- *          Skip and Limit are optional Query Params
+ *          state, offset, per_page are given in body
  *          #
  *          (First admin login is needed to generate token, then use "AUTHORIZE" button above to validate)
+ *       content:
+ *         application/json:
+ *           schema:
+ *             state: string,
+ *             offset: number,
+ *             per_page: number,
  *     responses:
  *       200:
  *         description: Filtered Studio
