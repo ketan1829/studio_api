@@ -23,6 +23,7 @@ const { send_mail } = require("../util/mail.js");
 const pick = require("../util/pick");
 const { getLogger } = require("nodemailer/lib/shared");
 const { logger } = require("../util/logger");
+const { json } = require("body-parser");
 
 function convertTo24HourFormat(time12h) {
   const [time, modifier] = time12h.split(" ");
@@ -592,6 +593,11 @@ exports.createServiceBooking = async (req, res, next) => {
 
       if (ExistingServiceData.length){
         logger.info("ExistingServiceData:", ExistingServiceData);
+        console.log({userId:userId,studioId:serviceId,roomId:planId,type:serviceType});
+        console.log("=============================bbbbbser");
+        const res_1 = await Service.updateOneRecord({userId:userId,studioId:serviceId,roomId:+planId,type:serviceType},{bookingStatus:0})
+        console.log("res===");
+        console.log(res_1);
         return res.status(200).json({ status: false, message: "Requested Package booking has been pre-booked already!" });
       }
 
@@ -2706,6 +2712,8 @@ exports.getServiceBookings = async (req, res) => {
     matchStage["user.phone"] = phoneNumber;
   }
 
+  matchStage.bookingStatus = 0;
+
 
   const db = getDb();
   const pipeline = [
@@ -2803,6 +2811,8 @@ exports.updateServiceBooking = async (req, res) => {
 
 
 exports.deleteBooking = async (req, res) => {
+
+  console.log("DEDDDDDDDD");
   const { bookingId } = req.body;
 
   if (!bookingId) {
@@ -2817,8 +2827,10 @@ exports.deleteBooking = async (req, res) => {
 
   const db = getDb();
   try {
-      const result = await db.collection('bookings').deleteOne({ _id: ObjectId(bookingId) });
-      if (result.deletedCount === 1) {
+      // const result = await db.collection('bookings').deleteOne({ _id: ObjectId(bookingId) });
+      const result = await db.collection('bookings').updateOne({ _id: ObjectId(bookingId) },{$set: {bookingStatus:2}});
+      console.log(result?.matchedCount);
+      if (result?.matchedCount === 1) {
           return res.status(200).json({ status: true, message: "Booking deleted successfully" });
       } else {
           return res.status(200).json({ status: false, message: "Failed to delete booking" });

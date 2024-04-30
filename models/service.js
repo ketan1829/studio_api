@@ -256,6 +256,20 @@ class Service {
     }
   }
 
+  static async updateOneRecord(filter,update_data){
+
+    const db = getDB();
+    try {
+      const result = await db.collection("bookings").updateOne(filter,{$set:update_data});
+      return result?.matchedCount?1:0;
+    } catch (error) {
+      console.error("Error saving service:", error);
+      throw error;
+    }
+
+  }
+
+
 
 }
 module.exports = Service;
