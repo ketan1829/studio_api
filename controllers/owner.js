@@ -137,6 +137,56 @@ exports.getAllOwners = (req,res,next)=>{
     })
 
 }
+exports.getAllOwnersV2 = async(req,res)=>{
+
+    let skip = +req.query.skip || 0;
+    let limit = +req.query.limit || 10;
+
+    // if(isNaN(skip))
+    // {
+    //     skip = 0;
+    //     limit = 0;
+    // }
+
+    let filter = {};
+    let pipeline = [
+        {
+            "$match":filter,
+        },
+        {
+            $lookup: {
+              from: "studios",
+              let: { studioIdStr: "$studioId" }, // define a variable to hold the string serviceId
+              pipeline: [
+                {
+                  $match: {
+                    $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] },
+                  },
+                },
+              ],
+              as: "studioInfo",
+            },
+        },
+        {
+            $addFields: {
+              studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
+            },
+            
+        },
+        { $limit: limit },
+        { $skip: skip },
+        {
+            $project: {
+              studioInfo: 0,
+            },
+        },
+
+    ]
+
+    let ownearData = await Owner.fetchAllOwnersByAggregate(pipeline)
+    // console.log("ownearData",ownearData);
+    res.json({status:true, message:"All Owners returned", owners: ownearData});
+}
 
 
 function checkStudioAvailability(ownerId,studioId,_callBack)
