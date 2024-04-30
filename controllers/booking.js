@@ -645,8 +645,7 @@ exports.getStudioAvailabilities = (req, res, next) => {
   const bufferTime = 15;
   const interval = bookingHours * 60;
 
-
-  console.log("bookingHours:",bookingHours)
+  console.log("slot req data:",req.body)
 
   //get bookingDate from timestamp
   bookingDate = new Date(bookingDate);
@@ -727,7 +726,7 @@ exports.getStudioAvailabilities = (req, res, next) => {
       // console.log(timeslots);
       allSlots = allSlots.concat(timeslots);
     });
-    // console.log("All Slots : ", allSlots);
+    console.log("All Slots : ", allSlots);
 
     Booking.fetchBookingsByStudioIdAndBookingDate(studioId, bookingDate).then(
       (bookingsData) => {
