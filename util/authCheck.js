@@ -25,9 +25,9 @@ const isUser = async (req, res, next) => {
     token = token.split(" ")[1]; // remove "Bearer"
 
     const decoded = await verifyToken(token);
-    console.log("Toke", decoded);
-    if (!decoded?.user?._id) {
-      throw new ErrorHandler(401, "Unauthorized");
+
+    if (!decoded.user || !decoded.user._id) {
+      throw new ErrorHandler(401, "unauthorized");
     }
 
     next();
@@ -115,9 +115,9 @@ const isBoth = async (req, res, next) => {
     } else {
       const decoded = await verifyToken(token);
    
-      if (!(decoded && decoded.admin && decoded.user)) {
+      if (!decoded.admin && !decoded.user) {
         console.log("isboth:====");
-        throw new ErrorHandler(401, "Unauthorized");
+        throw new ErrorHandler(401, "unauthorized");
       }
       next();
     }
