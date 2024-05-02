@@ -594,10 +594,8 @@ exports.createServiceBooking = async (req, res, next) => {
       if (ExistingServiceData.length){
         logger.info("ExistingServiceData:", ExistingServiceData);
         console.log({userId:userId,studioId:serviceId,roomId:planId,type:serviceType});
-        console.log("=============================bbbbbser");
         const res_1 = await Service.updateOneRecord({userId:userId,studioId:serviceId,roomId:+planId,type:serviceType},{bookingStatus:0})
-        console.log("res===");
-        console.log(res_1);
+        logger.info("res===", res_1);
         return res.status(200).json({ status: false, message: "Requested Package booking has been pre-booked already!" });
       }
 
