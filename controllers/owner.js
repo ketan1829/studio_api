@@ -4,7 +4,8 @@ const Studio = require('../models/studio');
 const axios = require('axios');
 
 const mongodb = require('mongodb');
-const getDb = require('../util/database').getDB; 
+const getDb = require('../util/database').getDB;
+const pick = require('../util/pick')
 const ObjectId = mongodb.ObjectId;
 
 const jwt = require('jsonwebtoken');
@@ -137,56 +138,105 @@ exports.getAllOwners = (req,res,next)=>{
     })
 
 }
-exports.getAllOwnersV2 = async(req,res)=>{
 
-    let skip = +req.query.skip || 0;
-    let limit = +req.query.limit || 10;
 
-    // if(isNaN(skip))
-    // {
-    //     skip = 0;
-    //     limit = 0;
-    // }
+exports.getAllOwnersV2 = async (req, res) => {
+    try {
+        const page = +req.query.page || 1;
+        const limit = +req.query.limit || 10;
+        const skip = (page - 1) * limit;
+        let {SearchText} = req.query;
+        const filter = pick(req.query, ["firstName", "lastName", "email"]);
+        if(filter.firstName){
+            filter.firstName = new RegExp(filter.firstName, "i");
+        }
+        if(filter.lastName){
+            filter.lastName = new RegExp(filter.lastName, "i");
+        }
+        if(filter.email){
+            filter.email = new RegExp(filter.email, "i");
+        }
+        const sortField = req.query.sortField 
+        const sortDirection = req.query.sortDirection === 'desc' ? -1 : 1;
 
-    let filter = {};
-    let pipeline = [
-        {
-            "$match":filter,
-        },
-        {
-            $lookup: {
-              from: "studios",
-              let: { studioIdStr: "$studioId" }, // define a variable to hold the string serviceId
-              pipeline: [
-                {
-                  $match: {
-                    $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] },
-                  },
+        const sortStage = { [sortField]: sortDirection };
+        let searching
+        if(SearchText){
+            searching = {
+                $or: [
+                  { studioName: { $regex: SearchText, $options: "i" } },
+                  { studioCity: { $regex: SearchText, $options: "i" } },
+                ],
+              }
+        }
+        const pipeline = [
+            { "$match": filter },
+            {
+                $lookup: {
+                  from: "studios",
+                  let: { studioIdStr: "$studioId" },
+                  pipeline: [
+                    {
+                      $match: {
+                        $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] },
+                      },
+                    },
+                  ],
+                  as: "studioInfo",
                 },
-              ],
-              as: "studioInfo",
             },
-        },
-        {
-            $addFields: {
-              studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
+            {
+                $addFields: {
+                  studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
+                  studioCity: { $arrayElemAt: ["$studioInfo.city", 0] },
+                },
             },
-            
-        },
-        { $limit: limit },
-        { $skip: skip },
-        {
-            $project: {
-              studioInfo: 0,
+            {
+                $match: searching || {}
             },
-        },
+            { $skip: skip }, 
+            { $limit: limit }, 
+            {
+                $project: {
+                  studioInfo: 0, 
+                },
+            },
+        ];
 
-    ]
+        if(sortField && sortDirection){
+            pipeline.push({ $sort: sortStage });
+        }
 
-    let ownearData = await Owner.fetchAllOwnersByAggregate(pipeline)
-    // console.log("ownearData",ownearData);
-    res.json({status:true, message:"All Owners returned", owners: ownearData});
-}
+
+
+        const ownerData = await Owner.fetchAllOwnersByAggregate(pipeline);
+
+        // Get the total count for pagination calculation
+        const db = getDb();
+        const totalCountPipeline = [{ "$match": filter }, { "$count": 'total' }];
+        const totalCountResult = await db.collection('owners').aggregate(totalCountPipeline).toArray();
+        const totalDocuments = totalCountResult[0]?.total || 0;
+        const totalPages = Math.ceil(totalDocuments / limit);
+
+        res.json({
+            status: true,
+            message: "All Owners returned",
+            owners: ownerData,
+            page,
+            limit,
+            totalPages,
+            totalResults: totalDocuments,
+        });
+
+    } catch (error) {
+        console.error("Error in /owners endpoint:", error.message);
+        res.status(500).json({
+            status: false,
+            message: "Internal Server Error",
+            error: error.message,
+        });
+    }
+};
 
 
 function checkStudioAvailability(ownerId,studioId,_callBack)
