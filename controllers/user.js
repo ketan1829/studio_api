@@ -145,7 +145,7 @@ exports.signupUserV2 = async (req, res, next) => {
 
     logger.info({ fullName, dateOfBirth, email, phoneNumber, deviceId });
 
-    let _userData = await User.findUserByPhone(phoneNumber, 0);
+    let _userData = await User.findUserByPhone(phoneNumber, 0, false);
 
     logger.info("REGISTER USER DATA", _userData);
 
@@ -170,7 +170,7 @@ exports.signupUserV2 = async (req, res, next) => {
 
     const userObj = new User(user_data);
 
-    if (_userData) {
+    if (_userData && _userData?.status==0) {
       const updated_user_data = {
         fullName: fullName.trim(),
         dateOfBirth,
@@ -181,6 +181,7 @@ exports.signupUserV2 = async (req, res, next) => {
         role: role || "user",
         status: 1
       }
+      userObj._id = _userData._id;
       const udata = await User.update(phoneNumber, updated_user_data)
       console.log(udata ? `udata count:${udata?.matchedCount}` : "nottttt");
     } else {
@@ -205,27 +206,24 @@ exports.signupUserV2 = async (req, res, next) => {
 
         // If user does not exist, create a new user
         await userObj.save();
-        sendMailToUserAndAdmin()
+        const {_id,creationTimeStamp} = await User.findUserByPhone(phoneNumber);
+        userObj._id = _id
+        userObj.creationTimeStamp = creationTimeStamp
+        
+        // console.log("savedUser._id:", savedUser._id)
+        if (role === "user") {
+          // Only add to Brevo if the role is 'user' and it's a new signup
+          await addContactBrevo(userObj);
+          console.log("Added to Brevo");
+        }
       }
-      
+
     }
 
-    const {_id,creationTimeStamp} = await User.findUserByPhone(phoneNumber);
-  
-    let user = {
-      ...user_data,
-      creationTimeStamp,
-      _id
-    }
-    const token = jwt.sign({ user:user }, "myAppSecretKey");
- 
-    // Only add to Brevo if the role is 'user' and it's a new signup
-    if (role === "user" && !_userData) {
-      await addContactBrevo(userObj);
-      logger.info("Added to Brevo");
-    }
-
-    return res.json({ status: true, message: "Signup successful", user, token });
+    const token = jwt.sign({ user: userObj }, "myAppSecretKey");
+    
+    // console.log("userObj:", userObj);
+    return res.json({ status: true, message: "Signup successful", user: userObj, token });
 
   } catch (error) {
     console.error("Error in signupUserV2:", error);

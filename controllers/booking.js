@@ -570,7 +570,7 @@ exports.createServiceBooking = async (req, res, next) => {
       //     return res.status(400).json({ errors: errors.array() });
       // }
 
-      const { userId, serviceId, planId, bookingDate, bookingTime, totalPrice, serviceType } = req.body;
+      const { userId, serviceId, planId, bookingDate, bookingTime, totalPrice, serviceType, countryCode } = req.body;
       const bookingStatus = 0;
 
       bookingTime.startTime = convertTo24HourFormat(bookingTime.startTime);
@@ -601,7 +601,7 @@ exports.createServiceBooking = async (req, res, next) => {
         return res.status(200).json({ status: false, message: "Requested Package booking has been pre-booked already!" });
       }
 
-      const bookingObj = new Booking(userId, serviceId, parseInt(planId), bookingDate, bookingTime, parseFloat(totalPrice), bookingStatus, serviceType);
+      const bookingObj = new Booking(userId, serviceId, parseInt(planId), bookingDate, bookingTime, parseFloat(totalPrice), bookingStatus, serviceType, countryCode);
       const resultData = await bookingObj.save();
       const bookingData = resultData.ops[0];
       bookingData.totalPrice = bookingData.totalPrice.toFixed(2);
@@ -621,7 +621,6 @@ exports.createServiceBooking = async (req, res, next) => {
               'Authorization': process.env.ONE_SIGNAL_AUTH
           }
       });
-
       if (result.status === 1) {
           const notification = new Notifications(userId, title, message);
           await notification.save();

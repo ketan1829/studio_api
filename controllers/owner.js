@@ -194,6 +194,7 @@ exports.getAllOwnersV2 = async (req, res) => {
             {
                 $match: searching || {}
             },
+            { $sort: sortStage},
             { $skip: skip }, 
             { $limit: limit }, 
             {
@@ -222,10 +223,12 @@ exports.getAllOwnersV2 = async (req, res) => {
             status: true,
             message: "All Owners returned",
             owners: ownerData,
-            page,
-            limit,
-            totalPages,
-            totalResults: totalDocuments,
+            paginate: {
+                page,
+                limit,
+                totalPages,
+                totalResults:totalDocuments
+            }
         });
 
     } catch (error) {

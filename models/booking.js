@@ -5,7 +5,7 @@ const ObjectId = mongodb.ObjectId;
 
 class Booking
 {
-    constructor(userId,studioId,roomId,bookingDate,bookingTime,totalPrice,bookingStatus, serviceType)
+    constructor(userId,studioId,roomId,bookingDate,bookingTime,totalPrice,bookingStatus, serviceType, countryCode)
     {
         this.userId = userId;
         this.studioId = studioId;
@@ -16,6 +16,8 @@ class Booking
         this.bookingStatus = bookingStatus;   // 0-> Active, 1-> Completed, 2-> Cancelled
         this.creationTimeStamp = new Date();
         this.type = serviceType || "c1";
+        this.countryCode = countryCode || "IN";
+
     }
 
     save()
