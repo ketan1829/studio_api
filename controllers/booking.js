@@ -428,8 +428,8 @@ exports.createNewBooking2 = async (req, res, next) => {
                     bookingData._id.toString(),
                     "Booking created",
                     userData.fullName +
-                      " created new booking with Studio : " +
-                      studioData.fullName
+                    " created new booking with Studio : " +
+                    studioData.fullName
                   );
                   //saving in database
                   return adminNotificationObj.save().then((resultData1) => {
@@ -565,55 +565,55 @@ exports.createNewBooking = async (req, res, next) => {
 
 exports.createServiceBooking = async (req, res, next) => {
   try {
-      // const errors = validationResult(req);
-      // if (!errors.isEmpty()) {
-      //     return res.status(400).json({ errors: errors.array() });
-      // }
+    // const errors = validationResult(req);
+    // if (!errors.isEmpty()) {
+    //     return res.status(400).json({ errors: errors.array() });
+    // }
 
       const { userId, serviceId, planId, bookingDate, bookingTime, totalPrice, serviceType, countryCode } = req.body;
       const bookingStatus = 0;
 
-      bookingTime.startTime = convertTo24HourFormat(bookingTime.startTime);
-      bookingTime.endTime = convertTo24HourFormat(bookingTime.endTime);
+    bookingTime.startTime = convertTo24HourFormat(bookingTime.startTime);
+    bookingTime.endTime = convertTo24HourFormat(bookingTime.endTime);
 
-      let userData = await findUserById(userId);
-      if (!userData) {
-          return res.status(404).json({ status: false, message: "Enter valid user ID" });
-      }
+    let userData = await findUserById(userId);
+    if (!userData) {
+      return res.status(404).json({ status: false, message: "Enter valid user ID" });
+    }
 
-      let userDeviceId = userData.deviceId || '';
+    let userDeviceId = userData.deviceId || '';
 
-      const serviceData = await Service.findServiceById(serviceId);
-      const serData = { userId, serviceId, planId }
-      const ExistingServiceData = await Booking.findBooking(serData);
+    const serviceData = await Service.findServiceById(serviceId);
+    const serData = { userId, serviceId, planId }
+    const ExistingServiceData = await Booking.findBooking(serData);
 
-      if (!serviceData) {
-          return res.status(200).json({ status: false, message: "Something went wrong, Try again later" });
-      }
+    if (!serviceData) {
+      return res.status(200).json({ status: false, message: "Something went wrong, Try again later" });
+    }
 
-      if (ExistingServiceData.length){
-        logger.info("ExistingServiceData:", ExistingServiceData);
-        console.log({userId:userId,studioId:serviceId,roomId:planId,type:serviceType});
-        console.log("=============================bbbbbser");
-        const res_1 = await Service.updateOneRecord({userId:userId,studioId:serviceId,roomId:+planId,type:serviceType},{bookingStatus:0})
-        console.log("res===");
-        console.log(res_1);
-        return res.status(200).json({ status: false, message: "Requested Package booking has been pre-booked already!" });
-      }
+    if (ExistingServiceData.length) {
+      logger.info("ExistingServiceData:", ExistingServiceData);
+      console.log({ userId: userId, studioId: serviceId, roomId: planId, type: serviceType });
+      console.log("=============================bbbbbser");
+      const res_1 = await Service.updateOneRecord({ userId: userId, studioId: serviceId, roomId: +planId, type: serviceType }, { bookingStatus: 0 })
+      console.log("res===");
+      console.log(res_1);
+      return res.status(200).json({ status: false, message: "Requested Package booking has been pre-booked already!" });
+    }
 
       const bookingObj = new Booking(userId, serviceId, parseInt(planId), bookingDate, bookingTime, parseFloat(totalPrice), bookingStatus, serviceType, countryCode);
       const resultData = await bookingObj.save();
       const bookingData = resultData.ops[0];
       bookingData.totalPrice = bookingData.totalPrice.toFixed(2);
 
-      const title = "Congratulations!!";
-      const message = `Your booking with '${serviceData.fullName}' is confirmed`;
-      const myJSONObject = {
-          "app_id": process.env.ONE_SIGNAL_APP_ID,
-          "include_player_ids": [userDeviceId],
-          "data": {},
-          "contents": { "en": `${title}\n${message}` }
-      };
+    const title = "Congratulations!!";
+    const message = `Your booking with '${serviceData.fullName}' is confirmed`;
+    const myJSONObject = {
+      "app_id": process.env.ONE_SIGNAL_APP_ID,
+      "include_player_ids": [userDeviceId],
+      "data": {},
+      "contents": { "en": `${title}\n${message}` }
+    };
 
       const result = await axios.post("https://onesignal.com/api/v1/notifications", myJSONObject, {
           headers: {
@@ -625,29 +625,28 @@ exports.createServiceBooking = async (req, res, next) => {
           const notification = new Notifications(userId, title, message);
           await notification.save();
 
-          const adminNotificationObj = new AdminNotifications(userId, serviceId, bookingData._id.toString(), "Booking created", `${userData.fullName} created new booking with Studio: ${serviceData.fullName}`);
-          await adminNotificationObj.save();
+      const adminNotificationObj = new AdminNotifications(userId, serviceId, bookingData._id.toString(), "Booking created", `${userData.fullName} created new booking with Studio: ${serviceData.fullName}`);
+      await adminNotificationObj.save();
 
-          return res.json({ status: true, message: "Booking created successfully", booking: bookingData });
-      } else {
-          return res.json({ status: true, message: "Booking created successfully (Notification not sent)", booking: bookingData });
-      }
+      return res.json({ status: true, message: "Booking created successfully", booking: bookingData });
+    } else {
+      return res.json({ status: true, message: "Booking created successfully (Notification not sent)", booking: bookingData });
+    }
   } catch (error) {
-      logger.error(error);
-      return res.status(500).json({ status: false, message: "Internal Server Error" });
+    logger.error(error);
+    return res.status(500).json({ status: false, message: "Internal Server Error" });
   }
 };
 
 exports.getStudioAvailabilities = (req, res, next) => {
+
   const studioId = req.body.studioId;
   const roomId = req.body.roomId;
   let bookingDate = req.body.bookingDate;
   const bookingHours = +req.body.bookingHours; //Slots will be created based on this
   const bufferTime = 15;
   const interval = bookingHours * 60;
-
-  console.log("slot req data:",req.body)
-
+  console.log("slot req data:", req.body)
   //get bookingDate from timestamp
   bookingDate = new Date(bookingDate);
   var yr = bookingDate.getUTCFullYear();
@@ -662,9 +661,13 @@ exports.getStudioAvailabilities = (req, res, next) => {
   bookingDate = yr + "-" + mth + "-" + dt;
   var bTimeStamp = new Date(bookingDate).getTime();
   logger.info("Booking Date :--> ", bookingDate);
-
+  console.log("bTimeStamp")
+  console.log(bTimeStamp)
   //get Current Date from timestamp
   let currDate = new Date();
+  console.log("c date:::::")
+  console.log(currDate);
+  console.log(currDate.getHours());
   var yr = currDate.getUTCFullYear();
   var mth = currDate.getUTCMonth() + 1;
   if (mth.toString().length == 1) {
@@ -676,19 +679,20 @@ exports.getStudioAvailabilities = (req, res, next) => {
   }
   currDate = yr + "-" + mth + "-" + dt;
   var cTimeStamp = new Date(currDate).getTime();
+  console.log("cTimeStamp")
+  console.log(cTimeStamp)
+
   logger.info("Current Date : ", currDate);
   var currHr = new Date().getHours();
   var currMin = new Date().getMinutes();
   var currTime = currHr * 60 + currMin;
   logger.info("Current Time : " + currTime);
-
   Studio.findStudioById(studioId).then((studioData) => {
     if (!studioData) {
       return res
         .status(404)
         .json({ status: false, message: "No studio with this ID exists" });
     }
-
     if (studioData.roomsDetails == undefined) {
       studioData.roomsDetails = [];
     }
@@ -704,20 +708,16 @@ exports.getStudioAvailabilities = (req, res, next) => {
       studioData.roomsDetails[roomIndex].availabilities;
     // roomTotalAvailability = [{startTime:"09:00",endTime:"13:00"},{startTime:"15:00",endTime:"19:00"}];
     logger.info("Rooms Hours : ", roomTotalAvailability);
-
     //Getting all slots first
     let allSlots = [];
     roomTotalAvailability.forEach((singleAvail) => {
       // logger.info(singleAvail);
       var startTime = singleAvail.startTime;
       var endTime = singleAvail.endTime;
-
       var start_time = parseTime(startTime),
         end_time = parseTime(endTime);
       // interval = bookingHours * 60;
-
       var timeslots = calculate_time_slot(start_time, end_time, interval);
-
       //Creating range for slots
       for (let s = 0; s < timeslots.length - 1; s++) {
         timeslots[s] = { startTime: timeslots[s], endTime: timeslots[s + 1] };
@@ -728,11 +728,9 @@ exports.getStudioAvailabilities = (req, res, next) => {
       allSlots = allSlots.concat(timeslots);
     });
     // logger.info("All Slots : ", allSlots);
-
     Booking.fetchBookingsByStudioIdAndBookingDate(studioId, bookingDate).then(
       (bookingsData) => {
         // logger.info(bookingsData);
-
         let availSlotsNew = allSlots;
         //Filtering to remove past slots for current date
         if (cTimeStamp <= bTimeStamp) {
@@ -748,8 +746,7 @@ exports.getStudioAvailabilities = (req, res, next) => {
             }
           });
         }
-        console.log("availSlotsNew:",availSlotsNew);
-
+        console.log("availSlotsNew:", availSlotsNew);
         if (bookingsData.length == 0) {
           //convert to 12 hour format
           availSlotsNew.forEach((singleSlot) => {
@@ -768,7 +765,6 @@ exports.getStudioAvailabilities = (req, res, next) => {
         bookingsData.forEach((singleBooking) => {
           bookedSlots.push(singleBooking.bookingTime);
         });
-
         let availableSlots = [];
         let allSplitSlots = [];
         // allSlots.forEach(singleSlot=>{
@@ -782,7 +778,6 @@ exports.getStudioAvailabilities = (req, res, next) => {
           let endMinBooked =
             +singleBookedSlot.endTime.split(":")[0] * 60 +
             +singleBookedSlot.endTime.split(":")[1];
-
           roomTotalAvailability.forEach((singleRoomAvail) => {
             let startMinRoom =
               +singleRoomAvail.startTime.split(":")[0] * 60 +
@@ -804,7 +799,6 @@ exports.getStudioAvailabilities = (req, res, next) => {
               logger.info("Split Slot : ", splitSlot1, splitSlot2);
               roomTotalAvailability.push(splitSlot1);
               roomTotalAvailability.push(splitSlot2);
-
               //Also, before next iteration, remove this availablitiy slot from room (since updated is added)
               const availIndex1 = roomTotalAvailability.findIndex(
                 (a) =>
@@ -840,13 +834,10 @@ exports.getStudioAvailabilities = (req, res, next) => {
           // logger.info(singleAvail);
           var startTime = singleAvail.startTime;
           var endTime = singleAvail.endTime;
-
           var start_time = parseTime(startTime),
             end_time = parseTime(endTime),
             interval = bookingHours * 60;
-
           var timeslots = calculate_time_slot(start_time, end_time, interval);
-
           //Creating range for slots
           for (let s = 0; s < timeslots.length - 1; s++) {
             timeslots[s] = {
@@ -1661,8 +1652,7 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
         .status(404)
         .json({ status: false, message: "No room with this ID exists" });
     }
-    let roomTotalAvailability =
-      studioData.roomsDetails[roomIndex].availabilities;
+    let roomTotalAvailability = studioData.roomsDetails[roomIndex].availabilities;
     // roomTotalAvailability = [{startTime:"09:00",endTime:"13:00"},{startTime:"15:00",endTime:"19:00"}];
     logger.info("Rooms Hours : ", roomTotalAvailability);
 
@@ -1687,6 +1677,8 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
       }
       //removing last extra element of "allSlots"
       timeslots.splice(timeslots.length - 1, 1);
+      console.log("timeslots")
+      console.log(timeslots)
       // logger.info(timeslots);
       allSlots = allSlots.concat(timeslots);
     });
@@ -1701,8 +1693,7 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
         if (cTimeStamp == bTimeStamp) {
           availSlotsNew = availSlotsNew.filter((i) => {
             var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
-            var sMin =
-              +i.startTime.split(":")[0] * 60 + +i.startTime.split(":")[1];
+            var sMin = +i.startTime.split(":")[0] * 60 + +i.startTime.split(":")[1];
             logger.info("-------", sMin, eMin, currTime);
             if (eMin < currTime || sMin < currTime) {
               return false;
@@ -1883,6 +1874,32 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
   });
 };
 
+// TEST_SLOTS
+
+exports.getStudioAvailabilitiesTEST = async (req, res, next) => {
+
+  const studioId = req.body.studioId;
+  const roomId = req.body.roomId;
+  let bookingDate = req.body.bookingDate;
+  const bookingHours = +req.body.bookingHours; //Slots will be created based on this
+  const bufferTime = 15;
+  const interval = bookingHours * 60;
+
+  const start_and_end_times = []
+
+  Studio.findStudioById(studioId).then(studioData => {
+    console.log(studioData);
+    studioData.roomsDetails.forEach(room => {
+      room.availabilities.map(avail => {
+        start_and_end_times.push(avail)
+      })
+    })
+    return res.send({ avails: start_and_end_times })
+
+  })
+
+
+};
 //
 
 function getCompletedBookings(allBookings, _callback) {
@@ -2455,9 +2472,9 @@ exports.getAllBookings3 = async (req, res, next) => {
           const [studioInfo, userData] = await Promise.all([
             Service.findServiceById(booking.studioId),
             User.findUserByUserId(booking.userId) ||
-              Admin.findAdminById(booking.userId) ||
-              SubAdmin.findSubAdminById(booking.userId) ||
-              Owner.findOwnerByOwnerId(booking.userId),
+            Admin.findAdminById(booking.userId) ||
+            SubAdmin.findSubAdminById(booking.userId) ||
+            Owner.findOwnerByOwnerId(booking.userId),
           ]);
           logger.info("studioInfo-------", studioInfo);
           booking.studioName = studioInfo?.fullName || "";
@@ -2475,7 +2492,7 @@ exports.getAllBookings3 = async (req, res, next) => {
 
           return booking;
         } catch (error) {
-          logger.error(error,"Error while processing booking:",);
+          logger.error(error, "Error while processing booking:",);
           throw error; // Rethrow the error to be caught by the outer try-catch
         }
       })
@@ -2514,7 +2531,7 @@ exports.getAllBookings3 = async (req, res, next) => {
       },
     });
   } catch (error) {
-    logger.error(error,"Internal server error:");
+    logger.error(error, "Internal server error:");
     return res
       .status(500)
       .json({ status: false, message: "Internal server error" });
@@ -2527,175 +2544,175 @@ exports.getAllBookings = async (req, res, next) => {
   logger.info("HITTTT")
   logger.info("data:", req.query)
   try {
-      let skip = +req.query.skip || 0;
-      let limit = +req.query.limit || 10;
-      let bookingType = [0, 1, 2].includes(+req.query.bookingType) ? +req.query.bookingType : -1;
-      let booking_category = req.query.category || "c1";                                                                              
-      logger.info("bookingType",bookingType);
-      logger.info({ booking_category, bookingType });                                         
-logger.info("hello");
-      if (isNaN(skip)) {
-          skip = 0;
-          // limit = 0;
-      }
+    let skip = +req.query.skip || 0;
+    let limit = +req.query.limit || 10;
+    let bookingType = [0, 1, 2].includes(+req.query.bookingType) ? +req.query.bookingType : -1;
+    let booking_category = req.query.category || "c1";
+    logger.info("bookingType", bookingType);
+    logger.info({ booking_category, bookingType });
+    logger.info("hello");
+    if (isNaN(skip)) {
+      skip = 0;
+      // limit = 0;
+    }
 
-      const pipeline_lane = [];
+    const pipeline_lane = [];
 
-      if (bookingType === -1) {
+    if (bookingType === -1) {
 
-          pipeline_lane.push({
-              $lookup: {
-                  from: "studios",
-                  let: { studioIdStr: "$studioId" }, // define a variable to hold the string serviceId
-                  pipeline: [
-                      {
-                          $match: {
-                              $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] }
-                          }
-                      }
-                  ],
-                  as: "studioInfo"
+      pipeline_lane.push({
+        $lookup: {
+          from: "studios",
+          let: { studioIdStr: "$studioId" }, // define a variable to hold the string serviceId
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] }
               }
-          });
-          pipeline_lane.push({
-              $lookup: {
-                  from: "users",
-                  let: { userIdStr: "$userId" }, // define a variable to hold the string userId
-                  pipeline: [
-                      {
-                          $match: {
-                              $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] }
-                          }
-                      }
-                  ],
-                  as: "userInfo"
+            }
+          ],
+          as: "studioInfo"
+        }
+      });
+      pipeline_lane.push({
+        $lookup: {
+          from: "users",
+          let: { userIdStr: "$userId" }, // define a variable to hold the string userId
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] }
               }
-          });
-          pipeline_lane.push({
-              $addFields: {
-                  studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
-                  userName: { $arrayElemAt: ["$userInfo.fullName", 0] },
-                  userEmail: { $arrayElemAt: ["$userInfo.email", 0] },
-                  userPhone: { $arrayElemAt: ["$userInfo.phone", 0] },
-                  userType: { $cond: [{ $eq: ["$userInfo", []] }, "", "USER"] }
-              }
-          });
-          pipeline_lane.push({ $skip: skip });
-          pipeline_lane.push({ $limit: limit });
-          pipeline_lane.push({
-              $project: {
-                  studioInfo: 0,
-                  userInfo: 0
-              }
-          });
-      } else {
-          pipeline_lane.push({ $match: { bookingStatus: bookingType, $or: [{ type: "c1" }, { type: { $nin: ["c2", "c3"] } }] } });
-          pipeline_lane.push({ $sort: { _id: -1 } })
-          pipeline_lane.push({
+            }
+          ],
+          as: "userInfo"
+        }
+      });
+      pipeline_lane.push({
+        $addFields: {
+          studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
+          userName: { $arrayElemAt: ["$userInfo.fullName", 0] },
+          userEmail: { $arrayElemAt: ["$userInfo.email", 0] },
+          userPhone: { $arrayElemAt: ["$userInfo.phone", 0] },
+          userType: { $cond: [{ $eq: ["$userInfo", []] }, "", "USER"] }
+        }
+      });
+      pipeline_lane.push({ $skip: skip });
+      pipeline_lane.push({ $limit: limit });
+      pipeline_lane.push({
+        $project: {
+          studioInfo: 0,
+          userInfo: 0
+        }
+      });
+    } else {
+      pipeline_lane.push({ $match: { bookingStatus: bookingType, $or: [{ type: "c1" }, { type: { $nin: ["c2", "c3"] } }] } });
+      pipeline_lane.push({ $sort: { _id: -1 } })
+      pipeline_lane.push({
 
-              $lookup: {
-                  from: "studios",
-                  let: { studioIdStr: "$studioId" }, // define a variable to hold the string serviceId
-                  pipeline: [
-                      {
-                          $match: {
-                              $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] }
-                          }
-                      }
-                  ],
-                  as: "studioInfo"
+        $lookup: {
+          from: "studios",
+          let: { studioIdStr: "$studioId" }, // define a variable to hold the string serviceId
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] }
               }
-          });
-          pipeline_lane.push({
-              $lookup: {
-                  from: "users",
-                  let: { userIdStr: "$userId" }, // define a variable to hold the string userId
-                  pipeline: [
-                      {
-                          $match: {
-                              $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] }
-                          }
-                      }
-                  ],
-                  as: "userInfo"
+            }
+          ],
+          as: "studioInfo"
+        }
+      });
+      pipeline_lane.push({
+        $lookup: {
+          from: "users",
+          let: { userIdStr: "$userId" }, // define a variable to hold the string userId
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] }
               }
-          });
-          pipeline_lane.push({
-              $project: {
-                  studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
-                  userName: {
-                      $ifNull: [
-                          { $arrayElemAt: ["$userInfo.fullName", 0] },
-                          "Admin"
-                      ]
-                  },
-                  userEmail: {
-                      $ifNull: [
-                          { $arrayElemAt: ["$userInfo.email", 0] },
-                          "Admin"
-                      ]
-                  },
-                  userPhone: {
-                      $ifNull: [
-                          { $arrayElemAt: ["$userInfo.phone", 0] },
-                          "Admin"
-                      ]
-                  },
-                  userType: {
-                      $ifNull: [
-                          { $arrayElemAt: ["$userInfo.userType", 0] },
-                          "Admin"
-                      ]
-                  },
-
-                  otherFields: "$$ROOT"
-              }
+            }
+          ],
+          as: "userInfo"
+        }
+      });
+      pipeline_lane.push({
+        $project: {
+          studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
+          userName: {
+            $ifNull: [
+              { $arrayElemAt: ["$userInfo.fullName", 0] },
+              "Admin"
+            ]
           },
-              {
-                  $replaceRoot: {
-                      newRoot: {
-                          $mergeObjects: ["$otherFields", {
-                              studioName: "$studioName",
-                              userName: "$userName",
-                              userEmail: "$userEmail",
-                              userPhone: "$userPhone",
-                              userType: "$userType",
-                              // Add more specific fields as needed
-                          }]
-                      }
-                  }
-              }
-          );
-          pipeline_lane.push({ $limit: limit });
-          pipeline_lane.push({ $skip: skip });
-          pipeline_lane.push({
-              $project: {
+          userEmail: {
+            $ifNull: [
+              { $arrayElemAt: ["$userInfo.email", 0] },
+              "Admin"
+            ]
+          },
+          userPhone: {
+            $ifNull: [
+              { $arrayElemAt: ["$userInfo.phone", 0] },
+              "Admin"
+            ]
+          },
+          userType: {
+            $ifNull: [
+              { $arrayElemAt: ["$userInfo.userType", 0] },
+              "Admin"
+            ]
+          },
 
-                  studioInfo: 0,
-                  userInfo: 0,
+          otherFields: "$$ROOT"
+        }
+      },
+        {
+          $replaceRoot: {
+            newRoot: {
+              $mergeObjects: ["$otherFields", {
+                studioName: "$studioName",
+                userName: "$userName",
+                userEmail: "$userEmail",
+                userPhone: "$userPhone",
+                userType: "$userType",
+                // Add more specific fields as needed
+              }]
+            }
+          }
+        }
+      );
+      pipeline_lane.push({ $limit: limit });
+      pipeline_lane.push({ $skip: skip });
+      pipeline_lane.push({
+        $project: {
 
-              }
-          });
-      }
-      const bookingsData = await Booking.aggregate(pipeline_lane);
-      logger.info("bookingsData")
-      logger.info(bookingsData.length)
-      logger.info(bookingsData[0])
+          studioInfo: 0,
+          userInfo: 0,
+
+        }
+      });
+    }
+    const bookingsData = await Booking.aggregate(pipeline_lane);
+    logger.info("bookingsData")
+    logger.info(bookingsData.length)
+    logger.info(bookingsData[0])
 
 
-      const activeBookings = bookingsData.filter(booking => booking.bookingStatus === 0);
-      const completedBookings = bookingsData.filter(booking => booking.bookingStatus === 1);
-      const cancelledBookings = bookingsData.filter(booking => booking.bookingStatus === 2);
+    const activeBookings = bookingsData.filter(booking => booking.bookingStatus === 0);
+    const completedBookings = bookingsData.filter(booking => booking.bookingStatus === 1);
+    const cancelledBookings = bookingsData.filter(booking => booking.bookingStatus === 2);
 
-      let bookingsstatus_wise = [];
-      bookingsstatus_wise = bookingsData.filter(booking => booking.bookingStatus === bookingType);
+    let bookingsstatus_wise = [];
+    bookingsstatus_wise = bookingsData.filter(booking => booking.bookingStatus === bookingType);
 
 
-      // return res.json({ status: true, message: "All booking(s) returned", data: bookingsstatus_wise, bookings: { activeBookings, completedBookings, cancelledBookings } });
-      return res.json({ status: true, message: "All booking(s) returned", data: bookingsstatus_wise });
+    // return res.json({ status: true, message: "All booking(s) returned", data: bookingsstatus_wise, bookings: { activeBookings, completedBookings, cancelledBookings } });
+    return res.json({ status: true, message: "All booking(s) returned", data: bookingsstatus_wise });
   } catch (error) {
-      logger.error(error,"Internal server error:");
-      return res.status(500).json({ status: false, message: "Internal server error" });
+    logger.error(error, "Internal server error:");
+    return res.status(500).json({ status: false, message: "Internal server error" });
   }
 };
 
@@ -2719,68 +2736,68 @@ exports.getServiceBookings = async (req, res) => {
 
   const db = getDb();
   const pipeline = [
-      {
-          $match: matchStage, // filters
-      },
-      {
-        $sort: { _id: -1 }
+    {
+      $match: matchStage, // filters
+    },
+    {
+      $sort: { _id: -1 }
 
-      },
-      {
-          $lookup: {
-              from: "services",
-              let: { serviceIdStr: "$studioId", roomIdint: "$roomId" },
-              pipeline: [
-                  {
-                      $match: {
-                          $expr: { $eq: ["$_id", { $toObjectId: "$$serviceIdStr" }] }
-                      }
-                  },
-                  {
-                      $unwind: "$packages" // Unwind the packages array
-                  },
-                  {
-                      $match: {
-                          $expr: {
-                              $eq: ["$$roomIdint", "$packages.planId"] // Match bookings.roomId with services.packages.planId
-                          }
-                      }
-                  }
-              ],
-              as: "service"
+    },
+    {
+      $lookup: {
+        from: "services",
+        let: { serviceIdStr: "$studioId", roomIdint: "$roomId" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ["$_id", { $toObjectId: "$$serviceIdStr" }] }
+            }
+          },
+          {
+            $unwind: "$packages" // Unwind the packages array
+          },
+          {
+            $match: {
+              $expr: {
+                $eq: ["$$roomIdint", "$packages.planId"] // Match bookings.roomId with services.packages.planId
+              }
+            }
           }
-      },
-      {
-          $lookup: {
-              from: "users",
-              let: { userIdStr: "$userId" }, // define a variable to hold the string serviceId
-              pipeline: [
-                  {
-                      $match: {
-                          $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] }
-                      }
-                  }
-              ],
-              as: "user"
-          }
-      },
-      {
-          $project: {
-
-              serviceId: { $arrayElemAt: ["$service._id", 0] },
-              service_id: { $arrayElemAt: ["$service.service_id", 0] },
-              planId: "$roomId",
-              serviceFullName: { $arrayElemAt: ["$service.fullName", 0] },
-              userFullName: { $arrayElemAt: ["$user.fullName", 0] },
-              userPhone: { $arrayElemAt: ["$user.phone", 0] },
-              userEmail: { $arrayElemAt: ["$user.email", 0] },
-              totalPrice: "$totalPrice",
-              type: "$type",
-              bookingDate: "$bookingDate",
-              package: { $arrayElemAt: ["$service.packages", 0] },
-              bookingStatus: "$bookingStatus"
-          }
+        ],
+        as: "service"
       }
+    },
+    {
+      $lookup: {
+        from: "users",
+        let: { userIdStr: "$userId" }, // define a variable to hold the string serviceId
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] }
+            }
+          }
+        ],
+        as: "user"
+      }
+    },
+    {
+      $project: {
+
+        serviceId: { $arrayElemAt: ["$service._id", 0] },
+        service_id: { $arrayElemAt: ["$service.service_id", 0] },
+        planId: "$roomId",
+        serviceFullName: { $arrayElemAt: ["$service.fullName", 0] },
+        userFullName: { $arrayElemAt: ["$user.fullName", 0] },
+        userPhone: { $arrayElemAt: ["$user.phone", 0] },
+        userEmail: { $arrayElemAt: ["$user.email", 0] },
+        totalPrice: "$totalPrice",
+        type: "$type",
+        bookingDate: "$bookingDate",
+        package: { $arrayElemAt: ["$service.packages", 0] },
+        bookingStatus: "$bookingStatus"
+      }
+    }
   ];
 
 
@@ -2796,19 +2813,19 @@ exports.updateServiceBooking = async (req, res) => {
   logger.info(req.body);
   const bookingData = await getSingleBooking(bookingId);
   if (!bookingData || !bookingId) {
-      return res.status(404).json({ status: false, message: "No Booking with this ID exists" });
+    return res.status(404).json({ status: false, message: "No Booking with this ID exists" });
   }
 
-  logger.info(">>>>>>>>>bbbbb:",+bookingStatus)
-  if ([0,1,2].includes(+bookingStatus)) bookingData.bookingStatus = +bookingStatus;
+  logger.info(">>>>>>>>>bbbbb:", +bookingStatus)
+  if ([0, 1, 2].includes(+bookingStatus)) bookingData.bookingStatus = +bookingStatus;
   const db = getDb();
   var o_id = new ObjectId(bookingId);
-  logger.info(">>>>>>>>>>>>>.bookingData:",bookingData);
+  logger.info(">>>>>>>>>>>>>.bookingData:", bookingData);
   db.collection('bookings').updateOne({ _id: o_id }, { $set: bookingData })
-      .then(resultData => {
-          res.status(200).json({ status: true, message: 'Bookings Status updated successfully' });
-      })
-      .catch(err => logger.error(err));
+    .then(resultData => {
+      res.status(200).json({ status: true, message: 'Bookings Status updated successfully' });
+    })
+    .catch(err => logger.error(err));
 }
 
 
@@ -2818,28 +2835,28 @@ exports.deleteBooking = async (req, res) => {
   const { bookingId } = req.body;
 
   if (!bookingId) {
-      return res.status(200).json({ status: false, message: "Booking ID, package ID, and user ID are required" });
+    return res.status(200).json({ status: false, message: "Booking ID, package ID, and user ID are required" });
   }
 
 
   const bookingData = await getSingleBooking(bookingId);
   if (!bookingData) {
-      return res.status(200).json({ status: false, message: "No Booking with this ID exists" });
+    return res.status(200).json({ status: false, message: "No Booking with this ID exists" });
   }
 
   const db = getDb();
   try {
-      // const result = await db.collection('bookings').deleteOne({ _id: ObjectId(bookingId) });
-      const result = await db.collection('bookings').updateOne({ _id: ObjectId(bookingId) },{$set: {bookingStatus:2}});
-      console.log(result?.matchedCount);
-      if (result?.matchedCount === 1) {
-          return res.status(200).json({ status: true, message: "Booking deleted successfully" });
-      } else {
-          return res.status(200).json({ status: false, message: "Failed to delete booking" });
-      }
+    // const result = await db.collection('bookings').deleteOne({ _id: ObjectId(bookingId) });
+    const result = await db.collection('bookings').updateOne({ _id: ObjectId(bookingId) }, { $set: { bookingStatus: 2 } });
+    console.log(result?.matchedCount);
+    if (result?.matchedCount === 1) {
+      return res.status(200).json({ status: true, message: "Booking deleted successfully" });
+    } else {
+      return res.status(200).json({ status: false, message: "Failed to delete booking" });
+    }
   } catch (error) {
-      logger.error(error,"Error deleting booking");
-      return res.status(500).json({ status: false, message: "Internal server error" });
+    logger.error(error, "Error deleting booking");
+    return res.status(500).json({ status: false, message: "Internal server error" });
   }
 };
 
@@ -2877,9 +2894,9 @@ exports.deleteBooking = async (req, res) => {
 //       }
 //     });
 //   }
-  
 
- 
+
+
 //   logger.info(filter);
 //   const bookingData = await Booking.aggregate(aggregationPipeline);
 //   res.status(200).json({
@@ -2893,100 +2910,100 @@ exports.deleteBooking = async (req, res) => {
 
 exports.getAllBookingsOptimized = async (req, res, next) => {
   try {
-      let skipValue = parseInt(req.query.skip) || 0;
-      let limitValue = parseInt(req.query.limit) || 10;
-      let bookingTypeValue = parseInt(req.query.bookingType) // || -1;
-      let bookingCategory = req.query.category
-      // logger.info("Parsed bookingType value:", bookingTypeValue);
+    let skipValue = parseInt(req.query.skip) || 0;
+    let limitValue = parseInt(req.query.limit) || 10;
+    let bookingTypeValue = parseInt(req.query.bookingType) // || -1;
+    let bookingCategory = req.query.category
+    // logger.info("Parsed bookingType value:", bookingTypeValue);
 
-      const filters = buildFilters(req.query)
-      const sort = buildSort(req.query)
+    const filters = buildFilters(req.query)
+    const sort = buildSort(req.query)
 
-      logger.info("oprions----", filters, sort)
+    logger.info("oprions----", filters, sort)
 
-      const aggregationPipeline = [];
+    const aggregationPipeline = [];
 
-      if (bookingTypeValue !== -1) {
-          aggregationPipeline.push({ $match: { bookingType: bookingTypeValue } });
+    if (bookingTypeValue !== -1) {
+      aggregationPipeline.push({ $match: { bookingType: bookingTypeValue } });
+    }
+    if (filters.length > 0) {
+      aggregationPipeline.push({ $match: { $and: filters } });
+    }
+
+    if (sort.length > 0) {
+      aggregationPipeline.push({ $match: { $sort: sort } });
+    }
+
+    aggregationPipeline.push({ $skip: skipValue });
+    aggregationPipeline.push({ $limit: limitValue });
+
+    aggregationPipeline.push({
+      $lookup: {
+        from: "studios",
+        localField: "studioId",
+        foreignField: "_id",
+        as: "studioInfo"
       }
-      if (filters.length > 0) {
-          aggregationPipeline.push({ $match: { $and: filters } });
+    });
+
+    aggregationPipeline.push({
+      $lookup: {
+        from: "services",
+        localField: "studioId",
+        foreignField: "_id",
+        as: "studioInfo"
       }
+    });
 
-      if (sort.length > 0) {
-          aggregationPipeline.push({ $match: { $sort: sort } });
+
+    aggregationPipeline.push({
+      $lookup: {
+        from: "users",
+        localField: "userId",
+        foreignField: "_id",
+        as: "userInfo"
       }
+    });
 
-      aggregationPipeline.push({ $skip: skipValue });
-      aggregationPipeline.push({ $limit: limitValue });
-
-      aggregationPipeline.push({
-          $lookup: {
-              from: "studios",
-              localField: "studioId",
-              foreignField: "_id",
-              as: "studioInfo"
-          }
-      });
-
-      aggregationPipeline.push({
-          $lookup: {
-              from: "services",
-              localField: "studioId",
-              foreignField: "_id",
-              as: "studioInfo"
-          }
-      });
-
-
-      aggregationPipeline.push({
-          $lookup: {
-              from: "users",
-              localField: "userId",
-              foreignField: "_id",
-              as: "userInfo"
-          }
-      });
-
-      aggregationPipeline.push({
-          $project: {
-              _id: 1,
-              bookingStatus: { $arrayElemAt: ["$studioInfo.isActive", 0] },
-              studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
-              userName: { $cond: [{ $eq: [{ $size: "$userInfo" }, 0] }, "", { $arrayElemAt: ["$userInfo.fullName", 0] }] },
-              userEmail: { $cond: [{ $eq: [{ $size: "$userInfo" }, 0] }, "NA", { $arrayElemAt: ["$userInfo.email", 0] }] },
-              userPhone: { $cond: [{ $eq: [{ $size: "$userInfo" }, 0] }, "NA", { $arrayElemAt: ["$userInfo.phone", 0] }] },
-              userType: { $cond: [{ $eq: [{ $size: "$userInfo" }, 0] }, "", { $cond: [{ $eq: [{ $arrayElemAt: ["$userInfo.role", 0] }, "user"] }, "USER", "ADMIN"] }] },
-              type: { $cond: [{ $eq: [{ $size: "$studioInfo" }, 0] }, "NA", { $arrayElemAt: ["$studioInfo.type", 0] }] },
-              // Add more fields as needed
-          }
-      });
+    aggregationPipeline.push({
+      $project: {
+        _id: 1,
+        bookingStatus: { $arrayElemAt: ["$studioInfo.isActive", 0] },
+        studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
+        userName: { $cond: [{ $eq: [{ $size: "$userInfo" }, 0] }, "", { $arrayElemAt: ["$userInfo.fullName", 0] }] },
+        userEmail: { $cond: [{ $eq: [{ $size: "$userInfo" }, 0] }, "NA", { $arrayElemAt: ["$userInfo.email", 0] }] },
+        userPhone: { $cond: [{ $eq: [{ $size: "$userInfo" }, 0] }, "NA", { $arrayElemAt: ["$userInfo.phone", 0] }] },
+        userType: { $cond: [{ $eq: [{ $size: "$userInfo" }, 0] }, "", { $cond: [{ $eq: [{ $arrayElemAt: ["$userInfo.role", 0] }, "user"] }, "USER", "ADMIN"] }] },
+        type: { $cond: [{ $eq: [{ $size: "$studioInfo" }, 0] }, "NA", { $arrayElemAt: ["$studioInfo.type", 0] }] },
+        // Add more fields as needed
+      }
+    });
 
 
 
-      // logger.info("aggregationPipeline---", aggregationPipeline);
+    // logger.info("aggregationPipeline---", aggregationPipeline);
 
 
-      const bookingData = await Booking.aggregate(aggregationPipeline);
-      logger.info("bookingData bookings:", bookingData);
+    const bookingData = await Booking.aggregate(aggregationPipeline);
+    logger.info("bookingData bookings:", bookingData);
 
-      // logger.info("Mapped bookings:", mappedBookings[0]);
-      // logger.info("Grouped bookings:", groupedBookings);
+    // logger.info("Mapped bookings:", mappedBookings[0]);
+    // logger.info("Grouped bookings:", groupedBookings);
 
-      return res.json({
-          status: true,
-          message: "All booking(s) returned",
-          data: [],
-          // paginate: {
-          //     page: Math.floor(skipValue / limitValue) + 1,
-          //     limit: limitValue,
-          //     totalResults: totalBookings,
-          //     totalPages: totalPages
-          // }
-      });
+    return res.json({
+      status: true,
+      message: "All booking(s) returned",
+      data: [],
+      // paginate: {
+      //     page: Math.floor(skipValue / limitValue) + 1,
+      //     limit: limitValue,
+      //     totalResults: totalBookings,
+      //     totalPages: totalPages
+      // }
+    });
   } catch (error) {
-      logger.error(error,"Internal server error");
-      return res.status(500).json({ status: false, message: "Internal server error" });
+    logger.error(error, "Internal server error");
+    return res.status(500).json({ status: false, message: "Internal server error" });
   }
 };
 
@@ -2997,66 +3014,66 @@ exports.getAllBookingsForParticularStudio = (req, res, next) => {
   let limit = +req.query.limit;
 
   if (isNaN(skip)) {
-      skip = 0;
-      limit = 0;
+    skip = 0;
+    limit = 0;
   }
 
   Booking.fetchAllBookingsByStudioId(studioId, skip, limit)
-      .then(bookingsData => {
-          let mappedBookings = [];
-          let allBookings = bookingsData.map(async i => {
-              i.studioName = "";
-              let studioInfo = await Studio.findStudioById(i.studioId);
-              if (studioInfo != null) {
-                  i.studioName = studioInfo.fullName;
+    .then(bookingsData => {
+      let mappedBookings = [];
+      let allBookings = bookingsData.map(async i => {
+        i.studioName = "";
+        let studioInfo = await Studio.findStudioById(i.studioId);
+        if (studioInfo != null) {
+          i.studioName = studioInfo.fullName;
+        }
+        i.userName = "";
+        i.userEmail = "NA";
+        i.userPhone = "NA";
+        i.userType = "";
+        let userData = await User.findUserByUserId(i.userId);
+        if (userData != null) {
+          i.userName = userData.fullName;
+          i.userEmail = userData.email;
+          i.userPhone = userData.phone;
+          i.userType = "USER";
+        }
+        else {
+          let adminData = await Admin.findAdminById(i.userId);
+          if (adminData != null) {
+            i.userName = adminData.firstName + " " + adminData.lastName;
+            i.userEmail = adminData.email;
+            i.userType = "ADMIN";
+          }
+          else {
+            let subAdminData = await SubAdmin.findSubAdminById(i.userId);
+            if (subAdminData != null) {
+              i.userName = subAdminData.firstName + " " + subAdminData.lastName;
+              i.userEmail = subAdminData.email;
+              i.userType = "ADMIN";
+            }
+            else {
+              let ownerData = await Owner.findOwnerByOwnerId(i.userId);
+              if (ownerData != null) {
+                i.userName = ownerData.firstName + " " + ownerData.lastName;
+                i.userEmail = ownerData.email;
+                i.userType = "OWNER";
               }
-              i.userName = "";
-              i.userEmail = "NA";
-              i.userPhone = "NA";
-              i.userType = "";
-              let userData = await User.findUserByUserId(i.userId);
-              if (userData != null) {
-                  i.userName = userData.fullName;
-                  i.userEmail = userData.email;
-                  i.userPhone = userData.phone;
-                  i.userType = "USER";
-              }
-              else {
-                  let adminData = await Admin.findAdminById(i.userId);
-                  if (adminData != null) {
-                      i.userName = adminData.firstName + " " + adminData.lastName;
-                      i.userEmail = adminData.email;
-                      i.userType = "ADMIN";
-                  }
-                  else {
-                      let subAdminData = await SubAdmin.findSubAdminById(i.userId);
-                      if (subAdminData != null) {
-                          i.userName = subAdminData.firstName + " " + subAdminData.lastName;
-                          i.userEmail = subAdminData.email;
-                          i.userType = "ADMIN";
-                      }
-                      else {
-                          let ownerData = await Owner.findOwnerByOwnerId(i.userId);
-                          if (ownerData != null) {
-                              i.userName = ownerData.firstName + " " + ownerData.lastName;
-                              i.userEmail = ownerData.email;
-                              i.userType = "OWNER";
-                          }
-                      }
-                  }
-              }
-              mappedBookings.push(i);
-              if (mappedBookings.length == bookingsData.length) {
-                  let cancelledBookings = mappedBookings.filter(i => i.bookingStatus == 2);
-                  getCompletedBookings(mappedBookings, (resActive, resComplete) => {
-                      return res.json({
-                          status: true, message: "All booking(s) for studio returned", activeBookings: resActive, completedBookings: resComplete,
-                          cancelledBookings: cancelledBookings
-                      });
-                  });
-              }
+            }
+          }
+        }
+        mappedBookings.push(i);
+        if (mappedBookings.length == bookingsData.length) {
+          let cancelledBookings = mappedBookings.filter(i => i.bookingStatus == 2);
+          getCompletedBookings(mappedBookings, (resActive, resComplete) => {
+            return res.json({
+              status: true, message: "All booking(s) for studio returned", activeBookings: resActive, completedBookings: resComplete,
+              cancelledBookings: cancelledBookings
+            });
           });
-      })
+        }
+      });
+    })
 
 }
 
@@ -3071,11 +3088,11 @@ exports.getBookingsByDate = (req, res, next) => {
   var yr = startDate.getUTCFullYear();
   var mth = startDate.getUTCMonth() + 1;
   if (mth.toString().length == 1) {
-      mth = "0" + mth.toString();
+    mth = "0" + mth.toString();
   }
   var dt = startDate.getUTCDate();
   if (dt.toString().length == 1) {
-      dt = "0" + dt.toString();
+    dt = "0" + dt.toString();
   }
   startDate = yr + "-" + mth + "-" + dt;
   var sTimeStamp = new Date(startDate).getTime();
@@ -3086,52 +3103,52 @@ exports.getBookingsByDate = (req, res, next) => {
   var yr = endDate.getUTCFullYear();
   var mth = endDate.getUTCMonth() + 1;
   if (mth.toString().length == 1) {
-      mth = "0" + mth.toString();
+    mth = "0" + mth.toString();
   }
   var dt = endDate.getUTCDate();
   if (dt.toString().length == 1) {
-      dt = "0" + dt.toString();
+    dt = "0" + dt.toString();
   }
   endDate = yr + "-" + mth + "-" + dt;
   var eTimeStamp = new Date(endDate).getTime();
   logger.info("End Date : ", endDate);
 
   Booking.fetchBookingsByBookingDateRange(startDate, endDate)
-      .then(bookingsData => {
-          if (bookingsData.length == 0) {
-              return res.json({
-                  status: true, message: "No bookings exists for this range", activeBookings: [], completedBookings: [],
-                  cancelledBookings: []
-              });
-          }
-          let mappedBookings = [];
-          let allBookings = bookingsData.map(async i => {
-              i.studioName = "";
-              let studioInfo = await Studio.findStudioById(i.studioId);
-              if (studioInfo != null) {
-                  i.studioName = studioInfo.fullName;
-              }
-              i.userName = "";
-              i.userEmail = "NA";
-              i.userPhone = "NA";
-              let userData = await User.findUserByUserId(i.userId);
-              if (userData != null) {
-                  i.userName = userData.fullName;
-                  i.userEmail = userData.email;
-                  i.userPhone = userData.phone;
-              }
-              mappedBookings.push(i);
-              if (mappedBookings.length == bookingsData.length) {
-                  let cancelledBookings = mappedBookings.filter(i => i.bookingStatus == 2);
-                  getCompletedBookings(mappedBookings, (resActive, resComplete) => {
-                      return res.json({
-                          status: true, message: "All booking(s) returned", activeBookings: resActive, completedBookings: resComplete,
-                          cancelledBookings: cancelledBookings
-                      });
-                  });
-              }
+    .then(bookingsData => {
+      if (bookingsData.length == 0) {
+        return res.json({
+          status: true, message: "No bookings exists for this range", activeBookings: [], completedBookings: [],
+          cancelledBookings: []
+        });
+      }
+      let mappedBookings = [];
+      let allBookings = bookingsData.map(async i => {
+        i.studioName = "";
+        let studioInfo = await Studio.findStudioById(i.studioId);
+        if (studioInfo != null) {
+          i.studioName = studioInfo.fullName;
+        }
+        i.userName = "";
+        i.userEmail = "NA";
+        i.userPhone = "NA";
+        let userData = await User.findUserByUserId(i.userId);
+        if (userData != null) {
+          i.userName = userData.fullName;
+          i.userEmail = userData.email;
+          i.userPhone = userData.phone;
+        }
+        mappedBookings.push(i);
+        if (mappedBookings.length == bookingsData.length) {
+          let cancelledBookings = mappedBookings.filter(i => i.bookingStatus == 2);
+          getCompletedBookings(mappedBookings, (resActive, resComplete) => {
+            return res.json({
+              status: true, message: "All booking(s) returned", activeBookings: resActive, completedBookings: resComplete,
+              cancelledBookings: cancelledBookings
+            });
           });
-      })
+        }
+      });
+    })
 
 }
 
@@ -3152,87 +3169,87 @@ exports.getAllBookingsGraphDetails = (req, res, next) => {
   var keyData = 1;
   //for last 6 months(excluding current month)
   for (var i = 6; i > 0; i -= 1) {
-      d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      //   logger.info(d.getFullYear())
+    d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    //   logger.info(d.getFullYear())
 
-      months.push({ month: d.getMonth(), year: d.getFullYear(), key: keyData, bookingCount: 0 });
-      keyData = keyData + 1;
+    months.push({ month: d.getMonth(), year: d.getFullYear(), key: keyData, bookingCount: 0 });
+    keyData = keyData + 1;
   }
   logger.info(months);
 
   Booking.fetchAllBookings(0, 0)
-      .then(bookingsData => {
-          // bookingsData = bookingsData.filter(i=>i.bookingStatus==1);
-          bookingsData.forEach(singleBooking => {
-              var dt1 = new Date(singleBooking.creationTimeStamp);
-              var monthOnly = dt1.getMonth();
-              months.forEach(mth => {
-                  if ((+mth.month) == (+monthOnly)) {
-                      mth.bookingCount = mth.bookingCount + 1;
-                  }
-              });
-          });
+    .then(bookingsData => {
+      // bookingsData = bookingsData.filter(i=>i.bookingStatus==1);
+      bookingsData.forEach(singleBooking => {
+        var dt1 = new Date(singleBooking.creationTimeStamp);
+        var monthOnly = dt1.getMonth();
+        months.forEach(mth => {
+          if ((+mth.month) == (+monthOnly)) {
+            mth.bookingCount = mth.bookingCount + 1;
+          }
+        });
+      });
 
-          setTimeout(() => {
-              months.forEach(mthData => {
-                  if (mthData.month == 0) {
-                      mthData.month = "January"
-                  }
-                  if (mthData.month == 1) {
-                      mthData.month = "Febuary"
-                  }
-                  if (mthData.month == 2) {
-                      mthData.month = "March"
-                  }
-                  if (mthData.month == 3) {
-                      mthData.month = "April"
-                  }
-                  if (mthData.month == 4) {
-                      mthData.month = "May"
-                  }
-                  if (mthData.month == 5) {
-                      mthData.month = "June"
-                  }
-                  if (mthData.month == 6) {
-                      mthData.month = "July"
-                  }
-                  if (mthData.month == 7) {
-                      mthData.month = "August"
-                  }
-                  if (mthData.month == 8) {
-                      mthData.month = "September"
-                  }
-                  if (mthData.month == 9) {
-                      mthData.month = "Ocober"
-                  }
-                  if (mthData.month == 10) {
-                      mthData.month = "November"
-                  }
-                  if (mthData.month == 11) {
-                      mthData.month = "December"
-                  }
+      setTimeout(() => {
+        months.forEach(mthData => {
+          if (mthData.month == 0) {
+            mthData.month = "January"
+          }
+          if (mthData.month == 1) {
+            mthData.month = "Febuary"
+          }
+          if (mthData.month == 2) {
+            mthData.month = "March"
+          }
+          if (mthData.month == 3) {
+            mthData.month = "April"
+          }
+          if (mthData.month == 4) {
+            mthData.month = "May"
+          }
+          if (mthData.month == 5) {
+            mthData.month = "June"
+          }
+          if (mthData.month == 6) {
+            mthData.month = "July"
+          }
+          if (mthData.month == 7) {
+            mthData.month = "August"
+          }
+          if (mthData.month == 8) {
+            mthData.month = "September"
+          }
+          if (mthData.month == 9) {
+            mthData.month = "Ocober"
+          }
+          if (mthData.month == 10) {
+            mthData.month = "November"
+          }
+          if (mthData.month == 11) {
+            mthData.month = "December"
+          }
 
-              });
+        });
 
-              months.sort((a, b) => {
-                  return a.key - b.key;
-              });
+        months.sort((a, b) => {
+          return a.key - b.key;
+        });
 
-              //retrieving only months
-              var allMonths = [];
-              months.forEach(m => {
-                  allMonths.push(m.month);
-              });
+        //retrieving only months
+        var allMonths = [];
+        months.forEach(m => {
+          allMonths.push(m.month);
+        });
 
-              //retrieving only bookingCounts
-              var allBookingCounts = [];
-              months.forEach(m => {
-                  allBookingCounts.push(m.bookingCount);
-              });
+        //retrieving only bookingCounts
+        var allBookingCounts = [];
+        months.forEach(m => {
+          allBookingCounts.push(m.bookingCount);
+        });
 
-              res.json({ status: true, message: "All data returned", allMonths: allMonths, allBookingCounts: allBookingCounts, allData: months });
-          }, 1000);
-      })
+        res.json({ status: true, message: "All data returned", allMonths: allMonths, allBookingCounts: allBookingCounts, allData: months });
+      }, 1000);
+    })
 
 }
 
@@ -3255,87 +3272,87 @@ exports.getAllBookingsGraphDetailsForParticularStudio = (req, res, next) => {
   var keyData = 1;
   //for last 6 months(excluding current month)
   for (var i = 6; i > 0; i -= 1) {
-      d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      //   logger.info(d.getFullYear())
+    d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    //   logger.info(d.getFullYear())
 
-      months.push({ month: d.getMonth(), year: d.getFullYear(), key: keyData, bookingCount: 0 });
-      keyData = keyData + 1;
+    months.push({ month: d.getMonth(), year: d.getFullYear(), key: keyData, bookingCount: 0 });
+    keyData = keyData + 1;
   }
   logger.info(months);
 
   Booking.fetchAllBookingsByStudioId(studioId, 0, 0)
-      .then(bookingsData => {
-          // bookingsData = bookingsData.filter(i=>i.bookingStatus==1);
-          bookingsData.forEach(singleBooking => {
-              var dt1 = new Date(singleBooking.creationTimeStamp);
-              var monthOnly = dt1.getMonth();
-              months.forEach(mth => {
-                  if ((+mth.month) == (+monthOnly)) {
-                      mth.bookingCount = mth.bookingCount + 1;
-                  }
-              });
-          });
+    .then(bookingsData => {
+      // bookingsData = bookingsData.filter(i=>i.bookingStatus==1);
+      bookingsData.forEach(singleBooking => {
+        var dt1 = new Date(singleBooking.creationTimeStamp);
+        var monthOnly = dt1.getMonth();
+        months.forEach(mth => {
+          if ((+mth.month) == (+monthOnly)) {
+            mth.bookingCount = mth.bookingCount + 1;
+          }
+        });
+      });
 
-          setTimeout(() => {
-              months.forEach(mthData => {
-                  if (mthData.month == 0) {
-                      mthData.month = "January"
-                  }
-                  if (mthData.month == 1) {
-                      mthData.month = "Febuary"
-                  }
-                  if (mthData.month == 2) {
-                      mthData.month = "March"
-                  }
-                  if (mthData.month == 3) {
-                      mthData.month = "April"
-                  }
-                  if (mthData.month == 4) {
-                      mthData.month = "May"
-                  }
-                  if (mthData.month == 5) {
-                      mthData.month = "June"
-                  }
-                  if (mthData.month == 6) {
-                      mthData.month = "July"
-                  }
-                  if (mthData.month == 7) {
-                      mthData.month = "August"
-                  }
-                  if (mthData.month == 8) {
-                      mthData.month = "September"
-                  }
-                  if (mthData.month == 9) {
-                      mthData.month = "Ocober"
-                  }
-                  if (mthData.month == 10) {
-                      mthData.month = "November"
-                  }
-                  if (mthData.month == 11) {
-                      mthData.month = "December"
-                  }
+      setTimeout(() => {
+        months.forEach(mthData => {
+          if (mthData.month == 0) {
+            mthData.month = "January"
+          }
+          if (mthData.month == 1) {
+            mthData.month = "Febuary"
+          }
+          if (mthData.month == 2) {
+            mthData.month = "March"
+          }
+          if (mthData.month == 3) {
+            mthData.month = "April"
+          }
+          if (mthData.month == 4) {
+            mthData.month = "May"
+          }
+          if (mthData.month == 5) {
+            mthData.month = "June"
+          }
+          if (mthData.month == 6) {
+            mthData.month = "July"
+          }
+          if (mthData.month == 7) {
+            mthData.month = "August"
+          }
+          if (mthData.month == 8) {
+            mthData.month = "September"
+          }
+          if (mthData.month == 9) {
+            mthData.month = "Ocober"
+          }
+          if (mthData.month == 10) {
+            mthData.month = "November"
+          }
+          if (mthData.month == 11) {
+            mthData.month = "December"
+          }
 
-              });
+        });
 
-              months.sort((a, b) => {
-                  return a.key - b.key;
-              });
+        months.sort((a, b) => {
+          return a.key - b.key;
+        });
 
-              //retrieving only months
-              var allMonths = [];
-              months.forEach(m => {
-                  allMonths.push(m.month);
-              });
+        //retrieving only months
+        var allMonths = [];
+        months.forEach(m => {
+          allMonths.push(m.month);
+        });
 
-              //retrieving only bookingCounts
-              var allBookingCounts = [];
-              months.forEach(m => {
-                  allBookingCounts.push(m.bookingCount);
-              });
+        //retrieving only bookingCounts
+        var allBookingCounts = [];
+        months.forEach(m => {
+          allBookingCounts.push(m.bookingCount);
+        });
 
-              res.json({ status: true, message: "All data returned", allMonths: allMonths, allBookingCounts: allBookingCounts, allData: months });
-          }, 1000);
-      })
+        res.json({ status: true, message: "All data returned", allMonths: allMonths, allBookingCounts: allBookingCounts, allData: months });
+      }, 1000);
+    })
 
 }
 
@@ -3661,73 +3678,73 @@ exports.exportBookingData = async (req, res) => {
         pipeline_service
       );
       logger.info(allBookingsforServices);
-       workbook = new excelJS.Workbook();
-       worksheet = workbook.addWorksheet("bookingDataForServices");
-       path = "./files";
-    worksheet.columns = [
-      { header: "S no.", key: "s_no", width: 10 },
-      // { header: "_id.", key: "_id", width: 10 },
-      // { header: "userId", key: "userId", width: 10 },
-      { header: "User_Name", key: "userName", width: 10 },
-      { header: "User_Email", key: "userEmail", width: 10 },
-      { header: "User_No", key: "userPhone", width: 10 },
-      // { header: "Service_Id", key: "studioId", width: 10 },
-      { header: "Service_Name", key: "serviceName", width: 10 },
-      { header: "Service_Price ", key: "servicePrice", width: 10 },
-      { header: "Service_Package", key: "servicePackage", width: 10 },
-      { header: "roomId", key: "roomId", width: 10 },
-    //   { header: "bookingDate", key: "bookingDate", width: 10 },
-    //   { header: "bookingTime", key: "bookingTime", width: 10 },
-    //   { header: "totalPrice", key: "totalPrice", width: 10 },
-    //   { header: "bookingStatus", key: "bookingStatus", width: 10 },
-      { header: "creationTimeStamp", key: "creationTimeStamp", width: 10 },
-      { header: "type", key: "type", width: 10 },
-    ];
+      workbook = new excelJS.Workbook();
+      worksheet = workbook.addWorksheet("bookingDataForServices");
+      path = "./files";
+      worksheet.columns = [
+        { header: "S no.", key: "s_no", width: 10 },
+        // { header: "_id.", key: "_id", width: 10 },
+        // { header: "userId", key: "userId", width: 10 },
+        { header: "User_Name", key: "userName", width: 10 },
+        { header: "User_Email", key: "userEmail", width: 10 },
+        { header: "User_No", key: "userPhone", width: 10 },
+        // { header: "Service_Id", key: "studioId", width: 10 },
+        { header: "Service_Name", key: "serviceName", width: 10 },
+        { header: "Service_Price ", key: "servicePrice", width: 10 },
+        { header: "Service_Package", key: "servicePackage", width: 10 },
+        { header: "roomId", key: "roomId", width: 10 },
+        //   { header: "bookingDate", key: "bookingDate", width: 10 },
+        //   { header: "bookingTime", key: "bookingTime", width: 10 },
+        //   { header: "totalPrice", key: "totalPrice", width: 10 },
+        //   { header: "bookingStatus", key: "bookingStatus", width: 10 },
+        { header: "creationTimeStamp", key: "creationTimeStamp", width: 10 },
+        { header: "type", key: "type", width: 10 },
+      ];
 
-    counter = 1;
-    await allBookingsforServices.forEach((booking) => {
-      booking.s_no = counter;
-      worksheet.addRow(booking);
-      counter++;
-    });
+      counter = 1;
+      await allBookingsforServices.forEach((booking) => {
+        booking.s_no = counter;
+        worksheet.addRow(booking);
+        counter++;
+      });
     } else {
       // logger.info("Studio is running");
       allBookings = await Booking.aggregate(pipelineForStudio);
-         workbook = new excelJS.Workbook();
-         worksheet = workbook.addWorksheet("bookingData");
-         path = "./files";
-        worksheet.columns = [
-          { header: "S no.", key: "s_no", width: 10 },
-          // { header: "_id.", key: "_id", width: 10 },
-          // { header: "userId", key: "userId", width: 10 },
-          { header: "User_Name", key: "userName", width: 10 },
-          { header: "User_Email", key: "userEmail", width: 10 },
-          { header: "User_No", key: "userPhone", width: 10 },
-          // { header: "studioId", key: "studioId", width: 10 },
-          { header: "Studio_Name", key: "studioName", width: 10 },
-          { header: "Studio_Price_PerHour", key: "studioPricePerHour", width: 10 },
-          { header: "Studio_Address", key: "studioAddress", width: 10 },
-          { header: "Studio_City", key: "studioCity", width: 10 },
-          { header: "Studio_State", key: "studioState", width: 10 },
-          { header: "roomId", key: "roomId", width: 10 },
-          { header: "bookingDate", key: "bookingDate", width: 10 },
-          { header: "bookingTime", key: "bookingTime", width: 10 },
-          { header: "totalPrice", key: "totalPrice", width: 10 },
-          { header: "bookingStatus", key: "bookingStatus", width: 10 },
-          { header: "creationTimeStamp", key: "creationTimeStamp", width: 10 },
-          { header: "type", key: "type", width: 10 },
-        ];
-    
-        let counter = 1;
-        await allBookings.forEach((booking) => {
-          booking.s_no = counter;
-          worksheet.addRow(booking);
-          counter++;
-        });
-    
-        worksheet.getRow(1).eachCell((cell) => {
-          cell.font = { bold: true };
-        });
+      workbook = new excelJS.Workbook();
+      worksheet = workbook.addWorksheet("bookingData");
+      path = "./files";
+      worksheet.columns = [
+        { header: "S no.", key: "s_no", width: 10 },
+        // { header: "_id.", key: "_id", width: 10 },
+        // { header: "userId", key: "userId", width: 10 },
+        { header: "User_Name", key: "userName", width: 10 },
+        { header: "User_Email", key: "userEmail", width: 10 },
+        { header: "User_No", key: "userPhone", width: 10 },
+        // { header: "studioId", key: "studioId", width: 10 },
+        { header: "Studio_Name", key: "studioName", width: 10 },
+        { header: "Studio_Price_PerHour", key: "studioPricePerHour", width: 10 },
+        { header: "Studio_Address", key: "studioAddress", width: 10 },
+        { header: "Studio_City", key: "studioCity", width: 10 },
+        { header: "Studio_State", key: "studioState", width: 10 },
+        { header: "roomId", key: "roomId", width: 10 },
+        { header: "bookingDate", key: "bookingDate", width: 10 },
+        { header: "bookingTime", key: "bookingTime", width: 10 },
+        { header: "totalPrice", key: "totalPrice", width: 10 },
+        { header: "bookingStatus", key: "bookingStatus", width: 10 },
+        { header: "creationTimeStamp", key: "creationTimeStamp", width: 10 },
+        { header: "type", key: "type", width: 10 },
+      ];
+
+      let counter = 1;
+      await allBookings.forEach((booking) => {
+        booking.s_no = counter;
+        worksheet.addRow(booking);
+        counter++;
+      });
+
+      worksheet.getRow(1).eachCell((cell) => {
+        cell.font = { bold: true };
+      });
     }
 
     const data = await workbook.xlsx
@@ -3744,7 +3761,7 @@ exports.exportBookingData = async (req, res) => {
             { root: `C:/Users/Choira Dev 2/Desktop/studio_api/files` },
             function (err) {
               if (err) {
-                logger.error(err,"Error sending file");
+                logger.error(err, "Error sending file");
               } else {
                 logger.info({
                   status: "success",
@@ -3779,46 +3796,46 @@ async function sendMailToUserAndAdmin(datas) {
   const user_data = await User.findUserByUserId(userId);
   if (user_data) {
 
-      bookingDetails.userName = user_data.fullName
-      bookingDetails.userNumber = user_data.phone
+    bookingDetails.userName = user_data.fullName
+    bookingDetails.userNumber = user_data.phone
 
   } else {
-      const subAdmin_data = await SubAdmin.findSubAdminById(userId)
-      if (subAdmin_data) {
-          bookingDetails.userName = `"${subAdmin_data.firstName} ${subAdmin_data.lastName}`
-          bookingDetails.adminEmail = subAdmin_data.email
+    const subAdmin_data = await SubAdmin.findSubAdminById(userId)
+    if (subAdmin_data) {
+      bookingDetails.userName = `"${subAdmin_data.firstName} ${subAdmin_data.lastName}`
+      bookingDetails.adminEmail = subAdmin_data.email
 
+    } else {
+
+      const admin_data = await Admin.findAdminById(userId)
+      if (admin_data) {
+        bookingDetails.userName = `"${admin_data.firstName} ${admin_data.lastName}`
+        bookingDetails.adminEmail = admin_data.email
       } else {
 
-          const admin_data = await Admin.findAdminById(userId)
-          if (admin_data) {
-              bookingDetails.userName = `"${admin_data.firstName} ${admin_data.lastName}`
-              bookingDetails.adminEmail = admin_data.email
-          } else {
-
-              const owner_data = await Owner.findOwnerByOwnerId(userId)
-              if (owner_data) {
-                  bookingDetails.ownerName = `"${owner_data.firstName} ${owner_data.lastName}`
-                  bookingDetails.ownerEmail = owner_data.email
-              } else {
-                  bookingDetails.userName = "Admin"
-              }
-          }
-
+        const owner_data = await Owner.findOwnerByOwnerId(userId)
+        if (owner_data) {
+          bookingDetails.ownerName = `"${owner_data.firstName} ${owner_data.lastName}`
+          bookingDetails.ownerEmail = owner_data.email
+        } else {
+          bookingDetails.userName = "Admin"
+        }
       }
+
+    }
   }
   const studioData = await Studio.findStudioById(studioId)
   if (studioData) {
-      bookingDetails.studioName = studioData.fullName;
-      bookingDetails.studioLocation = studioData.address;
+    bookingDetails.studioName = studioData.fullName;
+    bookingDetails.studioLocation = studioData.address;
 
-      studioData.roomsDetails.map(room => {
-          if (room.roomId === roomId) {
-              bookingDetails.roomName = room.roomName
-              bookingDetails.area = room.area
-              bookingDetails.priceperhour = room.pricePerHour
-          }
-      })
+    studioData.roomsDetails.map(room => {
+      if (room.roomId === roomId) {
+        bookingDetails.roomName = room.roomName
+        bookingDetails.area = room.area
+        bookingDetails.priceperhour = room.pricePerHour
+      }
+    })
   }
   send_mail(bookingDetails)
 }
@@ -3827,71 +3844,71 @@ async function sendMailToUserAndAdmin(datas) {
 cron.schedule("*/10 * * * * *", function () {
   // logger.info("running a task every 10 second");
   Booking.fetchAllBookingsByType(0, 0, 0)
-      .then(bookingsData => {
-          // logger.info(bookingsData.length);
+    .then(bookingsData => {
+      // logger.info(bookingsData.length);
 
-          var currDate = new Date();
-          var mth = currDate.getMonth() + 1;
-          if (mth.toString().length == 1) {
-              mth = "0" + mth.toString();
-          }
-          var dt = currDate.getDate();
-          if (dt.toString().length == 1) {
-              dt = "0" + dt.toString();
-          }
-          var fullDate = currDate.getFullYear() + "-" + mth + "-" + dt;
-          fullDate = new Date(fullDate).getTime();
-          // logger.info(fullDate);
+      var currDate = new Date();
+      var mth = currDate.getMonth() + 1;
+      if (mth.toString().length == 1) {
+        mth = "0" + mth.toString();
+      }
+      var dt = currDate.getDate();
+      if (dt.toString().length == 1) {
+        dt = "0" + dt.toString();
+      }
+      var fullDate = currDate.getFullYear() + "-" + mth + "-" + dt;
+      fullDate = new Date(fullDate).getTime();
+      // logger.info(fullDate);
 
-          var currTotalMin = ((currDate.getHours() * 60) + (currDate.getMinutes()));
-          // logger.info(currTotalMin);
+      var currTotalMin = ((currDate.getHours() * 60) + (currDate.getMinutes()));
+      // logger.info(currTotalMin);
 
-          if (bookingsData.length != 0) {
-              let count = 0;
-              let completedBookings = [];
-              let activeBookings = [];
-              bookingsData = bookingsData.filter(i => i.bookingStatus != 2);
-              if (bookingsData.length != 0) {
-                  bookingsData.forEach(singleBooking => {
-                      count++;
-                      var onlyDate = singleBooking.bookingDate.split('T')[0];
-                      var bDate = new Date(onlyDate).getTime();
-                      if (bDate < fullDate) {
-                          completedBookings.push(singleBooking);
-                      }
-                      else if (bDate == fullDate) {
-                          // logger.info("Same");
-                          var bTotalMin = ((+singleBooking.bookingTime.endTime.split(':')[0]) * 60) + (+singleBooking.bookingTime.endTime.split(':')[1])
-                          // logger.info(bTotalMin);
-                          if (bTotalMin < currTotalMin) {
-                              completedBookings.push(singleBooking);
-                          }
-                          else {
-                              activeBookings.push(singleBooking);
-                          }
-                      }
-                      else {
-                          activeBookings.push(singleBooking);
-                      }
-
-                      if (count == bookingsData.length) {
-                          // logger.info(activeBookings.length,completedBookings.length);
-                          completedBookings.forEach(singleBooking => {
-                              // logger.info(singleBooking._id.toString());
-                              singleBooking.bookingStatus = 1;
-                              const db = getDb();
-                              var o_id = new ObjectId(singleBooking._id.toString());
-
-                              db.collection('bookings').updateOne({ _id: o_id }, { $set: singleBooking })
-                                  .then(resultData => {
-                                      logger.info("Updated");
-                                  })
-                          });
-                      }
-                  })
+      if (bookingsData.length != 0) {
+        let count = 0;
+        let completedBookings = [];
+        let activeBookings = [];
+        bookingsData = bookingsData.filter(i => i.bookingStatus != 2);
+        if (bookingsData.length != 0) {
+          bookingsData.forEach(singleBooking => {
+            count++;
+            var onlyDate = singleBooking.bookingDate.split('T')[0];
+            var bDate = new Date(onlyDate).getTime();
+            if (bDate < fullDate) {
+              completedBookings.push(singleBooking);
+            }
+            else if (bDate == fullDate) {
+              // logger.info("Same");
+              var bTotalMin = ((+singleBooking.bookingTime.endTime.split(':')[0]) * 60) + (+singleBooking.bookingTime.endTime.split(':')[1])
+              // logger.info(bTotalMin);
+              if (bTotalMin < currTotalMin) {
+                completedBookings.push(singleBooking);
               }
-          }
-      })
+              else {
+                activeBookings.push(singleBooking);
+              }
+            }
+            else {
+              activeBookings.push(singleBooking);
+            }
+
+            if (count == bookingsData.length) {
+              // logger.info(activeBookings.length,completedBookings.length);
+              completedBookings.forEach(singleBooking => {
+                // logger.info(singleBooking._id.toString());
+                singleBooking.bookingStatus = 1;
+                const db = getDb();
+                var o_id = new ObjectId(singleBooking._id.toString());
+
+                db.collection('bookings').updateOne({ _id: o_id }, { $set: singleBooking })
+                  .then(resultData => {
+                    logger.info("Updated");
+                  })
+              });
+            }
+          })
+        }
+      }
+    })
 });
 
 
