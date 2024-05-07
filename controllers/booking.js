@@ -570,8 +570,8 @@ exports.createServiceBooking = async (req, res, next) => {
     //     return res.status(400).json({ errors: errors.array() });
     // }
 
-      const { userId, serviceId, planId, bookingDate, bookingTime, totalPrice, serviceType, countryCode } = req.body;
-      const bookingStatus = 0;
+    const { userId, serviceId, planId, bookingDate, bookingTime, totalPrice, serviceType, countryCode } = req.body;
+    const bookingStatus = 0;
 
     bookingTime.startTime = convertTo24HourFormat(bookingTime.startTime);
     bookingTime.endTime = convertTo24HourFormat(bookingTime.endTime);
@@ -591,10 +591,9 @@ exports.createServiceBooking = async (req, res, next) => {
       return res.status(200).json({ status: false, message: "Something went wrong, Try again later" });
     }
 
-    if (ExistingServiceData.length) {
+    if (ExistingServiceData.length && ExistingServiceData.bookingStatus == 0) {
       logger.info("ExistingServiceData:", ExistingServiceData);
       console.log({ userId: userId, studioId: serviceId, roomId: planId, type: serviceType });
-      console.log("=============================bbbbbser");
       const res_1 = await Service.updateOneRecord({ userId: userId, studioId: serviceId, roomId: +planId, type: serviceType }, { bookingStatus: 0 })
       console.log("res===");
       console.log(res_1);
@@ -606,14 +605,14 @@ exports.createServiceBooking = async (req, res, next) => {
       const bookingData = resultData.ops[0];
       bookingData.totalPrice = bookingData.totalPrice.toFixed(2);
 
-    const title = "Congratulations!!";
-    const message = `Your booking with '${serviceData.fullName}' is confirmed`;
-    const myJSONObject = {
-      "app_id": process.env.ONE_SIGNAL_APP_ID,
-      "include_player_ids": [userDeviceId],
-      "data": {},
-      "contents": { "en": `${title}\n${message}` }
-    };
+      const title = "Congratulations!!";
+      const message = `Your booking with '${serviceData.fullName}' is confirmed`;
+      const myJSONObject = {
+        "app_id": process.env.ONE_SIGNAL_APP_ID,
+        "include_player_ids": [userDeviceId],
+        "data": {},
+        "contents": { "en": `${title}\n${message}` }
+      };
 
       const result = await axios.post("https://onesignal.com/api/v1/notifications", myJSONObject, {
           headers: {
@@ -2795,7 +2794,8 @@ exports.getServiceBookings = async (req, res) => {
         type: "$type",
         bookingDate: "$bookingDate",
         package: { $arrayElemAt: ["$service.packages", 0] },
-        bookingStatus: "$bookingStatus"
+        bookingStatus: "$bookingStatus",
+        countryCode: "$countryCode"
       }
     }
   ];

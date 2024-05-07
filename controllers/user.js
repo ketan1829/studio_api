@@ -242,6 +242,7 @@ exports.loginUserOTP = async (req, res, next) => {
     const userData = await User.findUserByPhone(phoneNumber,1,false);
 
     logger.info("DATA::::", userData);
+    // console.log("DATA::::", userData);
 
     let statusInfo = { status: false, message: "something went wrong" };
 
@@ -295,7 +296,7 @@ exports.loginUserOTP = async (req, res, next) => {
 
       }
       // New User
-      if (!userData) {
+      if (!userData || userData?.status == 0) {
         console.log("new user=======");
         sendOTP(phoneNumber, otp)
         statusInfo.otp = otp;
