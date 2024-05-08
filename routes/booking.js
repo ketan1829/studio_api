@@ -161,6 +161,8 @@ router.post('/bookings/service/create',auth.isAdminOrOwnerOrUser,controller.crea
  */
 router.post('/bookings/availability-check',auth.isAdminOrOwnerOrUser,controller.getStudioAvailabilities);
 
+router.post('/bookings/availability-check2',auth.isAdminOrOwnerOrUser,controller.getStudioAvailabilitiesTEST);
+
 /**
 * @swagger
 * /bookings/graph:

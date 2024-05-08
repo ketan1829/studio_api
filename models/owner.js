@@ -63,6 +63,13 @@ class Owner
             .catch(err=>console.log(err));
     }
 
+    static async fetchAllOwnersByAggregate(pipeline)
+    {
+        const db = getDb();
+        let result = await db.collection('owners').aggregate(pipeline).toArray()
+        return result;
+    }
+
 }
 
 

@@ -1,4 +1,4 @@
-const {BOOKING_SUCCESS_ADMIN} = require('./mailTemplates/mail-template.js')
+const {BOOKING_SUCCESS_ADMIN,WELCOME_TEMPLATE} = require('./mailTemplates/mail-template.js')
 const { google } = require('googleapis')
 const OAuth2 = google.auth.OAuth2
 const nodemailer = require('nodemailer')
@@ -42,6 +42,40 @@ exports.send_mail = function (bookingDetails) {
     })
 }
 
+exports.sendRegisterMail = async function(userdata){
+
+    const accessToken = OAuth2_client.getAccessToken()
+
+    const transport = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            type: 'OAuth2',
+            user: process.env.user,
+            clientId: process.env.clientId,
+            clientSecret: process.env.clientSecret,
+            refreshToken: process.env.refreshToken,
+            accessToken: accessToken
+        }
+    })
+
+    const mail_options = {
+        from: `Choira <${process.env.user}>`,
+        to: ["nitin.goswami@choira.io","ketan.salvi@choira.io","support@choira.io"],
+        subject: 'New User Registered !',
+        html: WELCOME_TEMPLATE(userdata)
+    }
+
+
+    transport.sendMail(mail_options, function (error, result) {
+        if (error) {
+            console.log('Error: ', error)
+        } else {
+            console.log('Success: ', result)
+        }
+        transport.close()
+    })
+
+}
 
 exports.sendOTP = async function (phoneNumber, otp) {
     try {

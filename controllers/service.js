@@ -111,6 +111,7 @@ exports.createNewService = async (req, res, next) => {
     const featuredReviews = req.body.starredReviews;
     const type = req.body.type || "c2";
     const isActive = [0,1,2].includes(req.body.isActive) ? req.body.isActive:1;
+    let pricing = {};
     console.log(packages.length);
     if(packages.length < 1){
       return res.status(400).json({
@@ -143,18 +144,20 @@ exports.createNewService = async (req, res, next) => {
       reviews,
       featuredReviews,
       isActive,
-      type
+      type,
+      pricing
     );
     // saving in database
     return serviceObj
       .save()
-      .then((resultData) => {
+      .then(async(resultData) => {
         if (resultData.status == false) {
           return res.json({
             status: 400,
             message: resultData.message,
           });
         }
+         await Service.minStartPrice(resultData._id) // this caluculate minimum price and update the pricing field
         return res.json({
           status: true,
           message: "Service added successfully",
@@ -171,6 +174,8 @@ exports.createNewService = async (req, res, next) => {
 };
 
 exports.getServices = (req, res, next) => {
+
+  
 
   // const { serviceName, startingPrice, offerings, TotalServices, avgReview, serviceId } = req.query;
   const filter = pick(req.query, ['serviceType', 'active', 'serviceName', 'startPrice','endPrice','planId','TotalServices'])
