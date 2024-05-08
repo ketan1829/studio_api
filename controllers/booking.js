@@ -2704,7 +2704,7 @@ exports.getAllBookings = async (req, res, next) => {
     const cancelledBookings = bookingsData.filter(booking => booking.bookingStatus === 2);
 
     let bookingsstatus_wise = [];
-    bookingsstatus_wise = bookingsData.filter(booking => booking.bookingStatus === bookingType);
+    bookingsstatus_wise = bookingsData.filter(booking => booking[-1].bookingStatus === bookingType);
 
 
     // return res.json({ status: true, message: "All booking(s) returned", data: bookingsstatus_wise, bookings: { activeBookings, completedBookings, cancelledBookings } });
@@ -2718,6 +2718,7 @@ exports.getAllBookings = async (req, res, next) => {
 // get All Packages/Service Bookings
 exports.getServiceBookings = async (req, res) => {
   const { bookingType, userId, phoneNumber, active } = req.query;
+  console.log("req.query |", req.query);
   const matchStage = {};
 
   if (bookingType) {
@@ -2726,7 +2727,7 @@ exports.getServiceBookings = async (req, res) => {
     matchStage.type = { $in: ["c2", "c3"] };
   }
   if (userId) matchStage.userId = userId;
-  if (active) matchStage.bookingStatus = active;
+  if (active) matchStage.bookingStatus = parseInt(active);
   if (phoneNumber) {
     matchStage["user.phone"] = phoneNumber;
   }
