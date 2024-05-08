@@ -64,6 +64,44 @@ exports.sendOTP = async function (phoneNumber, otp) {
         return { success: false };
     }
 }
+exports.sendOTP2 =  async (req,res)=> {
+    try {
+        let phoneNumber = req.params.phoneNumber
+        const response = await axios.post(`https://control.msg91.com/api/v5/otp`, {
+            params: {template_id: process.env.MSG91_TEMP_ID, mobile: phoneNumber, authkey: process.env.MSG91_AUT_KEY},
+            headers: {'Content-Type': 'application/JSON'}
+        });
+
+        if (response.data.return === true || response.data.message[0] === "SMS sent successfully.") {
+            res.json.status(200).json({ success: true , message :"otp successfully sent" })
+        } else {
+            res.json.status(404).json({ success: false , message :"otp sending failed" })
+        }
+    } catch (error) {
+        console.error("Error sending OTP:", error);
+        res.json.status(404).json({ success: false , message :"otp verification failed" })
+    }
+}
+
+exports.verifyOTP2 = async (req,res)=> {
+        try {
+            let phoneNumber = req.params.phoneNumber
+            let otp = req.params.otp
+            const response = await axios.get(`https://control.msg91.com/api/v5/otp/verify`, {
+                params: {otp:otp, mobile: phoneNumber},
+                headers: {authkey: process.env.MSG91_AUT_KEY}
+            });
+    
+            if (response.data.status >= 200 && response.data.status<300) {
+                res.json.status(200).json({ success: true , message :"otp verified successfully" })
+            } else {
+                res.json.status(404).json({ success: flase , message :"otp verification failed" })
+            }
+        } catch (error) {
+            console.error("Error verifiying OTP:", error);
+            res.json.status(404).json({ success: flase , message :"otp verification failed" })
+        }
+}
 
 exports.addContactBrevo = async function (userData) {
     try {

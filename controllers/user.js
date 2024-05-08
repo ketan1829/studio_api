@@ -19,7 +19,7 @@ const httpStatus = require("http-status");
 var nodemailer = require("nodemailer");
 const { sendOTP, addContactBrevo } = require("../util/mail");
 const { json } = require("express");
-const { logger } = require("../util/logger");
+const { logger, log } = require("../util/logger");
 
 // Sendinblue library\
 // const SibApiV3Sdk = require('sib-api-v3-sdk');
@@ -146,6 +146,7 @@ exports.signupUserV2 = async (req, res, next) => {
 
     logger.info("REGISTER USER DATA", _userData);
 
+
     const user_data = {
       fullName: fullName.trim(),
       dateOfBirth,
@@ -191,8 +192,8 @@ exports.signupUserV2 = async (req, res, next) => {
       creationTimeStamp,
       _id
     }
+
     const token = jwt.sign({ user:user }, "myAppSecretKey");
- 
     // Only add to Brevo if the role is 'user' and it's a new signup
     if (role === "user" && !_userData) {
       await addContactBrevo(userObj);

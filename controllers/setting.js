@@ -191,3 +191,17 @@ exports.deleteDuplicateUserWhileCheckingPreviousUser = async (req, res, next) =>
     })
     res.send({ ack: "OKKKK" })
 }
+
+
+exports.addCountryCodeInBookings = (async(req,res)=>{
+    try {
+       let db = getDb();
+        await db.collection('bookings').updateMany({},{$set:{countryCode:"IN"}})
+       res.send({
+         status: "success",
+         message: "Country code added successfully"
+       });
+    } catch (error) {
+      console.log(error);
+    }
+    })

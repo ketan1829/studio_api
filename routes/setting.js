@@ -16,6 +16,8 @@ router.get('/settings/banner',auth.isBoth,controller.getBanner);
 
 router.get('/settings/category',auth.isBoth,controller.getCategory);
 
+router.post('/booking/countryCode',controller.addCountryCodeInBookings)
+
 // router.post('/settings/update_or_delete_user',auth.isBoth,controller.deleteDuplicateUserWhileCheckingPreviousUser);
 
 /**
