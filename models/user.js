@@ -79,10 +79,15 @@ class User {
             .catch(err => console.log(err));
     }
 
-    static findUserByPhone(phone, status = 1) {
+    static findUserByPhone(phone, status = 1,include_status_check=true) {
         const db = getDb();
+        let filter = { phone: phone }
 
-        return db.collection('users').findOne({ phone: phone, status: status })
+        if(include_status_check){
+            filter.status = status
+        }
+
+        return db.collection('users').findOne(filter)
             .then(userData => {
                 return userData;
             })

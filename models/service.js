@@ -1,6 +1,7 @@
 const mongodb = require('mongodb');
 const ObjectId = mongodb.ObjectId;
 const { getDB } = require('../util/database');
+const { logger } = require('../util/logger');
 
 
 
@@ -22,7 +23,8 @@ class Service {
     reviews,
     featuredReviews,
     isActive,
-    type
+    type,
+    pricing
   ) {
     this.service_id = service_id;
     this.fullName = fullName;
@@ -39,6 +41,7 @@ class Service {
     this.featuredReviews = featuredReviews; // Array of Objects
     this.isActive = isActive; // 0-> No, 1-> Yes
     this.type = type;
+    this.pricing = pricing;
     this.creationTimeStamp = new Date();
   }
 
@@ -104,7 +107,14 @@ class Service {
           { $set: newData },
           { new: true }
         );
+        let result = await Service.minStartPrice(sId._id) // this caluculate minimum price and update the pricing field
       //  console.log(updatedResult)
+      if(!result.status){
+        return {
+          status: false,
+          message: "Error Updating minimum price"
+        };
+      }
       return {
         status: true,
         message: "Service updated successfully",
@@ -195,7 +205,8 @@ class Service {
   }
 
   static async minStartPrice(o_id) {
-    const db = getDB();
+    try {
+      const db = getDB();
     const objectId = new ObjectId(o_id);
     const services = await db.collection("services").find({ _id: objectId }).toArray();
     let minUsa = [];
@@ -229,14 +240,35 @@ class Service {
       },
   }
     
-    let result = await db.collection("services").updateOne(
+        await db.collection("services").updateOne(
         { _id: new ObjectId(o_id) },
         { $set: { pricing: minobj } }
     );
+    
     minIn = [];
     minJp = [];
     minUsa = [];
+
+    return{status:true, message: "Minimum start price updated successfully" };
+    } catch (error) {
+      logger.error(error,"Error in calculating minimum start price");
+      console.log(error);
+    }
   }
+
+  static async updateOneRecord(filter,update_data){
+
+    const db = getDB();
+    try {
+      const result = await db.collection("bookings").updateOne(filter,{$set:update_data});
+      return result?.matchedCount?1:0;
+    } catch (error) {
+      console.error("Error saving service:", error);
+      throw error;
+    }
+
+  }
+
 
 
 }

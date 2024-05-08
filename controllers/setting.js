@@ -21,6 +21,7 @@ const ObjectId = mongodb.ObjectId;
 
 
 exports.addPricingInServicePackage = async(req, res)=>{
+
     try {
         const db = getDb();
         const services = await db.collection('services').find().toArray();
@@ -58,6 +59,7 @@ exports.addPricingInServicePackage = async(req, res)=>{
 }
 res.send({status:true, message:"Pricing details updated successfully"})
 }
+
 // exports.addPricingInService = async(req, res)=>{
 //     try {
 //         const db = getDb();

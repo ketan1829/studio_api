@@ -21,6 +21,9 @@ const { sendOTP, addContactBrevo } = require("../util/mail");
 const { json } = require("express");
 const { logger } = require("../util/logger");
 
+const { send_mail } = require("../util/mail.js");
+
+
 // Sendinblue library\
 // const SibApiV3Sdk = require('sib-api-v3-sdk');
 // let defaultClient = SibApiV3Sdk.ApiClient.instance;
@@ -142,7 +145,7 @@ exports.signupUserV2 = async (req, res, next) => {
 
     logger.info({ fullName, dateOfBirth, email, phoneNumber, deviceId });
 
-    let _userData = await User.findUserByPhone(phoneNumber, 0);
+    let _userData = await User.findUserByPhone(phoneNumber, 0, false);
 
     logger.info("REGISTER USER DATA", _userData);
 
@@ -167,7 +170,7 @@ exports.signupUserV2 = async (req, res, next) => {
 
     const userObj = new User(user_data);
 
-    if (_userData) {
+    if (_userData && _userData?.status==0) {
       const updated_user_data = {
         fullName: fullName.trim(),
         dateOfBirth,
@@ -178,28 +181,49 @@ exports.signupUserV2 = async (req, res, next) => {
         role: role || "user",
         status: 1
       }
+      userObj._id = _userData._id;
       const udata = await User.update(phoneNumber, updated_user_data)
-      console.log(udata?`udata count:${udata?.matchedCount}`:"nottttt");
+      console.log(udata ? `udata count:${udata?.matchedCount}` : "nottttt");
     } else {
-      // If user does not exist, create a new user
-      await userObj.save();
-    }
-    const {_id,creationTimeStamp} = await User.findUserByPhone(phoneNumber);
-  
-    let user = {
-      ...user_data,
-      creationTimeStamp,
-      _id
-    }
-    const token = jwt.sign({ user:user }, "myAppSecretKey");
- 
-    // Only add to Brevo if the role is 'user' and it's a new signup
-    if (role === "user" && !_userData) {
-      await addContactBrevo(userObj);
-      logger.info("Added to Brevo");
+
+      let _userData_active = await User.findUserByPhone(phoneNumber, 1);
+      if (_userData_active) {
+
+        const updated_user_data = {
+          fullName: fullName.trim(),
+          dateOfBirth,
+          email,
+          phone: phoneNumber,
+          userType: userType || "NUMBER",
+          deviceId,
+          role: role || "user",
+          status: 1
+        }
+        const udata = await User.update(phoneNumber, updated_user_data)
+        console.log(udata ? `udata count:${udata?.matchedCount}` : "nottttt");
+
+      }else{
+
+        // If user does not exist, create a new user
+        await userObj.save();
+        const {_id,creationTimeStamp} = await User.findUserByPhone(phoneNumber);
+        userObj._id = _id
+        userObj.creationTimeStamp = creationTimeStamp
+        
+        // console.log("savedUser._id:", savedUser._id)
+        if (role === "user") {
+          // Only add to Brevo if the role is 'user' and it's a new signup
+          await addContactBrevo(userObj);
+          console.log("Added to Brevo");
+        }
+      }
+
     }
 
-    return res.json({ status: true, message: "Signup successful", user, token });
+    const token = jwt.sign({ user: userObj }, "myAppSecretKey");
+    
+    // console.log("userObj:", userObj);
+    return res.json({ status: true, message: "Signup successful", user: userObj, token });
 
   } catch (error) {
     console.error("Error in signupUserV2:", error);
@@ -215,9 +239,10 @@ exports.loginUserOTP = async (req, res, next) => {
     logger.info({ phoneNumber, deviceId, userType, role });
 
 
-    const userData = await User.findUserByPhone(phoneNumber);
+    const userData = await User.findUserByPhone(phoneNumber,1,false);
 
     logger.info("DATA::::", userData);
+    // console.log("DATA::::", userData);
 
     let statusInfo = { status: false, message: "something went wrong" };
 
@@ -260,7 +285,7 @@ exports.loginUserOTP = async (req, res, next) => {
           userData.deviceId = deviceId;
           await User.update(phoneNumber, { deviceId: deviceId });
         }
-        const token = await jwt.sign({ user: userData }, secretKey);
+        const token = jwt.sign({ user: userData }, secretKey);
         statusInfo.role = "tester";
         statusInfo.token = token;
         statusInfo.otp = otp;
@@ -271,9 +296,8 @@ exports.loginUserOTP = async (req, res, next) => {
 
       }
       // New User
-      if (!userData) {
+      if (!userData || userData?.status == 0) {
         console.log("new user=======");
-
         sendOTP(phoneNumber, otp)
         statusInfo.otp = otp;
         statusInfo.newUser = true;
@@ -305,7 +329,7 @@ exports.loginUserOTP = async (req, res, next) => {
           userData.deviceId = deviceId;
           await User.update(phoneNumber, { deviceId: deviceId });
         }
-        const token = await jwt.sign({ user: userData }, secretKey);
+        const token = jwt.sign({ user: userData }, secretKey);
         statusInfo.token = token;
         statusInfo.role = "user";
         statusInfo.message = "Welcome back, OTP has been send Succesfully";

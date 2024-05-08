@@ -153,7 +153,9 @@ router.get('/owners/:ownerId',auth.isAdminOrOwner,controller.getParticularOwnerD
 */
 // api/owners                       --  Get all owners
 // api/owners?skip=0&limit=50       --  Get particular range of owners based on skip and limit
-router.get('/owners',auth.isAdmin,controller.getAllOwners);
+router.get('/owners',auth.isAdminV2,controller.getAllOwners);
+
+router.get('/owner',controller.getAllOwnersV2);
 
 /**
 * @swagger
