@@ -2717,7 +2717,7 @@ exports.getAllBookings = async (req, res, next) => {
 
 // get All Packages/Service Bookings
 exports.getServiceBookings = async (req, res) => {
-  const { bookingType, userId, phoneNumber } = req.query;
+  const { bookingType, userId, phoneNumber, active } = req.query;
   const matchStage = {};
 
   if (bookingType) {
@@ -2726,11 +2726,12 @@ exports.getServiceBookings = async (req, res) => {
     matchStage.type = { $in: ["c2", "c3"] };
   }
   if (userId) matchStage.userId = userId;
+  if (active) matchStage.bookingStatus = active;
   if (phoneNumber) {
     matchStage["user.phone"] = phoneNumber;
   }
 
-  matchStage.bookingStatus = 0;
+  // matchStage.bookingStatus = 0;
 
 
   const db = getDb();
