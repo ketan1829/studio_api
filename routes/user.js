@@ -1086,6 +1086,11 @@ router.get('/get-user-nearby-location',controller.getUserNearyByLocations)
 router.get('/userData/exports',auth.isAdmin,controller.exportUserData)
 
 
+router.post('/sendOtp',controller.sendOTP2)
+
+router.get('/verifyOtp',controller.verifyOTP2)
+
+
 
 
 module.exports = router;
