@@ -3,6 +3,7 @@ const { google } = require('googleapis')
 const OAuth2 = google.auth.OAuth2
 const nodemailer = require('nodemailer')
 const axios = require("axios");
+const { logger } = require('./logger.js');
 
 
 const OAuth2_client = new OAuth2(process.env.clientId, process.env.clientSecret)
@@ -98,6 +99,44 @@ exports.sendOTP = async function (phoneNumber, otp) {
         return { success: false };
     }
 }
+
+exports.sendOTP2 =  async (phoneNumber)=> {
+    try {
+        const response = await axios.post(`https://control.msg91.com/api/v5/otp`, {
+            params: {template_id: process.env.MSG91_TEMP_ID, mobile: phoneNumber, authkey: process.env.MSG91_AUT_KEY},
+            headers: {'Content-Type': 'application/JSON'}
+        });
+  
+        if (response.data.return === true || response.data.message[0] === "SMS sent successfully.") {
+            return { success: true , message :"otp successfully sent" }
+        } else {
+            return { success: false , message :"otp sending failed" }
+        }
+    } catch (error) {
+        logger.error("Error sending OTP:", error);
+        return { success: false , message :"otp verification failed" }
+    }
+  }
+  
+  exports.verifyOTP2 = async (phoneNumber,otp)=> {
+        try {
+            const response = await axios.get(`https://control.msg91.com/api/v5/otp/verify`, {
+                params: {otp:otp, mobile: phoneNumber},
+                headers: {authkey: process.env.MSG91_AUT_KEY}
+            });
+    
+            if (response.data.status >= 200 && response.data.status<300) {
+                return { success: true , message :"otp verified successfully" }
+            } else {
+                return { success: false , message :"otp verification failed" }
+            }
+        } catch (error) {
+            logger.error(error,"Error verifiying OTP");
+            return { success: false , message :"otp verification failed" }
+        }
+  }
+  
+  
 
 exports.addContactBrevo = async function (userData) {
     try {

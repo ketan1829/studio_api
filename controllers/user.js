@@ -1482,7 +1482,6 @@ exports.exportUserData = async (req, res) => {
 
 exports.sendOTP2 =  async (req,res)=> {
   try {
-
       let phoneNumber = req.params.phoneNumber
       const response = await axios.post(`https://control.msg91.com/api/v5/otp`, {
           params: {template_id: process.env.MSG91_TEMP_ID, mobile: phoneNumber, authkey: process.env.MSG91_AUT_KEY},
