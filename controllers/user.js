@@ -1503,17 +1503,17 @@ exports.sendOTP2 =  async (req,res)=> {
       axios.request(options).then(function (response) {
         console.log("DATA--->",response.data);
         if (response.data.type === 'success') {
-          res.status(200).json({ success: true , message :"otp successfully sent" })
+          res.status(200).json({ status: true , message :"otp successfully sent" })
         } else {
-            res.status(404).json({ success: false , message :"otp sending failed" })
+            res.status(404).json({ status: false , message :"otp sending failed" })
         }
         }).catch(function (error) {
           console.error("Error sending OTP:", error);
-          res.status(404).json({ success: false , message :"otp verification failed" })
+          res.status(404).json({ status: false , message :"otp verification failed" })
         });
   } catch (error) {
       console.error("Error sending OTP:", error);
-      res.status(404).json({ success: false , message :"otp verification failed" })
+      res.status(404).json({ status: false , message :"otp verification failed" })
   }
 }
 
@@ -1533,7 +1533,7 @@ exports.verifyOTP = async (req,res)=> {
       }
   } catch (error) {
       logger.info(error,"Error verifiying OTP" );
-      res.status(404).json({ success: flase , message :"otp verification failed" })
+      res.status(404).json({ status: flase , message :"otp verification failed" })
   }
 }
 

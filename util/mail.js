@@ -118,17 +118,17 @@ exports.sendMsg91OTP =  async (phoneNumber, otp)=> {
         axios.request(options).then(function (response) {
           log("DATA--->",response.data);
           if (response.data.type === 'success') {
-            return { success: true }
+            return { status: true }
           } else {
-              return { success: false}
+              return { status: false}
           }
           }).catch(function (error) {
             console.error("Error sending OTP:", error);
-            return { success: false }
+            return { status: false }
           });
     } catch (error) {
         console.error("Error sending OTP:", error);
-        return { success: false }
+        return { status: false }
     }
   }
   
@@ -140,13 +140,13 @@ exports.verifyOTP = async (phoneNumber,otp)=> {
         });
 
         if (response.data.status >= 200 && response.data.status<300) {
-            return { success: true , message :"otp verified successfully" }
+            return { status: true , message :"otp verified successfully" }
         } else {
-            return { success: false , message :"otp verification failed" }
+            return { status: false , message :"otp verification failed" }
         }
     } catch (error) {
         log.error(error,"Error verifiying OTP");
-        return { success: false , message :"otp verification failed" }
+        return { status: false , message :"otp verification failed" }
     }
 }
   
@@ -175,12 +175,12 @@ exports.addContactBrevo = async function (userData) {
         const response = await axios.post('https://api.sendinblue.com/v3/contacts', data, { headers });
 
         if (response) {
-            return { success: true };
+            return { status: true };
         } else {
-            return { success: false };
+            return { status: false };
         }
     } catch (error) {
         console.error("Error sending OTP:", error);
-        return { success: false };
+        return { status: false };
     }
 }
