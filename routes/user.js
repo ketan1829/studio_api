@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/user');
+const {verifyOTP} = require('../util/mail');
+
 
 const serverName = `${process.env.SERVER_NAME}/download/`;
 
@@ -837,9 +839,9 @@ router.get('/users/graph',auth.isAdmin,controller.getAllUsersGraphDetails);
 
 
 //---------------sending and verifying otp for user, using msg91 ----------------
-router.post('/users/sendOtp',controller.sendOTP2)
+router.post('/users/send-otp',controller.sendOTP2)
 
-router.get('/users/verifyOtp',controller.verifyOTP2)
+router.get('/users/verify-otp',controller.verifyOTP)
 //--------------------------------------------------------
 
 
