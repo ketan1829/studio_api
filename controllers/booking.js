@@ -2727,6 +2727,7 @@ exports.getServiceBookings = async (req, res) => {
     matchStage.type = { $in: ["c2", "c3"] };
   }
   if (userId) matchStage.userId = userId;
+
   if (active) matchStage.bookingStatus = parseInt(active);
   if (phoneNumber) {
     matchStage["user.phone"] = phoneNumber;

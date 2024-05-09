@@ -835,6 +835,14 @@ router.post('/users/toggle-favourite',auth.isUser,controller.addRemoveUserFavour
 */
 router.get('/users/graph',auth.isAdmin,controller.getAllUsersGraphDetails);
 
+
+//---------------sending and verifying otp for user, using msg91 ----------------
+router.post('/users/sendOtp',controller.sendOTP2)
+
+router.get('/users/verifyOtp',controller.verifyOTP2)
+//--------------------------------------------------------
+
+
 /**
  * @swagger
  * /users/{userId}/favourites:
@@ -945,6 +953,9 @@ router.get('/users/:userId/delete',auth.isBoth,controller.deleteParticularUser);
  */
  router.get('/users/:userId',controller.getParticularUserDetails);
  router.delete('/users/:userId',controller.deleteParticularUser);
+
+
+
 
 /**
  * @swagger
@@ -1084,6 +1095,9 @@ router.get('/dashboard-counts',controller.getAllDashboardCount);
 router.get('/get-user-nearby-location',controller.getUserNearyByLocations)
 
 router.get('/userData/exports',auth.isAdmin,controller.exportUserData)
+
+
+
 
 
 
