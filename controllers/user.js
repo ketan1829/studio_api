@@ -1526,10 +1526,10 @@ exports.verifyOTP = async (req,res)=> {
           headers: {authkey: process.env.MSG91_AUT_KEY}
       });
       console.log("response.data-->", response);
-      if (response.status == 200) {
-          res.status(200).json({ success: true , message :response.data.message })
+      if (response.status == 200 && response.data.type == "success") {
+          res.status(200).json({ status: true , message :response.data.message })
       } else {
-          res.status(404).json({ success: false , message :response.data.message })
+          res.status(404).json({ status: false , message :response.data.message })
       }
   } catch (error) {
       logger.info(error,"Error verifiying OTP" );

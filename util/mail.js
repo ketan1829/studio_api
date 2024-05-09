@@ -120,7 +120,7 @@ exports.sendMsg91OTP =  async (phoneNumber, otp)=> {
           if (response.data.type === 'success') {
             return { success: true }
           } else {
-              res.status(404).json({ success: false , message :"otp sending failed" })
+              return { success: false}
           }
           }).catch(function (error) {
             console.error("Error sending OTP:", error);
