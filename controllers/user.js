@@ -1533,7 +1533,7 @@ exports.verifyOTP = async (req,res)=> {
       }
   } catch (error) {
       logger.info(error,"Error verifiying OTP" );
-      res.status(404).json({ status: flase , message :"otp verification failed" })
+      res.status(404).json({ status: false , message :"otp verification failed" })
   }
 }
 
