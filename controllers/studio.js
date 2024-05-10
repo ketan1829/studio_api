@@ -124,8 +124,8 @@ exports.getStudios = async (req, res, next) => {
 
   console.log("body---studios-all");
 
-  logger.info("body---", req.body);
-  logger.info("body---", req.query);
+
+  logger.info({"body---": req.query});
 
   var {
     city,

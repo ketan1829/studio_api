@@ -233,81 +233,95 @@ router.post('/studios/dashboard-filter',controller.getDashboardStudios);
  * @swagger
  * /studios:
  *   get:
- *     summary: Get All/ NearBy studios based on various parameters
+ *     summary: Get all/nearby studios based on various parameters
  *     tags: [Studios]
  *     parameters:
- *       - in : query
+ *       - in: query
  *         name: skip
- *         description: paginated page
+ *         description: Paginated page
  *         required: false
- *       - in : query
+ *       - in: query
  *         name: limit
- *         description: limitCount
+ *         description: Limit count
  *         required: false
- *       - in : query
+ *       - in: query
  *         name: city
- *         description: city filter on studio
+ *         description: City filter on studios
  *         required: false
- *       - in : query
+ *       - in: query
  *         name: state
- *         description: state filter on studio
+ *         description: State filter on studios
  *         required: false
- *       - in : query
+ *       - in: query
  *         name: minArea
- *         description: minArea filter on studio
+ *         description: Minimum area filter on studios
  *         required: false
- *       - in : query
+ *       - in: query
  *         name: minPricePerHour
- *         description: minPricePerHour filter on studio
+ *         description: Minimum price per hour filter on studios
  *         required: false
- *       - in : query
+ *       - in: query
+ *         name: maxPricePerHour
+ *         description: Maximum price per hour filter on studios
+ *         required: false
+ *       - in: query
  *         name: amenity
- *         description: amenity filter on studio
+ *         description: Amenity filter on studios
  *         required: false
- *       - in : query
+ *       - in: query
  *         name: availabilityDay
- *         description: availabilityDay filter on studio
+ *         description: Availability day filter on studios
  *         required: false
- *       - in : query
+ *       - in: query
  *         name: latitude
- *         description: latitude filter on studio
+ *         description: Latitude filter on studios
  *         required: false
- *       - in : query
+ *       - in: query
  *         name: longitude
- *         description: longitude filter on studio
+ *         description: Longitude filter on studios
  *         required: false
- *       - in : query
+ *       - in: query
  *         name: range
- *         description: range filter on studio
+ *         description: Range filter on studios
  *         required: false
- *       - in : query
+ *       - in: query
  *         name: studioId
- *         description: studioId filter on studio
+ *         description: Studio ID filter on studios
  *         required: false
- *       - in : query
+ *       - in: query
  *         name: searchText
- *         description: searchText filter on studio
+ *         description: Search text filter on studios
+ *         required: false
+ *       - in: query
+ *         name: active
+ *         description: Active filter on studios
+ *         required: false
+ *       - in: query
+ *         name: creationTimeStamp
+ *         description: Creation timestamp filter on studios
+ *         required: false
+ *       - in: query
+ *         name: totalRooms
+ *         description: Total rooms filter on studios
  *         required: false
  *     requestBody:
- *       description: | 
- *          #
- *          city, state, minArea, minPricePerHour, amenity, availabilityDay, latitude, longitude, range, active, studioId, searchText,skip and Limit are optional Query Params
- *          #
+ *       description: |
  *          (First admin login is needed to generate token, then use "AUTHORIZE" button above to validate)
  *     responses:
  *       200:
- *         description: The post was successfully created
+ *         description: Studios successfully retrieved
  *         content:
  *           application/json:
- *               example : 
- *                 status : true
- *                 message : "All studios returned"
- *                 studios : []
+ *             example:
+ *               status: true
+ *               message: All studios returned
+ *               studios: []
  *       401:
  *         description: Unauthorized, token required
  *       500:
- *         description: Some server error, enter valid mongo object ID
+ *         description: Server error, enter a valid MongoDB Object ID
  */
+
 
 // api/studios                       --  Get all studios
 // api/studios?skip=0&limit=50       --  Get particular range of studios based on skip and limit
@@ -362,6 +376,97 @@ router.get('/studios',auth.isBoth,controller.getAllStudios);
 
 // router.get('/all-states',controller.getAllStates);
 
+
+/**
+ * @swagger
+ * /studios/{studioId}:
+ *   patch:
+ *     summary: Update studio details
+ *     tags: [Studios]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: studioId
+ *         required: true
+ *         description: ID of the studio to update
+ *         schema:
+ *           type: string
+ *       - in: header
+ *         name: Authorization
+ *         required: true
+ *         description: Bearer token for authentication
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fullName:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *               latitude:
+ *                 type: string
+ *               longitude:
+ *                 type: string
+ *               mapLink:
+ *                 type: string
+ *               city:
+ *                 type: string
+ *               state:
+ *                 type: string
+ *               area:
+ *                 type: number
+ *               pincode:
+ *                 type: string
+ *               pricePerHour:
+ *                 type: number
+ *               amenities:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *               totalRooms:
+ *                 type: number
+ *               roomsDetails:
+ *                 type: array
+ *               maxGuests:
+ *                 type: number
+ *               studioPhotos:
+ *                 type: array
+ *               aboutUs:
+ *                 type: string
+ *               teamDetails:
+ *                 type: array
+ *     responses:
+ *       200:
+ *         description: Studio details updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: boolean
+ *                 message:
+ *                   type: string                     
+ *                 studio:
+ *                   {}
+ *       400:
+ *         description: Bad request, check request body parameters
+ *       401:
+ *         description: Unauthorized, authentication token missing or invalid
+ *       404:
+ *         description: Studio with the provided ID not found
+ *       500:
+ *         description: Internal server error, something went wrong
+ */
 router.patch('/studios/:studioId',auth.isAdminOrOwner,controller.editStudioDetails);
 
 /**
@@ -475,6 +580,75 @@ router.post('/studios/date-filter',auth.isAdminOrOwner,controller.getStudiosByDa
 // /studios/filter/data
 router.get('/studios/filter/data',controller.getStudiosFiltersData);
 
+
+/**
+ * @swagger
+ * /exportStudiosData:
+ *   get:
+ *     summary: Export studio data to a file
+ *     tags: [Studios]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: city
+ *         description: City filter
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: state
+ *         description: State filter
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: sort
+ *         description: Sorting option
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: limit
+ *         description: Limit of studios per page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: startDate
+ *         description: Start date filter
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: endDate
+ *         description: End date filter
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: page
+ *         description: Page number
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: sortfield
+ *         description: Field to sort by
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: sortvalue
+ *         description: Sort value
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Studio data exported successfully
+ *       400:
+ *         description: Bad request, check request parameters
+ *       401:
+ *         description: Unauthorized, authentication token missing or invalid
+ *       500:
+ *         description: Internal server error, something went wrong
+ *     requestBody:
+ *       required: false
+ */
 router.get('/exportStudiosData',auth.isAdminV2,controller.exportStudioData)
 
 

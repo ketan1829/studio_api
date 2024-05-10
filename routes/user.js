@@ -839,8 +839,76 @@ router.get('/users/graph',auth.isAdmin,controller.getAllUsersGraphDetails);
 
 
 //---------------sending and verifying otp for user, using msg91 ----------------
+
+
+
+/**
+ * @swagger
+ * /users/send-otp:
+ *   post:
+ *     summary: Send otp to user
+ *     tags: [Users]
+ *     requestBody:
+ *       description: |
+ *       phoneNumber: string
+ *       content:
+ *         application/json:
+ *           schema:
+ *             phoneNumber: string
+ *             otp: string
+ *           example : 
+ *             phoneNumber: "987654321"
+ *             otp: "5634"
+ *     responses:
+ *       200:
+ *         description: Otp sent to user
+ *         content:
+ *           application/json:
+ *               example : 
+ *                 status : true
+ *                 message : "otp successfully sent"
+ *       400:
+ *         description: Bad Request
+ *       404:
+ *         description: otp sending failed
+ *       500:
+ *         description: Some server error
+ */
 router.post('/users/send-otp',controller.sendOTP2)
 
+
+/**
+ * @swagger
+ * /users/verify-otp:
+ *   get:
+ *     summary: Verify otp of user
+ *     tags: [Users]
+ *     requestBody:
+ *       description: |
+ *       phoneNumber: string
+ *       content:
+ *         application/json:
+ *           schema:
+ *             phoneNumber: string
+ *             otp: string
+ *           example : 
+ *             phoneNumber: "987654321"
+ *             otp: "5634"
+ *     responses:
+ *       200:
+ *         description: otp of a user is verified
+ *         content:
+ *           application/json:
+ *               example : 
+ *                 status : true
+ *                 message : "otp verification successfully "
+ *       400:
+ *         description: Bad Request
+ *       404:
+ *         description: ootp verification failed
+ *       500:
+ *         description: Some server error
+ */
 router.get('/users/verify-otp',controller.verifyOTP)
 //--------------------------------------------------------
 
@@ -954,7 +1022,7 @@ router.get('/users/:userId/delete',auth.isBoth,controller.deleteParticularUser);
  *         description: Some server error, enter valid mongo object ID
  */
  router.get('/users/:userId',controller.getParticularUserDetails);
- router.delete('/users/:userId',controller.deleteParticularUser);
+//  router.delete('/users/:userId',controller.deleteParticularUser);
 
 
 
@@ -1092,11 +1160,93 @@ router.post('/upload-multiple-images',(req,res,next)=>{
 *       500:
 *         description: Some server error, enter valid mongo object ID
 */
-router.get('/dashboard-counts',controller.getAllDashboardCount);
+router.get('/dashboard-counts',auth.isAdminV2,controller.getAllDashboardCount);
+
+
+/**
+ * @swagger
+ * /userData/exports:
+ *   get:
+ *     summary: Export user data to an Excel file
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: dateOfBirth
+ *         description: Date of birth filter
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: userType
+ *         description: User type filter
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: role
+ *         description: Role filter
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: sort
+ *         description: Sorting option
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: limit
+ *         description: Limit of users per page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: gender
+ *         description: Gender filter
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: startDate
+ *         description: Start date filter
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: endDate
+ *         description: End date filter
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: page
+ *         description: Page number
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: sortfield
+ *         description: Field to sort by
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: sortvalue
+ *         description: Sort value
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: User data exported successfully
+ *       400:
+ *         description: Bad request, check request parameters
+ *       401:
+ *         description: Unauthorized, authentication token missing or invalid
+ *       500:
+ *         description: Internal server error, something went wrong
+ *     requestBody:
+ *       required: false
+ */
+router.get('/userData/exports',auth.isAdminV2,controller.exportUserData)
 
 router.get('/get-user-nearby-location',controller.getUserNearyByLocations)
 
-router.get('/userData/exports',auth.isAdmin,controller.exportUserData)
+
 
 
 

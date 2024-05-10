@@ -433,6 +433,70 @@ router.get('/bookings/studio/:studioId',auth.isAdminOrOwner,controller.getAllBoo
 */
 router.post('/bookings/date-filter',auth.isAdminOrOwner,controller.getBookingsByDate);
 
+
+/**
+ * @swagger
+ * /exportBookingData:
+ *   get:
+ *     summary: Export booking data to a file
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         description: Type of booking (service or studio)
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: sort
+ *         description: Sorting option
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: limit
+ *         description: Limit of bookings per page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: startDate
+ *         description: Start date filter
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: endDate
+ *         description: End date filter
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: page
+ *         description: Page number
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: sortfield
+ *         description: Field to sort by
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: sortvalue
+ *         description: Sort value
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Booking data exported successfully
+ *       400:
+ *         description: Bad request, check request parameters
+ *       401:
+ *         description: Unauthorized, authentication token missing or invalid
+ *       500:
+ *         description: Internal server error, something went wrong
+ *     requestBody:
+ *       required: false
+ */
 router.get('/exportBookingData',auth.isAdminV2,controller.exportBookingData)
 
 

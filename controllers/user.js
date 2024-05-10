@@ -1509,11 +1509,11 @@ exports.sendOTP2 =  async (req,res)=> {
         }
         }).catch(function (error) {
           console.error("Error sending OTP:", error);
-          res.status(404).json({ status: false , message :"otp verification failed" })
+          res.status(404).json({ status: false , message :"otp sending failed" })
         });
   } catch (error) {
       console.error("Error sending OTP:", error);
-      res.status(404).json({ status: false , message :"otp verification failed" })
+      res.status(404).json({ status: false , message :"otp sending failed" })
   }
 }
 
