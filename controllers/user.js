@@ -324,14 +324,14 @@ exports.loginUserOTP = async (req, res, next) => {
       // Existing User Login
       else {
         console.log("ELESEEEE");
-        sendOTP(phoneNumber, otp)
+        userData?.role == "user" ?? sendOTP(phoneNumber, otp)
         if (deviceId) {
           userData.deviceId = deviceId;
           await User.update(phoneNumber, { deviceId: deviceId });
         }
         const token = jwt.sign({ user: userData }, secretKey);
         statusInfo.token = token;
-        statusInfo.role = "user";
+        statusInfo.role = userData.role || "user";
         statusInfo.message = "Welcome back, OTP has been send Succesfully";
         statusInfo.newUser = false;
         statusInfo.status = true;
