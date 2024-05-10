@@ -1525,11 +1525,11 @@ exports.verifyOTP = async (req,res)=> {
           params: {otp:otp, mobile: phoneNumber},
           headers: {authkey: process.env.MSG91_AUT_KEY}
       });
-      console.log("response.data-->", response);
+      console.log("response.data-->", response.data.message,response.data.type);
       if (response.status == 200 && response.data.type == "success") {
           res.status(200).json({ status: true , message :response.data.message })
       } else {
-          res.status(404).json({ status: false , message :response.data.message })
+          res.status(200).json({ status: false , message :response.data.message })
       }
   } catch (error) {
       logger.info(error,"Error verifiying OTP" );
