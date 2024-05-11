@@ -2834,7 +2834,7 @@ exports.updateServiceBooking = async (req, res) => {
 
 exports.deleteBooking = async (req, res) => {
 
-  console.log("DEDDDDDDDD");
+  // console.log("DEDDDDDDDD");
   const { bookingId } = req.body;
 
   if (!bookingId) {

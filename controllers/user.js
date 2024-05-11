@@ -293,8 +293,9 @@ exports.loginUserOTP = async (req, res, next) => {
         statusInfo.newUser = false;
         statusInfo.status = true;
         statusInfo.user = userData;
+        statusInfo.role = "tester"
         statusInfo.message = "Welcome Tester, OTP has been send Succesfully.";
-
+        return res.status(200).json(statusInfo);
       }
       // New User
       if (!userData || userData?.status == 0) {
@@ -319,26 +320,31 @@ exports.loginUserOTP = async (req, res, next) => {
           "userType": "NUMBER",
           "favourites": [],
           "deviceId": "",
+          "role": "user"
         };
+        statusInfo.role = "user";
         statusInfo.message = "OTP has been send Succesfully";
+        return res.status(200).json(statusInfo);
       }
       // Existing User Login
       else {
         console.log("ELESEEEE");
         // sendOTP(phoneNumber, otp)
-        sendMsg91OTP(`${countryCode}${phoneNumber}`, otp)
+        userData.role == "user" ?? sendMsg91OTP(`${countryCode}${phoneNumber}`, otp)
         if (deviceId) {
           userData.deviceId = deviceId;
           await User.update(phoneNumber, { deviceId: deviceId });
         }
         const token = jwt.sign({ user: userData }, secretKey);
         statusInfo.token = token;
-        statusInfo.role = "user";
+        statusInfo.role = userData.role || "user";
         statusInfo.message = "Welcome back, OTP has been send Succesfully";
         statusInfo.newUser = false;
         statusInfo.status = true;
         statusInfo.user = userData;
         // statusInfo.otp = otp;
+
+        return res.status(200).json(statusInfo);
       }
     }
     return res.status(200).json(statusInfo);
