@@ -236,7 +236,7 @@ exports.signupUserV2 = async (req, res, next) => {
 
 exports.loginUserOTP = async (req, res, next) => {
   try {
-    const { phoneNumber, deviceId, userType, role, countryCode } = req.body;
+    const { phoneNumber, deviceId, userType, role } = req.body;
 
     logger.info({ phoneNumber, deviceId, userType, role });
 
@@ -301,7 +301,7 @@ exports.loginUserOTP = async (req, res, next) => {
       // New User
       if (!userData || userData?.status == 0) {
         console.log("new user=======");
-        sendMsg91OTP(`${countryCode}${phoneNumber}`, otp)
+        sendMsg91OTP(`$${phoneNumber}`, otp)
         // statusInfo.otp = otp;
         statusInfo.newUser = true;
         statusInfo.status = true;
@@ -331,7 +331,7 @@ exports.loginUserOTP = async (req, res, next) => {
       else {
         console.log("ELESEEEE");
         // sendOTP(phoneNumber, otp)
-        userData.role == "user" ?? sendMsg91OTP(`${countryCode}${phoneNumber}`, otp)
+        userData.role == "user" ?? sendMsg91OTP(`${phoneNumber}`, otp)
         if (deviceId) {
           userData.deviceId = deviceId;
           await User.update(phoneNumber, { deviceId: deviceId });
