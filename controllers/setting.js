@@ -207,13 +207,13 @@ exports.addCountryCodeInBookings = (async(req,res)=>{
       console.log(error);
     }
 })
-exports.addCountryCodeInStudios = (async(req,res)=>{
+exports.addCountryFieldInStudios = (async(req,res)=>{
     try {
        let db = getDb();
         await db.collection('studios').updateMany({},{$set:{country:"IN"}})
        res.send({
          status: "success",
-         message: "Country code added successfully in Studios",
+         message: "Country field added successfully in Studios",
        });
     } catch (error) {
       console.log(error);

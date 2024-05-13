@@ -301,7 +301,7 @@ exports.loginUserOTP = async (req, res, next) => {
       // New User
       if (!userData || userData?.status == 0) {
         console.log("new user=======");
-        sendMsg91OTP(`${countryCode}${phoneNumber}`, otp)
+        sendMsg91OTP(`${phoneNumber}`, otp)
         // statusInfo.otp = otp;
         statusInfo.newUser = true;
         statusInfo.status = true;
