@@ -200,8 +200,9 @@ exports.signupUserV2 = async (req, res, next) => {
           role: role || "user",
           status: 1
         }
+        userObj._id = updated_user_data._id
         const udata = await User.update(phoneNumber, updated_user_data)
-        console.log(udata ? `udata count:${udata?.matchedCount}` : "nottttt");
+        console.log(udata ? `update count:${udata?.matchedCount}` : "update failed");
 
       }else{
 
