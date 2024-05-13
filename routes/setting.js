@@ -20,7 +20,13 @@ router.get('/settings/banner',auth.isBoth,controller.getBanner);
 
 router.get('/settings/category',auth.isBoth,controller.getCategory);
 
-router.post('/booking/countryCode',controller.addCountryCodeInBookings)
+router.post('/settings/booking/AddCountryCode',controller.addCountryCodeInBookings)
+
+router.post('/settings/studios/country',controller.addCountryCodeInStudios)
+
+router.patch('/setting/append', controller.countryCodeBeforPhoneNo)
+
+
 
 // router.post('/settings/update_or_delete_user',auth.isBoth,controller.deleteDuplicateUserWhileCheckingPreviousUser);
 

@@ -155,6 +155,47 @@ router.get('/owners/:ownerId',auth.isAdminOrOwner,controller.getParticularOwnerD
 // api/owners?skip=0&limit=50       --  Get particular range of owners based on skip and limit
 router.get('/owners',auth.isAdminV2,controller.getAllOwners);
 
+/**
+ * @swagger
+ * /owners:
+ *   get:
+ *     summary: Get All Owners
+ *     tags:
+ *       - Owners
+ *     parameters:
+ *       - in: query
+ *         name: skip
+ *         description: Number of records to skip
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *       - in: query
+ *         name: limit
+ *         description: Maximum number of records to return
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *     requestBody:
+ *       description: |
+ *         Skip and Limit are optional query parameters.
+ *         (First admin login is needed to generate token, then use "AUTHORIZE" button above to validate)
+ *     responses:
+ *       200:
+ *         description: All Owners returned
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: true
+ *               message: All Owners returned
+ *               owners: []
+ *       401:
+ *         description: Unauthorized, token required
+ *       500:
+ *         description: Some server error, enter valid mongo object ID
+ */
 router.get('/owner',controller.getAllOwnersV2);
 
 /**

@@ -207,7 +207,33 @@ exports.addCountryCodeInBookings = (async(req,res)=>{
       console.log(error);
     }
 })
+exports.addCountryCodeInStudios = (async(req,res)=>{
+    try {
+       let db = getDb();
+        await db.collection('studios').updateMany({},{$set:{country:"IN"}})
+       res.send({
+         status: "success",
+         message: "Country code added successfully in Studios",
+       });
+    } catch (error) {
+      console.log(error);
+    }
+})
 
-
+exports.countryCodeBeforPhoneNo = async(req,res) =>{
+    try {
+        let db = getDb();
+        let result = await db.collection('users').find({}).toArray()
+        let appended;
+        result.forEach(async(item)=>{
+            let appended = "91"+item.phone
+            let phone = {phone:appended}
+            await db.collection('users').updateMany({},{$set:phone})
+        })
+        res.json({users:result})
+    } catch (error) {
+        console.log(error);
+    }
+}
 
 
