@@ -110,4 +110,4 @@ async function paginateAggregate(collectionName, pipeline, options) {
 }
 
 
-
+module.exports = { paginate, paginateAggregate }
