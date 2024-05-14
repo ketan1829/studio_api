@@ -331,7 +331,7 @@ exports.loginUserOTP = async (req, res, next) => {
       else {
         console.log("ELESEEEE");
         // sendOTP(phoneNumber, otp)
-        userData.role == "user" ?? sendMsg91OTP(`${phoneNumber}`, otp)
+        if(userData.role == "user") sendMsg91OTP(`${phoneNumber}`, otp)
         if (deviceId) {
           userData.deviceId = deviceId;
           await User.update(phoneNumber, { deviceId: deviceId });
@@ -578,6 +578,99 @@ exports.getAllUsers = (req, res, next) => {
     });
   });
 };
+
+
+
+exports.getAllUsers = async (req, res) => {
+  try {
+    const page = +req.query.page || 1;
+    const limit = +req.query.limit || 10;
+
+    let { searchUser, startDate, endDate } = req.query;
+    let filter = pick(req.query, ["status"]);
+
+    let sortfield = req.query.sortfield;
+    let sortDirection = req.query.sortDirection === 'desc' ? -1 : 1;
+
+    if (filter.status) filter.status = parseInt(filter.status);
+    let searching;
+    if (searchUser) {
+      searching = {
+        $or: [
+          { fullName: { $regex: searchUser, $options: "i" } },
+          { email: { $regex: searchUser, $options: "i" } },
+          { phone: { $regex: searchUser, $options: "i" } },
+        ],
+      };
+    }
+
+    let pipeline = [
+      { "$match": searching || {} },
+      { "$match": filter },
+    ];
+
+    if (startDate && endDate) {
+      pipeline.push({
+        $match: {
+          creationTimeStamp: {
+            $gte: new Date(startDate),
+            $lte: new Date(endDate),
+          },
+        },
+      });
+    }
+
+    const sortobj = { [sortfield]: +sortDirection };
+    if (sortfield && sortDirection) {
+      const sortStage = { $sort: sortobj };
+      pipeline.push(sortStage);
+    }
+
+    if (limit) {
+      const limitStage = { $limit: parseInt(limit) };
+      pipeline.push(limitStage);
+    }
+
+    if (page) {
+      const skipStage = { $skip: (parseInt(page) - 1) * parseInt(limit) };
+      pipeline.push(skipStage);
+    }
+
+    let users = await User.fetchAllUsersByAggregate(pipeline);
+    const db = getDb();
+    const totalCountPipeline = [
+      { "$match": searching || {} },
+      { "$match": filter },
+      { "$count": 'total' }
+    ];
+    const totalCountResult = await db.collection('users').aggregate(totalCountPipeline).toArray();
+    const totalDocuments = totalCountResult[0]?.total || 0;
+    const totalPages = Math.ceil(totalDocuments / limit);
+
+    res.json({
+      status: true,
+      message: "Available Users returned",
+      users: users,
+      paginate: {
+        page,
+        limit,
+        totalPages,
+        totalResults: totalDocuments
+      }
+    });
+  } catch (error) {
+    logger.error(error, "Error while getting all users");
+    res.status(500).json({
+      status: false,
+      message: "Error occurred while fetching users"
+    });
+  }
+};
+
+
+
+
+
 
 exports.getParticularUserDetails = (req, res, next) => {
   const userId = req.params.userId;

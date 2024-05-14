@@ -343,9 +343,53 @@ router.get('/bookings/:bookingId/cancel',auth.isUser,controller.cancelParticular
 // api/bookings                       --  Get all bookings
 // api/bookings?skip=0&limit=50       --  Get particular range of bookings based on skip and limit
 // Get only Studios Booking
-router.get('/bookings',auth.isAdminOrOwnerOrUser, controller.getAllBookings); 
+router.get('/bookings',auth.isAdminOrOwnerOrUser, controller.getAllBookings);
+
+
 // Get only Services Booking
+/**
+ * @swagger
+ * /bookings:
+ *   get:
+ *     summary: Get all Service Bookings based on filter 
+ *     tags: [Booking]
+ *     parameters:
+ *       - in : query
+ *         name: bookingType
+ *         description: type of booking c2 or c3 
+ *         required: false
+ *       - in : query
+ *         name: phoneNumber
+ *         description: phoneNumber of user
+ *         required: false
+ *       - in : query
+ *         name: userId
+ *         description: userId
+ *         required: false
+ *       - in : query
+ *         name: active
+ *         description: This is bookingStatus basically
+ *         required: false
+ *     requestBody:
+ *       description: | 
+ *          #
+ *          (First admin login is needed to generate token, then use "AUTHORIZE" button above to validate)
+ *     responses:
+ *       200:
+ *         description: All bookings returned
+ *         content:
+ *           application/json:
+ *               example : 
+ *                 status : true
+ *                 data : {}
+ *       401:
+ *         description: Unauthorized, token required
+ *       500:
+ *         description: Some server error
+ */
 router.get('/bookings/services',auth.isAdminOrOwnerOrUser, controller.getServiceBookings);
+
+
 // Get Studio/Service Bookings dynamically
 router.get('/bookings-all',auth.isAdminOrOwnerOrUser, controller.getAllBookingsOptimized);
 

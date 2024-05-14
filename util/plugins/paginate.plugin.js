@@ -60,5 +60,54 @@ async function paginate(collectionName, filter, options) {
     }
 }
 
+async function paginateAggregate(collectionName, pipeline, options) {
+    try {
+        const db = getDb();
+        let sort = {};
 
-module.exports = {paginate};
+        if (options.sortBy) {
+            const sortingCriteria = options.sortBy.split(',').map(sortOption => {
+                const [key, order] = sortOption.split(':');
+                return { [key]: order === 'desc' ? -1 : 1 };
+            });
+            sortingCriteria.forEach(criteria => {
+                sort = { ...sort, ...criteria };
+            });
+        }
+
+        const limit = parseInt(options.limit, 10) || 10;
+        const page = parseInt(options.page, 10) || 1;
+        const skip = (page - 1) * limit;
+
+        let countPipeline = pipeline.concat({ $count: "total" });
+        let docsPipeline = pipeline.concat([{ $sort: sort }, { $skip: skip }, { $limit: limit }]);
+
+        if (options.populate) {
+            // Handle population
+            console.log("populate ---", options.populate);
+            // Implement population logic here if needed
+        }
+
+        const [countResult, results] = await Promise.all([
+            db.collection(collectionName).aggregate(countPipeline).toArray(),
+            db.collection(collectionName).aggregate(docsPipeline).toArray()
+        ]);
+
+        const totalResults = countResult.length > 0 ? countResult[0].total : 0;
+        const totalPages = Math.ceil(totalResults / limit);
+
+        return {
+            results,
+            page,
+            limit,
+            totalPages,
+            totalResults,
+        };
+    } catch (error) {
+        // Handle errors appropriately
+        throw new Error('Pagination failed: ' + error.message);
+    }
+}
+
+
+

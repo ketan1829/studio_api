@@ -2704,7 +2704,7 @@ exports.getAllBookings = async (req, res, next) => {
     const cancelledBookings = bookingsData.filter(booking => booking.bookingStatus === 2);
 
     let bookingsstatus_wise = [];
-    bookingsstatus_wise = bookingsData.filter(booking => booking[-1].bookingStatus === bookingType);
+    bookingsstatus_wise = bookingsData.filter(booking => booking.bookingStatus === bookingType);
 
 
     // return res.json({ status: true, message: "All booking(s) returned", data: bookingsstatus_wise, bookings: { activeBookings, completedBookings, cancelledBookings } });

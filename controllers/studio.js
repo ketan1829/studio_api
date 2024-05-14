@@ -277,7 +277,7 @@ exports.getStudios = async (req, res, next) => {
     return res.json({
       status: true,
       message: "All NearBy Studios fetched",
-      nearYou: nearbyStudios.studios,
+      nearYou: nearbyStudios,
       paginate: paginateData,
     });
   }
