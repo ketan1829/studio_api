@@ -220,21 +220,26 @@ exports.addCountryFieldInStudios = (async(req,res)=>{
     }
 })
 
-//hello
-exports.countryCodeBeforPhoneNo = async(req,res) =>{
+
+exports.countryCodeBeforPhoneNo = async (req, res) => {
     try {
         let db = getDb();
-        let result = await db.collection('users').find({}).toArray()
-        let appended;
-        result.forEach(async(item)=>{
-            let appended = "91"+item.phone
-            let phone = {phone:appended}
-            await db.collection('users').updateMany({},{$set:phone})
-        })
-        res.json({users:result})
+        let result = await db.collection('users').find({}).toArray();
+        
+        for (let item of result) {
+            let appendedPhone = "91" + item.phone;
+            let phone = { phone: appendedPhone };
+            await db.collection('users').updateOne({ _id: item._id }, { $set: phone });
+        }
+
+        result = await db.collection('users').find({}).toArray();
+
+        res.json({ users: result });
     } catch (error) {
         console.log(error);
+        res.status(500).json({ error: 'Internal server error' });
     }
-}
+};
+
 
 

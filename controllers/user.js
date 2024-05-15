@@ -571,8 +571,8 @@ exports.getAllUsers = async (req, res) => {
     let { searchUser, startDate, endDate } = req.query;
     let filter = pick(req.query, ["status"]);
 
-    let sortfield = req.query.sortfield;
-    let sortDirection = req.query.sortDirection === 'desc' ? -1 : 1;
+    let sortfield = req.query.sortfield ? req.query.sortfield : "creationTimeStamp"
+    let sortDirection = req.query.sortDirection === 'asc' ? 1 : -1;
 
     if (filter.status) filter.status = parseInt(filter.status);
     let searching;
