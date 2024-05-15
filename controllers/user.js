@@ -561,24 +561,6 @@ exports.sendSignUpOtp = (req, res, next) => {
   });
 };
 
-exports.getAllUsers = (req, res, next) => {
-  let skip = +req.query.skip;
-  let limit = +req.query.limit;
-
-  if (isNaN(skip)) {
-    skip = 0;
-    limit = 0;
-  }
-
-  User.fetchAllUsers(skip, limit).then((userData) => {
-    return res.json({
-      status: true,
-      message: "All Users returned",
-      users: userData,
-    });
-  });
-};
-
 
 
 exports.getAllUsers = async (req, res) => {
@@ -626,16 +608,14 @@ exports.getAllUsers = async (req, res) => {
       pipeline.push(sortStage);
     }
 
-    if (limit) {
-      const limitStage = { $limit: parseInt(limit) };
-      pipeline.push(limitStage);
-    }
-
     if (page) {
       const skipStage = { $skip: (parseInt(page) - 1) * parseInt(limit) };
       pipeline.push(skipStage);
     }
-
+    if (limit) {
+      const limitStage = { $limit: parseInt(limit) };
+      pipeline.push(limitStage);
+    }
     let users = await User.fetchAllUsersByAggregate(pipeline);
     const db = getDb();
     const totalCountPipeline = [
