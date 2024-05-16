@@ -224,11 +224,20 @@ exports.countryCodeBeforPhoneNo = async(req,res) =>{
     try {
         let db = getDb();
         let result = await db.collection('users').find({}).toArray()
+        console.log("result", result)
         let appended;
         result.forEach(async(item)=>{
             let appended = "91"+item.phone
             let phone = {phone:appended}
-            await db.collection('users').updateMany({},{$set:phone})
+            // console.log(phone, { "phone": appended })
+            // User.update(phone, { "phone": appended });
+            const db = getDb();
+            const filter = { phone: item.phone };
+            const updateData = {
+                $set: { "phone": appended }
+            };
+            db.collection("users").updateOne(filter, updateData, { returnOriginal: false })
+                // await db.collection('users').updateMany({},{$set:phone})
         })
         res.json({users:result})
     } catch (error) {
