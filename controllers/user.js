@@ -301,7 +301,7 @@ exports.loginUserOTP = async (req, res, next) => {
       // New User
       if (!userData || userData?.status == 0) {
         console.log("new user=======");
-        sendMsg91OTP(`${phoneNumber}`, otp)
+        sendMsg91OTP(`${phoneNumber}`)
         // statusInfo.otp = otp;
         statusInfo.newUser = true;
         statusInfo.status = true;
@@ -1277,7 +1277,7 @@ exports.getAllFavourites = (req, res, next) => {
 exports.deleteParticularUser = (req, res, next) => {
   const userId = req.params.userId;
 
-  User.findUserByUserId(userId).then((userData) => {
+  User.findUserByUserId(userId).then(async(userData) => {
     if (!userData) {
       return res
         .status(404)
@@ -1287,7 +1287,8 @@ exports.deleteParticularUser = (req, res, next) => {
     const db = getDb();
     var o_id = new ObjectId(userId);
 
-    db.collection("users")
+   await db.collection("userdeleterequests").insertOne({phone:userData.phone,email:userData.email, creationTimeStamp: new Date(), userId:userData._id})
+   await db.collection("users")
       .updateOne({ _id: o_id }, { $set: { status: 0 } })
       .then((resultData) => {
         return res.json({ status: true, message: "User deleted successfully" });
@@ -1563,10 +1564,18 @@ exports.exportUserData = async (req, res) => {
 
 exports.sendOTP2 =  async (req,res)=> {
   try {
-      
-      console.log("req.params |", req.query);
-      let phoneNumber = req.query.phoneNumber
-      let otp = req.query.otp
+      const db = getDb();
+      console.log("object");
+      let phoneNumber = req.body.phoneNumber
+      // let otp = req.query.otp
+      let userData = await db.collection("users").findOne({phone:phoneNumber})
+      if(!userData){
+        return res.status(200).json({status:false, message:"User not found"})
+      }
+      if(userData.status===0){
+        return res.status(200).json({status:false, message:"User is already deleted"})
+      }
+      console.log('phoneNumber=>',phoneNumber);
       var options = {
         method: 'POST',
         url: 'https://control.msg91.com/api/v5/otp',
@@ -1574,8 +1583,8 @@ exports.sendOTP2 =  async (req,res)=> {
           template_id: process.env.MSG91_TEMP_ID, // '6603b39dd6fc051f716ee0a3',
           mobile: phoneNumber,
           authkey: process.env.MSG91_AUT_KEY,
-          otp: otp,
-          otp_length: '4',
+          // otp: otp,
+           otp_length: '4',
           otp_expiry: '10'
         },
         headers: {'Content-Type': 'application/JSON'}
@@ -1583,7 +1592,7 @@ exports.sendOTP2 =  async (req,res)=> {
       axios.request(options).then(function (response) {
         console.log("DATA--->",response.data);
         if (response.data.type === 'success') {
-          res.status(200).json({ status: true , message :"otp successfully sent" })
+          res.status(200).json({ status: true , message :"otp successfully sent", userId:userData._id })
         } else {
             res.status(404).json({ status: false , message :"otp sending failed" })
         }
@@ -1592,7 +1601,7 @@ exports.sendOTP2 =  async (req,res)=> {
           res.status(404).json({ status: false , message :"otp sending failed" })
         });
   } catch (error) {
-      console.error("Error sending OTP:", error);
+      logger.error( error,"Error sending OTP",);
       res.status(404).json({ status: false , message :"otp sending failed" })
   }
 }
