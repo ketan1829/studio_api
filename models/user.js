@@ -126,7 +126,6 @@ class User {
         try {
             const db = getDb();
             const userData = await db.collection('users').aggregate(pipeline).toArray();
-            console.log(userData);
             return userData;
         } catch (err) {
             console.error("Error in fetchAllUsersByAggregate:", err);
