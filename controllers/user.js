@@ -143,9 +143,12 @@ exports.signupUserV2 = async (req, res, next) => {
   try {
     const { fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role } = req.body;
 
-    logger.info({ fullName, dateOfBirth, email, phoneNumber, deviceId });
+    // let phone = (phoneNumber.length > 10)? phoneNumber.slice(2) : `91${phoneNumber}`
+    let phone = (phoneNumber.length == 10)? `91${phoneNumber}` : phoneNumber
+    
+    logger.info({ fullName, dateOfBirth, email, phone, deviceId });
 
-    let _userData = await User.findUserByPhone(phoneNumber, 0, false);
+    let _userData = await User.findUserByPhone(phone, 0, false);
 
     logger.info("REGISTER USER DATA", _userData);
 
@@ -154,7 +157,7 @@ exports.signupUserV2 = async (req, res, next) => {
       fullName: fullName.trim(),
       dateOfBirth,
       email,
-      phone: phoneNumber,
+      phone: phone,
       password: "",
       userType: userType || "NUMBER",
       deviceId,
@@ -176,43 +179,44 @@ exports.signupUserV2 = async (req, res, next) => {
         fullName: fullName.trim(),
         dateOfBirth,
         email,
-        phone: phoneNumber,
+        phone: phone,
         userType: userType || "NUMBER",
         deviceId,
         role: role || "user",
         status: 1
       }
       userObj._id = _userData._id;
-      const udata = await User.update(phoneNumber, updated_user_data)
+      const udata = await User.update(phone, updated_user_data)
       console.log(udata ? `udata count:${udata?.matchedCount}` : "nottttt");
     } else {
 
-      let _userData_active = await User.findUserByPhone(phoneNumber, 1);
+      let _userData_active = await User.findUserByPhone(phone, 1);
       if (_userData_active) {
 
         const updated_user_data = {
           fullName: fullName.trim(),
           dateOfBirth,
           email,
-          phone: phoneNumber,
+          phone: phone,
           userType: userType || "NUMBER",
           deviceId,
           role: role || "user",
           status: 1
         }
-        userObj._id = updated_user_data._id
-        const udata = await User.update(phoneNumber, updated_user_data)
+        
+        const udata = await User.update(phone, updated_user_data)
+        userObj._id = _userData_active._id
         console.log(udata ? `update count:${udata?.matchedCount}` : "update failed");
 
       }else{
 
         // If user does not exist, create a new user
         await userObj.save();
-        const {_id,creationTimeStamp} = await User.findUserByPhone(phoneNumber);
+        const {_id,creationTimeStamp} = await User.findUserByPhone(phone);
         userObj._id = _id
         userObj.creationTimeStamp = creationTimeStamp
         
-        // console.log("savedUser._id:", savedUser._id)
+        
         if (role === "user") {
           // Only add to Brevo if the role is 'user' and it's a new signup
           await addContactBrevo(userObj);
@@ -224,7 +228,7 @@ exports.signupUserV2 = async (req, res, next) => {
 
     const token = jwt.sign({ user: userObj }, "myAppSecretKey");
     
-    // console.log("userObj:", userObj);
+    console.log("userObj:", userObj);
     return res.json({ status: true, message: "Signup successful", user: userObj, token });
 
   } catch (error) {
@@ -233,15 +237,14 @@ exports.signupUserV2 = async (req, res, next) => {
   }
 };
 
-
 exports.loginUserOTP = async (req, res, next) => {
   try {
-    const { phoneNumber, deviceId, userType, role } = req.body;
-
+    const { phoneNumber, deviceId, userType, role } = req.body;    
+    let phone = (phoneNumber.length > 10)? phoneNumber : `91${phoneNumber}`
     logger.info({ phoneNumber, deviceId, userType, role });
 
 
-    const userData = await User.findUserByPhone(phoneNumber,1,false);
+    const userData = await User.findUserByPhone(phone,1,false);
 
     logger.info("DATA::::", userData);
     // console.log("DATA::::", userData);
@@ -301,8 +304,8 @@ exports.loginUserOTP = async (req, res, next) => {
       // New User
       if (!userData || userData?.status == 0) {
         console.log("new user=======");
-        sendMsg91OTP(`${phoneNumber}`, otp)
-        // statusInfo.otp = otp;
+        (phoneNumber.length == 10)? sendOTP(phoneNumber, otp) : sendMsg91OTP(`${phoneNumber}`, otp)
+        statusInfo.otp = otp;
         statusInfo.newUser = true;
         statusInfo.status = true;
         statusInfo.user = {
@@ -331,7 +334,7 @@ exports.loginUserOTP = async (req, res, next) => {
       else {
         console.log("ELESEEEE");
         // sendOTP(phoneNumber, otp)
-        if(userData.role == "user") sendMsg91OTP(`${phoneNumber}`, otp)
+        if(userData.role == "user") (phoneNumber.length == 10) ? sendOTP(phoneNumber, otp) : sendMsg91OTP(`${phoneNumber}`, otp)  // sendMsg91OTP(`${phoneNumber}`, otp)
         if (deviceId) {
           userData.deviceId = deviceId;
           await User.update(phoneNumber, { deviceId: deviceId });
@@ -343,7 +346,7 @@ exports.loginUserOTP = async (req, res, next) => {
         statusInfo.newUser = false;
         statusInfo.status = true;
         statusInfo.user = userData;
-        // statusInfo.otp = otp;
+        statusInfo.otp = otp;
 
         return res.status(200).json(statusInfo);
       }
