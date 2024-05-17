@@ -142,7 +142,9 @@ exports.getStudios = async (req, res, next) => {
     studioId,
     searchText,
     totalRooms,
-    creationTimeStamp
+    creationTimeStamp,
+    page,
+    limit
   } = req.query;
 
   const filter = pick(req.query, ["name", "role", "city"]);
@@ -184,6 +186,9 @@ exports.getStudios = async (req, res, next) => {
   if(creationTimeStamp){
     filter.creationTimeStamp = {$gte:new Date(creationTimeStamp+"T00:00:00"), $lt:new Date(creationTimeStamp+"T23:59:59")}
   }
+
+  if (options.page) options.page = +page;
+  if (options.limit) options.limit = +limit;
 
   logger.info("filter", filter);
 

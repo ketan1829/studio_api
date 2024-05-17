@@ -67,6 +67,7 @@ class Studio {
 
   static async getNearByStudios(longitude, latitude,range, page, limit) {
     try {
+      const skip = (page - 1) * limit;
       console.log("parseFloat(longitude), parseFloat(latitude)---", longitude, latitude);
       const db = getDb();
       const nearByStudiosCursor = await db.collection("studios").find({
@@ -77,7 +78,7 @@ class Studio {
           },
         },
       })
-      .skip(parseInt(page))
+      .skip(parseInt(skip))
       .limit(parseInt(limit));
 
       const nearByStudios = await nearByStudiosCursor.toArray();
