@@ -594,10 +594,7 @@ exports.getAllUsers = async (req, res) => {
     if (startDate && endDate) {
       pipeline.push({
         $match: {
-          creationTimeStamp: {
-            $gte: new Date(startDate),
-            $lte: new Date(endDate),
-          },
+          creationTimeStamp : {$gte:new Date(startDate+"T00:00:00"), $lt:new Date(endDate+"T23:59:59")}
         },
       });
     }
