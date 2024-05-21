@@ -95,9 +95,9 @@ class Studio {
 
       const message = `Page ${page} of ${totalPages} - ${nearByStudios.length} studios returned`
       const paginateData = {
-        page: page,
-        limit: limit,
-        totalPages: totalPages,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: parseInt(totalPages),
         totalResults: totalResults
       };
       return {studios: nearByStudios, message: message, paginate: paginateData };
@@ -116,7 +116,7 @@ class Studio {
       .collection("studios")
       .findOne({ _id: o_id })
       .then((studioData) => {
-        console.log("ID---studioData---", studioData);
+        // console.log("ID---studioData---", studioData);
         return studioData;
       })
       .catch((err) => console.log(err));
