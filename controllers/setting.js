@@ -235,6 +235,7 @@ exports.countryCodeBeforPhoneNo = async (req, res) => {
         result = await db.collection('users').find({}).toArray();
 
         res.json({ users: result });
+
     } catch (error) {
         console.log(error);
         res.status(500).json({ error: 'Internal server error' });

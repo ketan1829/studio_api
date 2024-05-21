@@ -207,7 +207,7 @@ exports.getServices = (req, res, next) => {
   if (filter.TotalServices) mappedFilter.totalPlans = +filter.TotalServices;
   if (filter.avgReview) mappedFilter.featuredReviews.avgService = parseFloat(filter.avgReview);
 
-  logger.info("collectionName----", collectionName, mappedFilter, options);
+  console.log("collectionName----", collectionName, mappedFilter, options);
 
 
   // const { error } = validateFilterSchema(filter);

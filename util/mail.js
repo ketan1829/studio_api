@@ -116,7 +116,7 @@ exports.sendMsg91OTP =  async (phoneNumber)=> {
           headers: {'Content-Type': 'application/JSON'}
         };
         axios.request(options).then(function (response) {
-          log("DATA--->",response.data);
+          console.log("DATA--->",response.data);
           if (response.data.type === 'success') {
             return { status: true }
           } else {

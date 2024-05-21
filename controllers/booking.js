@@ -638,14 +638,15 @@ exports.createServiceBooking = async (req, res, next) => {
 };
 
 exports.getStudioAvailabilities = (req, res, next) => {
-
   const studioId = req.body.studioId;
   const roomId = req.body.roomId;
   let bookingDate = req.body.bookingDate;
   const bookingHours = +req.body.bookingHours; //Slots will be created based on this
   const bufferTime = 15;
   const interval = bookingHours * 60;
-  console.log("slot req data:", req.body)
+
+  console.log("slot req data:",req.body)
+
   //get bookingDate from timestamp
   bookingDate = new Date(bookingDate);
   var yr = bookingDate.getUTCFullYear();
@@ -660,13 +661,9 @@ exports.getStudioAvailabilities = (req, res, next) => {
   bookingDate = yr + "-" + mth + "-" + dt;
   var bTimeStamp = new Date(bookingDate).getTime();
   logger.info("Booking Date :--> ", bookingDate);
-  console.log("bTimeStamp")
-  console.log(bTimeStamp)
+
   //get Current Date from timestamp
   let currDate = new Date();
-  console.log("c date:::::")
-  console.log(currDate);
-  console.log(currDate.getHours());
   var yr = currDate.getUTCFullYear();
   var mth = currDate.getUTCMonth() + 1;
   if (mth.toString().length == 1) {
@@ -678,20 +675,19 @@ exports.getStudioAvailabilities = (req, res, next) => {
   }
   currDate = yr + "-" + mth + "-" + dt;
   var cTimeStamp = new Date(currDate).getTime();
-  console.log("cTimeStamp")
-  console.log(cTimeStamp)
-
   logger.info("Current Date : ", currDate);
   var currHr = new Date().getHours();
   var currMin = new Date().getMinutes();
   var currTime = currHr * 60 + currMin;
   logger.info("Current Time : " + currTime);
+
   Studio.findStudioById(studioId).then((studioData) => {
     if (!studioData) {
       return res
         .status(404)
         .json({ status: false, message: "No studio with this ID exists" });
     }
+
     if (studioData.roomsDetails == undefined) {
       studioData.roomsDetails = [];
     }
@@ -707,16 +703,20 @@ exports.getStudioAvailabilities = (req, res, next) => {
       studioData.roomsDetails[roomIndex].availabilities;
     // roomTotalAvailability = [{startTime:"09:00",endTime:"13:00"},{startTime:"15:00",endTime:"19:00"}];
     logger.info("Rooms Hours : ", roomTotalAvailability);
+
     //Getting all slots first
     let allSlots = [];
     roomTotalAvailability.forEach((singleAvail) => {
       // logger.info(singleAvail);
       var startTime = singleAvail.startTime;
       var endTime = singleAvail.endTime;
+
       var start_time = parseTime(startTime),
         end_time = parseTime(endTime);
       // interval = bookingHours * 60;
+
       var timeslots = calculate_time_slot(start_time, end_time, interval);
+
       //Creating range for slots
       for (let s = 0; s < timeslots.length - 1; s++) {
         timeslots[s] = { startTime: timeslots[s], endTime: timeslots[s + 1] };
@@ -727,9 +727,11 @@ exports.getStudioAvailabilities = (req, res, next) => {
       allSlots = allSlots.concat(timeslots);
     });
     // logger.info("All Slots : ", allSlots);
+
     Booking.fetchBookingsByStudioIdAndBookingDate(studioId, bookingDate).then(
       (bookingsData) => {
         // logger.info(bookingsData);
+
         let availSlotsNew = allSlots;
         //Filtering to remove past slots for current date
         if (cTimeStamp <= bTimeStamp) {
@@ -745,7 +747,8 @@ exports.getStudioAvailabilities = (req, res, next) => {
             }
           });
         }
-        console.log("availSlotsNew:", availSlotsNew);
+        console.log("availSlotsNew:",availSlotsNew);
+
         if (bookingsData.length == 0) {
           //convert to 12 hour format
           availSlotsNew.forEach((singleSlot) => {
@@ -764,6 +767,7 @@ exports.getStudioAvailabilities = (req, res, next) => {
         bookingsData.forEach((singleBooking) => {
           bookedSlots.push(singleBooking.bookingTime);
         });
+
         let availableSlots = [];
         let allSplitSlots = [];
         // allSlots.forEach(singleSlot=>{
@@ -777,6 +781,7 @@ exports.getStudioAvailabilities = (req, res, next) => {
           let endMinBooked =
             +singleBookedSlot.endTime.split(":")[0] * 60 +
             +singleBookedSlot.endTime.split(":")[1];
+
           roomTotalAvailability.forEach((singleRoomAvail) => {
             let startMinRoom =
               +singleRoomAvail.startTime.split(":")[0] * 60 +
@@ -798,6 +803,7 @@ exports.getStudioAvailabilities = (req, res, next) => {
               logger.info("Split Slot : ", splitSlot1, splitSlot2);
               roomTotalAvailability.push(splitSlot1);
               roomTotalAvailability.push(splitSlot2);
+
               //Also, before next iteration, remove this availablitiy slot from room (since updated is added)
               const availIndex1 = roomTotalAvailability.findIndex(
                 (a) =>
@@ -833,10 +839,13 @@ exports.getStudioAvailabilities = (req, res, next) => {
           // logger.info(singleAvail);
           var startTime = singleAvail.startTime;
           var endTime = singleAvail.endTime;
+
           var start_time = parseTime(startTime),
             end_time = parseTime(endTime),
             interval = bookingHours * 60;
+
           var timeslots = calculate_time_slot(start_time, end_time, interval);
+
           //Creating range for slots
           for (let s = 0; s < timeslots.length - 1; s++) {
             timeslots[s] = {
