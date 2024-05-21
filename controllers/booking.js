@@ -593,10 +593,10 @@ exports.createServiceBooking = async (req, res, next) => {
 
     if (ExistingServiceData.length && ExistingServiceData.bookingStatus == 0) {
       logger.info("ExistingServiceData:", ExistingServiceData);
-      console.log({ userId: userId, studioId: serviceId, roomId: planId, type: serviceType });
+      // console.log({ userId: userId, studioId: serviceId, roomId: planId, type: serviceType });
       const res_1 = await Service.updateOneRecord({ userId: userId, studioId: serviceId, roomId: +planId, type: serviceType }, { bookingStatus: 0 })
-      console.log("res===");
-      console.log(res_1);
+      // console.log("res===");
+      // console.log(res_1);
       return res.status(200).json({ status: false, message: "Requested Package booking has been pre-booked already!" });
     }
 
@@ -645,7 +645,7 @@ exports.getStudioAvailabilities = (req, res, next) => {
   const bufferTime = 15;
   const interval = bookingHours * 60;
 
-  console.log("slot req data:",req.body)
+  // console.log("slot req data:",req.body)
 
   //get bookingDate from timestamp
   bookingDate = new Date(bookingDate);
@@ -747,7 +747,7 @@ exports.getStudioAvailabilities = (req, res, next) => {
             }
           });
         }
-        console.log("availSlotsNew:",availSlotsNew);
+        // console.log("availSlotsNew:",availSlotsNew);
 
         if (bookingsData.length == 0) {
           //convert to 12 hour format
@@ -1685,8 +1685,8 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
       }
       //removing last extra element of "allSlots"
       timeslots.splice(timeslots.length - 1, 1);
-      console.log("timeslots")
-      console.log(timeslots)
+      // console.log("timeslots")
+      // console.log(timeslots)
       // logger.info(timeslots);
       allSlots = allSlots.concat(timeslots);
     });
@@ -1896,7 +1896,7 @@ exports.getStudioAvailabilitiesTEST = async (req, res, next) => {
   const start_and_end_times = []
 
   Studio.findStudioById(studioId).then(studioData => {
-    console.log(studioData);
+    // console.log(studioData);
     studioData.roomsDetails.forEach(room => {
       room.availabilities.map(avail => {
         start_and_end_times.push(avail)
@@ -2727,7 +2727,7 @@ exports.getAllBookings = async (req, res, next) => {
 // get All Packages/Service Bookings
 exports.getServiceBookings = async (req, res) => {
   const { bookingType, userId, phoneNumber, active } = req.query;
-  console.log("req.query |", req.query);
+  // console.log("req.query |", req.query);
   const matchStage = {};
 
   if (bookingType) {
@@ -2843,7 +2843,7 @@ exports.updateServiceBooking = async (req, res) => {
 
 exports.deleteBooking = async (req, res) => {
 
-  // console.log("DEDDDDDDDD");
+  // // console.log("DEDDDDDDDD");
   const { bookingId } = req.body;
 
   if (!bookingId) {
@@ -2860,7 +2860,7 @@ exports.deleteBooking = async (req, res) => {
   try {
     // const result = await db.collection('bookings').deleteOne({ _id: ObjectId(bookingId) });
     const result = await db.collection('bookings').updateOne({ _id: ObjectId(bookingId) }, { $set: { bookingStatus: 2 } });
-    console.log(result?.matchedCount);
+    // console.log(result?.matchedCount);
     if (result?.matchedCount === 1) {
       return res.status(200).json({ status: true, message: "Booking deleted successfully" });
     } else {
