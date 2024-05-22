@@ -127,7 +127,7 @@ exports.signupUser = async (req, res, next) => {
             });
           });
         })
-        .catch((err) => logger.info(err,"Error while signiing up user"));
+        .catch((err) => logger.info(err, "Error while signiing up user"));
     });
   });
 };
@@ -144,8 +144,8 @@ exports.signupUserV2 = async (req, res, next) => {
     const { fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role } = req.body;
 
     // let phone = (phoneNumber.length > 10)? phoneNumber.slice(2) : `91${phoneNumber}`
-    let phone = (phoneNumber.length == 10)? `91${phoneNumber}` : phoneNumber
-    
+    let phone = (phoneNumber.length == 10) ? `91${phoneNumber}` : phoneNumber
+
     logger.info({ fullName, dateOfBirth, email, phone, deviceId });
 
     let _userData = await User.findUserByPhone(phone, 0, false);
@@ -174,7 +174,7 @@ exports.signupUserV2 = async (req, res, next) => {
 
     const userObj = new User(user_data);
 
-    if (_userData && _userData?.status==0) {
+    if (_userData && _userData?.status == 0) {
       const updated_user_data = {
         fullName: fullName.trim(),
         dateOfBirth,
@@ -203,20 +203,20 @@ exports.signupUserV2 = async (req, res, next) => {
           role: role || "user",
           status: 1
         }
-        
+
         const udata = await User.update(phone, updated_user_data)
         userObj._id = _userData_active._id
         console.log(udata ? `update count:${udata?.matchedCount}` : "update failed");
 
-      }else{
+      } else {
 
         // If user does not exist, create a new user
         await userObj.save();
-        const {_id,creationTimeStamp} = await User.findUserByPhone(phone);
+        const { _id, creationTimeStamp } = await User.findUserByPhone(phone);
         userObj._id = _id
         userObj.creationTimeStamp = creationTimeStamp
-        
-        
+
+
         if (role === "user") {
           // Only add to Brevo if the role is 'user' and it's a new signup
           await addContactBrevo(userObj);
@@ -227,7 +227,7 @@ exports.signupUserV2 = async (req, res, next) => {
     }
 
     const token = jwt.sign({ user: userObj }, "myAppSecretKey");
-    
+
     console.log("userObj:", userObj);
     return res.json({ status: true, message: "Signup successful", user: userObj, token });
 
@@ -239,10 +239,10 @@ exports.signupUserV2 = async (req, res, next) => {
 
 exports.loginUserOTP = async (req, res, next) => {
   try {
-    const { phoneNumber, deviceId, userType, role } = req.body;    
+    const { phoneNumber, deviceId, userType, role } = req.body;
     logger.info({ phoneNumber, deviceId, userType, role });
 
-    const userData = await User.findUserByPhone(phoneNumber,1,false);
+    const userData = await User.findUserByPhone(phoneNumber, 1, false);
 
     logger.info("DATA::::", userData);
     // console.log("DATA::::", userData);
@@ -297,8 +297,7 @@ exports.loginUserOTP = async (req, res, next) => {
       if (!userData || userData?.status == 0) {
         console.log("new user=======");
         const status_otp = await sendMsg91OTP(`${phoneNumber}`)
-        statusInfo.newUser = true;
-        statusInfo.status = status_otp.status;
+
         statusInfo.user = {
           "_id": "",
           "fullName": "",
@@ -318,31 +317,66 @@ exports.loginUserOTP = async (req, res, next) => {
           "role": "user"
         };
         statusInfo.role = "user";
-        statusInfo.message = status_otp.status?"OTP has been send Succesfully":"OTP sent failed !";
-        return res.status(200).json(statusInfo);
+        statusInfo.newUser = true;
+
+        if (status_otp.status) {
+
+          statusInfo.status = true;
+          statusInfo.message = "OTP has been send Succesfully";
+          return res.status(200).json(statusInfo);
+
+        } else {
+          statusInfo.status = false;
+          statusInfo.message = "OTP sent failed !";
+          return res.status(200).json(statusInfo);
+        }
+
       }
       // Existing User Login
       else {
         console.log("ELESEEEE");
         const status_otp = await sendMsg91OTP(`${phoneNumber}`)
+
         if (deviceId) {
           userData.deviceId = deviceId;
           await User.update(phoneNumber, { deviceId: deviceId });
         }
-        const token = jwt.sign({ user: userData }, secretKey);
-        statusInfo.token = token;
-        statusInfo.role = userData.role || "user";
-        statusInfo.message = status_otp.status?"Welcome back, OTP has been send Succesfully":"OTP sent failed !";
-        statusInfo.newUser = false;
-        statusInfo.status = status_otp.status;
-        statusInfo.user = userData;
-        return res.status(200).json(statusInfo);
+
+        if (status_otp.status) {
+
+          const token = jwt.sign({ user: userData }, secretKey);
+          statusInfo.token = token;
+          statusInfo.role = userData.role || "user";
+          statusInfo.message = "Welcome back, OTP has been send Succesfully";
+          statusInfo.newUser = false;
+          statusInfo.status = true;
+          statusInfo.user = userData;
+          return res.status(200).json(statusInfo);
+
+        } else {
+
+          const token = jwt.sign({ user: userData }, secretKey);
+          statusInfo.token = token;
+          statusInfo.role = userData.role || "user";
+          statusInfo.message = "OTP sent failed !";
+          statusInfo.newUser = false;
+          statusInfo.status = false;
+          statusInfo.user = userData;
+          return res.status(200).json(statusInfo);
+
+
+
+        }
+
+
+
       }
     }
     return res.status(200).json(statusInfo);
 
   } catch (error) {
-    logger.error(error,"Error in loginUserOTP:");
+    logger.error(error, "Error in loginUserOTP:");
+    console.log(error);
     return res.status(500).json({ message: "Please try after some time" });
   }
 };
@@ -419,7 +453,7 @@ exports.TestloginUserOTP = async (req, res, next) => {
 
     return res.json(statusInfo);
   } catch (err) {
-    logger.error(err,"Error in TestloginUserOTP");
+    logger.error(err, "Error in TestloginUserOTP");
     return res.status(200).json({ message: "Please try after some Time" });
   }
 };
@@ -472,7 +506,7 @@ exports.loginUser = (req, res, next) => {
           });
         });
       })
-      .catch((err) => logger.error(err,"  Error in loginUser"));
+      .catch((err) => logger.error(err, "  Error in loginUser"));
   });
 };
 
@@ -585,7 +619,7 @@ exports.getAllUsers = async (req, res) => {
     if (startDate && endDate) {
       pipeline.push({
         $match: {
-          creationTimeStamp : {$gte:new Date(startDate+"T00:00:00"), $lt:new Date(endDate+"T23:59:59")}
+          creationTimeStamp: { $gte: new Date(startDate + "T00:00:00"), $lt: new Date(endDate + "T23:59:59") }
         },
       });
     }
@@ -643,7 +677,7 @@ exports.getAllUsers = async (req, res) => {
 exports.getParticularUserDetails = (req, res, next) => {
   const userId = req.params.userId;
 
-  console.log("userId===>",req.query);
+  console.log("userId===>", req.query);
 
   User.findUserByUserId(userId).then((userData) => {
     if (!userData) {
@@ -1265,7 +1299,7 @@ exports.getAllFavourites = (req, res, next) => {
 exports.deleteParticularUser = (req, res, next) => {
   const userId = req.params.userId;
 
-  User.findUserByUserId(userId).then(async(userData) => {
+  User.findUserByUserId(userId).then(async (userData) => {
     if (!userData) {
       return res
         .status(404)
@@ -1275,8 +1309,8 @@ exports.deleteParticularUser = (req, res, next) => {
     const db = getDb();
     var o_id = new ObjectId(userId);
 
-   await db.collection("userdeleterequests").insertOne({phone:userData.phone,email:userData.email, creationTimeStamp: new Date(), userId:userData._id})
-   await db.collection("users")
+    await db.collection("userdeleterequests").insertOne({ phone: userData.phone, email: userData.email, creationTimeStamp: new Date(), userId: userData._id })
+    await db.collection("users")
       .updateOne({ _id: o_id }, { $set: { status: 0 } })
       .then((resultData) => {
         return res.json({ status: true, message: "User deleted successfully" });
@@ -1440,19 +1474,19 @@ exports.exportUserData = async (req, res) => {
     }
 
 
-    logger.info("this is pipe======>",pipeline);
-      if (options.startDate && options.endDate) {
-        let startDate=options.startDate
-        let endDate=options.endDate
-        pipeline.push({
-          $match: {
-            creationTimeStamp: {
-              $gte: new Date(startDate),
-              $lte: new Date(endDate)
-            },
+    logger.info("this is pipe======>", pipeline);
+    if (options.startDate && options.endDate) {
+      let startDate = options.startDate
+      let endDate = options.endDate
+      pipeline.push({
+        $match: {
+          creationTimeStamp: {
+            $gte: new Date(startDate),
+            $lte: new Date(endDate)
           },
-        });
-      }
+        },
+      });
+    }
 
 
 
@@ -1526,15 +1560,15 @@ exports.exportUserData = async (req, res) => {
     const data = await workbook.xlsx
       .writeFile(`C:/Users/Choira Dev 2/Desktop/studio_api/files/users.xlsx`)
       .then(() => {
-        res.header({"Content-disposition" : "attachment; filename=users.xlsx" ,"Content-Type" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}).sendFile("users.xlsx", {root: `C:/Users/Choira Dev 2/Desktop/studio_api/files`}, function (err) {
+        res.header({ "Content-disposition": "attachment; filename=users.xlsx", "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }).sendFile("users.xlsx", { root: `C:/Users/Choira Dev 2/Desktop/studio_api/files` }, function (err) {
           if (err) {
-              logger.error(err,'Error sending file');
+            logger.error(err, 'Error sending file');
           } else {
             logger.info({
-                status: "success",
-                message: "file successfully downloaded",
-                path: `${mypath}/users.xlsx`
-              });
+              status: "success",
+              message: "file successfully downloaded",
+              path: `${mypath}/users.xlsx`
+            });
           }
         })
       });
@@ -1550,67 +1584,67 @@ exports.exportUserData = async (req, res) => {
 
 
 
-exports.sendOTP2 =  async (req,res)=> {
+exports.sendOTP2 = async (req, res) => {
   try {
-      const db = getDb();
-      console.log("object");
-      let phoneNumber = req.body.phoneNumber
-      // let otp = req.query.otp
-      let userData = await db.collection("users").findOne({phone:phoneNumber})
-      if(!userData){
-        return res.status(200).json({status:false, message:"User not found"})
+    const db = getDb();
+    console.log("object");
+    let phoneNumber = req.body.phoneNumber
+    // let otp = req.query.otp
+    let userData = await db.collection("users").findOne({ phone: phoneNumber })
+    if (!userData) {
+      return res.status(200).json({ status: false, message: "User not found" })
+    }
+    if (userData.status === 0) {
+      return res.status(200).json({ status: false, message: "User is already deleted" })
+    }
+    console.log('phoneNumber=>', phoneNumber);
+    var options = {
+      method: 'POST',
+      url: 'https://control.msg91.com/api/v5/otp',
+      params: {
+        template_id: process.env.MSG91_TEMP_ID, // '6603b39dd6fc051f716ee0a3',
+        mobile: phoneNumber,
+        authkey: process.env.MSG91_AUT_KEY,
+        // otp: otp,
+        otp_length: '4',
+        otp_expiry: '10'
+      },
+      headers: { 'Content-Type': 'application/JSON' }
+    };
+    axios.request(options).then(function (response) {
+      console.log("DATA--->", response.data);
+      if (response.data.type === 'success') {
+        res.status(200).json({ status: true, message: "otp successfully sent", userId: userData._id })
+      } else {
+        res.status(404).json({ status: false, message: "otp sending failed" })
       }
-      if(userData.status===0){
-        return res.status(200).json({status:false, message:"User is already deleted"})
-      }
-      console.log('phoneNumber=>',phoneNumber);
-      var options = {
-        method: 'POST',
-        url: 'https://control.msg91.com/api/v5/otp',
-        params: {
-          template_id: process.env.MSG91_TEMP_ID, // '6603b39dd6fc051f716ee0a3',
-          mobile: phoneNumber,
-          authkey: process.env.MSG91_AUT_KEY,
-          // otp: otp,
-           otp_length: '4',
-          otp_expiry: '10'
-        },
-        headers: {'Content-Type': 'application/JSON'}
-      };
-      axios.request(options).then(function (response) {
-        console.log("DATA--->",response.data);
-        if (response.data.type === 'success') {
-          res.status(200).json({ status: true , message :"otp successfully sent", userId:userData._id })
-        } else {
-            res.status(404).json({ status: false , message :"otp sending failed" })
-        }
-        }).catch(function (error) {
-          console.error("Error sending OTP:", error);
-          res.status(404).json({ status: false , message :"otp sending failed" })
-        });
+    }).catch(function (error) {
+      console.error("Error sending OTP:", error);
+      res.status(404).json({ status: false, message: "otp sending failed" })
+    });
   } catch (error) {
-      logger.error( error,"Error sending OTP",);
-      res.status(404).json({ status: false , message :"otp sending failed" })
+    logger.error(error, "Error sending OTP",);
+    res.status(404).json({ status: false, message: "otp sending failed" })
   }
 }
 
-exports.verifyOTP = async (req,res)=> {
+exports.verifyOTP = async (req, res) => {
   try {
-      let phoneNumber = req.query.phoneNumber
-      let otp = req.query.otp
-      const response = await axios.get(`https://control.msg91.com/api/v5/otp/verify`, {
-          params: {otp:otp, mobile: phoneNumber},
-          headers: {authkey: process.env.MSG91_AUT_KEY}
-      });
-      console.log("response.data-->", response.data.message,response.data.type);
-      if (response.status == 200 && response.data.type == "success") {
-          res.status(200).json({ status: true , message :response.data.message })
-      } else {
-          res.status(200).json({ status: false , message :response.data.message })
-      }
+    let phoneNumber = req.query.phoneNumber
+    let otp = req.query.otp
+    const response = await axios.get(`https://control.msg91.com/api/v5/otp/verify`, {
+      params: { otp: otp, mobile: phoneNumber },
+      headers: { authkey: process.env.MSG91_AUT_KEY }
+    });
+    console.log("response.data-->", response.data.message, response.data.type);
+    if (response.status == 200 && response.data.type == "success") {
+      res.status(200).json({ status: true, message: response.data.message })
+    } else {
+      res.status(200).json({ status: false, message: response.data.message })
+    }
   } catch (error) {
-      logger.info(error,"Error verifiying OTP" );
-      res.status(404).json({ status: false , message :"otp verification failed" })
+    logger.info(error, "Error verifiying OTP");
+    res.status(404).json({ status: false, message: "otp verification failed" })
   }
 }
 
