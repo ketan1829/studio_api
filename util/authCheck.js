@@ -101,15 +101,15 @@ const isBoth = async (req, res, next) => {
     let token = req.headers.authorization;
     let secret_by_pass = req.headers.secret_by_pass;
 
-    // console.log("authCheck both >>>", token, secret_by_pass)
+    console.log("authCheck both >>>", token, secret_by_pass)
 
     if (!token) throw new ErrorHandler(401, "unauthorized");
 
-    token = token.split(" ")[1]; // remove "Bearer"
+    token = token.split(" ").length > 1 ? token.split(" ")[1]:token.split(" ")[0]
     
 
 
-    if ((secret_by_pass || token) === "debugTest") {
+    if (token === "debugTest" || secret_by_pass === "debugTest") {
       console.log("authCheck3 >>>")
       return next();
     } else {

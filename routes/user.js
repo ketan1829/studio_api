@@ -150,7 +150,7 @@ router.post('/users/send-otp',controller.sendOTP2)
  *       500:
  *         description: Some server error
  */
-router.get('/users/verify_otp',controller.verifyOTP)
+router.get('/users/verify-otp',controller.verifyOTP)
 //--------------------------------------------------------
 
 

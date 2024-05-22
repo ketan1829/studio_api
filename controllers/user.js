@@ -149,12 +149,6 @@ exports.signupUserV2 = async (req, res, next) => {
     logger.info({ fullName, dateOfBirth, email, phone, deviceId });
 
     let _userData = await User.findUserByPhone(phone, 0, false);
-    // let phone = (phoneNumber.length > 10)? phoneNumber.slice(2) : `91${phoneNumber}`
-    let phone = (phoneNumber.length == 10)? `91${phoneNumber}` : phoneNumber
-    
-    logger.info({ fullName, dateOfBirth, email, phone, deviceId });
-
-    let _userData = await User.findUserByPhone(phone, 0, false);
 
     logger.info("REGISTER USER DATA", _userData);
 
@@ -163,7 +157,6 @@ exports.signupUserV2 = async (req, res, next) => {
       fullName: fullName.trim(),
       dateOfBirth,
       email,
-      phone: phone,
       phone: phone,
       password: "",
       userType: userType || "NUMBER",
@@ -187,7 +180,6 @@ exports.signupUserV2 = async (req, res, next) => {
         dateOfBirth,
         email,
         phone: phone,
-        phone: phone,
         userType: userType || "NUMBER",
         deviceId,
         role: role || "user",
@@ -195,11 +187,9 @@ exports.signupUserV2 = async (req, res, next) => {
       }
       userObj._id = _userData._id;
       const udata = await User.update(phone, updated_user_data)
-      const udata = await User.update(phone, updated_user_data)
       console.log(udata ? `udata count:${udata?.matchedCount}` : "nottttt");
     } else {
 
-      let _userData_active = await User.findUserByPhone(phone, 1);
       let _userData_active = await User.findUserByPhone(phone, 1);
       if (_userData_active) {
 
@@ -208,15 +198,11 @@ exports.signupUserV2 = async (req, res, next) => {
           dateOfBirth,
           email,
           phone: phone,
-          phone: phone,
           userType: userType || "NUMBER",
           deviceId,
           role: role || "user",
           status: 1
         }
-        
-        const udata = await User.update(phone, updated_user_data)
-        userObj._id = _userData_active._id
         
         const udata = await User.update(phone, updated_user_data)
         userObj._id = _userData_active._id
@@ -227,10 +213,8 @@ exports.signupUserV2 = async (req, res, next) => {
         // If user does not exist, create a new user
         await userObj.save();
         const {_id,creationTimeStamp} = await User.findUserByPhone(phone);
-        const {_id,creationTimeStamp} = await User.findUserByPhone(phone);
         userObj._id = _id
         userObj.creationTimeStamp = creationTimeStamp
-        
         
         
         if (role === "user") {
@@ -245,7 +229,6 @@ exports.signupUserV2 = async (req, res, next) => {
     const token = jwt.sign({ user: userObj }, "myAppSecretKey");
     
     console.log("userObj:", userObj);
-    console.log("userObj:", userObj);
     return res.json({ status: true, message: "Signup successful", user: userObj, token });
 
   } catch (error) {
@@ -258,12 +241,9 @@ exports.loginUserOTP = async (req, res, next) => {
   try {
     const { phoneNumber, deviceId, userType, role } = req.body;    
     let phone = (phoneNumber.length > 10)? phoneNumber : `91${phoneNumber}`
-    const { phoneNumber, deviceId, userType, role } = req.body;    
-    let phone = (phoneNumber.length > 10)? phoneNumber : `91${phoneNumber}`
     logger.info({ phoneNumber, deviceId, userType, role });
 
 
-    const userData = await User.findUserByPhone(phone,1,false);
     const userData = await User.findUserByPhone(phone,1,false);
 
     logger.info("DATA::::", userData);
@@ -354,7 +334,6 @@ exports.loginUserOTP = async (req, res, next) => {
       else {
         console.log("ELESEEEE");
         // sendOTP(phoneNumber, otp)
-        if(userData.role == "user") (phoneNumber.length == 10) ? sendOTP(phoneNumber, otp) : sendMsg91OTP(`${phoneNumber}`, otp)  // sendMsg91OTP(`${phoneNumber}`, otp)
         if(userData.role == "user") (phoneNumber.length == 10) ? sendOTP(phoneNumber, otp) : sendMsg91OTP(`${phoneNumber}`, otp)  // sendMsg91OTP(`${phoneNumber}`, otp)
         if (deviceId) {
           userData.deviceId = deviceId;
@@ -676,7 +655,7 @@ exports.getAllUsers = async (req, res) => {
 exports.getParticularUserDetails = (req, res, next) => {
   const userId = req.params.userId;
 
-  logger.info("userId===>", userId);
+  console.log("userId===>",req.query);
 
   User.findUserByUserId(userId).then((userData) => {
     if (!userData) {

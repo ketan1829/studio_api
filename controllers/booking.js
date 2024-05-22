@@ -672,7 +672,7 @@ exports.getStudioAvailabilities = async(req, res, next) => {
         .status(404)
         .json({ status: false, message: "No studio with this ID exists" });
     }
-    if (studioData.timeZone) {
+    if (studioData?.timeZone) {
       currDate = moment.tz(studioData.timeZone)
     } else {
       currDate = moment.tz("Asia/Kolkata");
