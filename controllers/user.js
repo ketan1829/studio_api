@@ -332,9 +332,9 @@ exports.loginUserOTP = async (req, res, next) => {
         const token = jwt.sign({ user: userData }, secretKey);
         statusInfo.token = token;
         statusInfo.role = userData.role || "user";
-        statusInfo.message = status_otp?"Welcome back, OTP has been send Succesfully":"OTP sent failed !";
+        statusInfo.message = status_otp.status?"Welcome back, OTP has been send Succesfully":"OTP sent failed !";
         statusInfo.newUser = false;
-        statusInfo.status = status_otp;
+        statusInfo.status = status_otp.status;
         statusInfo.user = userData;
         return res.status(200).json(statusInfo);
       }
