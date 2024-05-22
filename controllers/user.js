@@ -240,18 +240,14 @@ exports.signupUserV2 = async (req, res, next) => {
 exports.loginUserOTP = async (req, res, next) => {
   try {
     const { phoneNumber, deviceId, userType, role } = req.body;    
-    let phone = (phoneNumber.length > 10)? phoneNumber : `91${phoneNumber}`
     logger.info({ phoneNumber, deviceId, userType, role });
 
-
-    const userData = await User.findUserByPhone(phone,1,false);
+    const userData = await User.findUserByPhone(phoneNumber,1,false);
 
     logger.info("DATA::::", userData);
     // console.log("DATA::::", userData);
 
     let statusInfo = { status: false, message: "something went wrong" };
-
-    let otp = generateRandomCode(4);
 
     if (userType === "NUMBER") {
 
@@ -277,14 +273,11 @@ exports.loginUserOTP = async (req, res, next) => {
           message: "Hello Admin, OTP has been send Succesfully",
           user: AdminData,
           token,
-          otp,
         });
       }
 
       // Test User login
       if (userData && userData.role === "tester") {
-
-        console.log("Tester OTP:", otp);
 
         if (deviceId) {
           userData.deviceId = deviceId;
@@ -293,7 +286,6 @@ exports.loginUserOTP = async (req, res, next) => {
         const token = jwt.sign({ user: userData }, secretKey);
         statusInfo.role = "tester";
         statusInfo.token = token;
-        statusInfo.otp = otp;
         statusInfo.newUser = false;
         statusInfo.status = true;
         statusInfo.user = userData;
@@ -304,10 +296,9 @@ exports.loginUserOTP = async (req, res, next) => {
       // New User
       if (!userData || userData?.status == 0) {
         console.log("new user=======");
-        (phoneNumber.length == 10)? sendOTP(phoneNumber, otp) : sendMsg91OTP(`${phoneNumber}`, otp)
-        statusInfo.otp = otp;
+        const status_otp = await sendMsg91OTP(`${phoneNumber}`)
         statusInfo.newUser = true;
-        statusInfo.status = true;
+        statusInfo.status = status_otp.status;
         statusInfo.user = {
           "_id": "",
           "fullName": "",
@@ -327,14 +318,13 @@ exports.loginUserOTP = async (req, res, next) => {
           "role": "user"
         };
         statusInfo.role = "user";
-        statusInfo.message = "OTP has been send Succesfully";
+        statusInfo.message = status_otp.status?"OTP has been send Succesfully":"OTP sent failed !";
         return res.status(200).json(statusInfo);
       }
       // Existing User Login
       else {
         console.log("ELESEEEE");
-        // sendOTP(phoneNumber, otp)
-        if(userData.role == "user") (phoneNumber.length == 10) ? sendOTP(phoneNumber, otp) : sendMsg91OTP(`${phoneNumber}`, otp)  // sendMsg91OTP(`${phoneNumber}`, otp)
+        const status_otp = await sendMsg91OTP(`${phoneNumber}`)
         if (deviceId) {
           userData.deviceId = deviceId;
           await User.update(phoneNumber, { deviceId: deviceId });
@@ -342,12 +332,10 @@ exports.loginUserOTP = async (req, res, next) => {
         const token = jwt.sign({ user: userData }, secretKey);
         statusInfo.token = token;
         statusInfo.role = userData.role || "user";
-        statusInfo.message = "Welcome back, OTP has been send Succesfully";
+        statusInfo.message = status_otp?"Welcome back, OTP has been send Succesfully":"OTP sent failed !";
         statusInfo.newUser = false;
-        statusInfo.status = true;
+        statusInfo.status = status_otp;
         statusInfo.user = userData;
-        statusInfo.otp = otp;
-
         return res.status(200).json(statusInfo);
       }
     }
