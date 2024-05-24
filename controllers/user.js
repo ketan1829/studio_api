@@ -575,6 +575,9 @@ exports.getAllUsers = async (req, res) => {
     let { searchUser, startDate, endDate } = req.query;
     let filter = pick(req.query, ["status"]);
 
+    console.log(filter);
+    console.log("filter");
+
     let sortfield = req.query.sortfield ? req.query.sortfield : "creationTimeStamp"
     let sortDirection = req.query.sortDirection === 'asc' ? 1 : -1;
 
@@ -619,9 +622,16 @@ exports.getAllUsers = async (req, res) => {
     }
     let users = await User.fetchAllUsersByAggregate(pipeline);
     const db = getDb();
+    console.log("filter2");
+    console.log(filter);
     const totalCountPipeline = [
       { "$match": searching || {} },
       { "$match": filter },
+      startDate?{
+        "$match": {
+          creationTimeStamp : {$gte:new Date(startDate+"T00:00:00"), $lt:new Date(endDate+"T23:59:59")}
+        },
+      }:{ "$match": {} },
       { "$count": 'total' }
     ];
     const totalCountResult = await db.collection('users').aggregate(totalCountPipeline).toArray();
