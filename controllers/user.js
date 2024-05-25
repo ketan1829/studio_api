@@ -568,14 +568,18 @@ exports.sendSignUpOtp = (req, res, next) => {
 
 exports.getAllUsers = async (req, res) => {
   try {
+
+    console.log("query")
+    console.log(req.query)
     const page = +req.query.page || 1;
     const limit = +req.query.limit || 10;
 
     let { searchUser, startDate, endDate } = req.query;
     let filter = pick(req.query, ["status"]);
 
-    let sortfield = req.query.sortfield;
-    let sortDirection = req.query.sortDirection === 'desc' ? -1 : 1;
+    let sortfield = req.query?.sortfield ? req.query.sortfield : "creationTimeStamp";
+    let sortDirection = -1
+    sortDirection = req.query.sortDirection === 'asc' ? 1 : -1;
 
     if (filter.status) filter.status = parseInt(filter.status);
     let searching;

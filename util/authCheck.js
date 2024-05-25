@@ -53,7 +53,12 @@ const isAdminV2 = async (req, res, next) => {
     token = token.split(" ")[1]; // remove "Bearer"
     // console.log("token", token);
     const decoded = await verifyToken(token);
-    // console.log("decoded:::", decoded, decoded.user.role)
+    console.log("decoded:::", decoded)
+
+    if(decoded.admin){
+      console.log("----admin----");
+      return next()
+    }
 
     if (decoded.user.role !== "admin") {
       throw new ErrorHandler(401, "unauthorized");
