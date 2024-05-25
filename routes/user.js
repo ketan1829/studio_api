@@ -79,6 +79,82 @@ router.get('/download/:filename', function(req,res,next){
 */
 
 
+
+//---------------sending and verifying otp for user, using msg91 ----------------
+
+
+/**
+ * @swagger
+ * /users/send-otp:
+ *   post:
+ *     summary: Send otp to user
+ *     tags: [Users]
+ *     requestBody:
+ *       description: |
+ *       phoneNumber: string
+ *       content:
+ *         application/json:
+ *           schema:
+ *             phoneNumber: string
+ *             otp: string
+ *           example : 
+ *             phoneNumber: "987654321"
+ *             otp: "5634"
+ *     responses:
+ *       200:
+ *         description: Otp sent to user
+ *         content:
+ *           application/json:
+ *               example : 
+ *                 status : true
+ *                 message : "otp successfully sent"
+ *       400:
+ *         description: Bad Request
+ *       404:
+ *         description: otp sending failed
+ *       500:
+ *         description: Some server error
+ */
+router.post('/users/send-otp',controller.sendOTP2)
+
+
+/**
+ * @swagger
+ * /users/verify-otp:
+ *   get:
+ *     summary: Verify otp of user
+ *     tags: [Users]
+ *     requestBody:
+ *       description: |
+ *       phoneNumber: string
+ *       content:
+ *         application/json:
+ *           schema:
+ *             phoneNumber: string
+ *             otp: string
+ *           example : 
+ *             phoneNumber: "987654321"
+ *             otp: "5634"
+ *     responses:
+ *       200:
+ *         description: otp of a user is verified
+ *         content:
+ *           application/json:
+ *               example : 
+ *                 status : true
+ *                 message : "otp verification successfully "
+ *       400:
+ *         description: Bad Request
+ *       404:
+ *         description: ootp verification failed
+ *       500:
+ *         description: Some server error
+ */
+router.get('/users/verify-otp',controller.verifyOTP)
+//--------------------------------------------------------
+
+
+
 /**
  * @swagger
  * /users/signup:
@@ -326,6 +402,9 @@ router.post('/users/login',controller.loginUser);
  */
 
 router.post('/users/send-signup-otp',controller.sendSignUpOtp);
+
+
+
 
 /**
  * @swagger
@@ -838,79 +917,6 @@ router.post('/users/toggle-favourite',auth.isUser,controller.addRemoveUserFavour
 router.get('/users/graph',auth.isAdmin,controller.getAllUsersGraphDetails);
 
 
-//---------------sending and verifying otp for user, using msg91 ----------------
-
-
-
-/**
- * @swagger
- * /users/send-otp:
- *   post:
- *     summary: Send otp to user
- *     tags: [Users]
- *     requestBody:
- *       description: |
- *       phoneNumber: string
- *       content:
- *         application/json:
- *           schema:
- *             phoneNumber: string
- *             otp: string
- *           example : 
- *             phoneNumber: "987654321"
- *             otp: "5634"
- *     responses:
- *       200:
- *         description: Otp sent to user
- *         content:
- *           application/json:
- *               example : 
- *                 status : true
- *                 message : "otp successfully sent"
- *       400:
- *         description: Bad Request
- *       404:
- *         description: otp sending failed
- *       500:
- *         description: Some server error
- */
-router.post('/users/send-otp',controller.sendOTP2)
-
-
-/**
- * @swagger
- * /users/verify-otp:
- *   get:
- *     summary: Verify otp of user
- *     tags: [Users]
- *     requestBody:
- *       description: |
- *       phoneNumber: string
- *       content:
- *         application/json:
- *           schema:
- *             phoneNumber: string
- *             otp: string
- *           example : 
- *             phoneNumber: "987654321"
- *             otp: "5634"
- *     responses:
- *       200:
- *         description: otp of a user is verified
- *         content:
- *           application/json:
- *               example : 
- *                 status : true
- *                 message : "otp verification successfully "
- *       400:
- *         description: Bad Request
- *       404:
- *         description: ootp verification failed
- *       500:
- *         description: Some server error
- */
-router.get('/users/verify-otp',controller.verifyOTP)
-//--------------------------------------------------------
 
 
 /**

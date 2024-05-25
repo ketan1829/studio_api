@@ -26,7 +26,6 @@ const { logger } = require("../util/logger");
 const { json } = require("body-parser");
 const moment = require("moment-timezone");
 
-
 function convertTo24HourFormat(time12h) {
   const [time, modifier] = time12h.split(" ");
 
@@ -665,21 +664,45 @@ exports.getStudioAvailabilities1 = (req, res, next) => {
   logger.info("Booking Date :--> ", bookingDate);
 
   //get Current Date from timestamp
-  let currDate = new Date();
-  var yr = currDate.getUTCFullYear();
-  var mth = currDate.getUTCMonth() + 1;
+  // let currDate = new Date();
+    let currDate = moment.tz("Asia/Kolkata");
+    let studioData = await Studio.findStudioById(studioId)
+    if (!studioData) {
+      return res
+        .status(404)
+        .json({ status: false, message: "No studio with this ID exists" });
+    }
+    if (studioData?.timeZone) {
+      currDate = moment.tz(studioData.timeZone)
+    } else {
+      currDate = moment.tz("Asia/Kolkata");
+      console.log("object");
+    }
+    console.log("currDate=>",currDate);
+
+  console.log(
+    "Current IST Date and Time:",
+    currDate.format("YYYY-MM-DD HH:mm:ss"),
+  );
+  // var yr = currDate.getUTCFullYear();
+  // var mth = currDate.getUTCMonth() + 1;
+  var yr = currDate.year();
+  var mth = currDate.month() + 1; 
+
   if (mth.toString().length == 1) {
     mth = "0" + mth.toString();
   }
-  var dt = currDate.getUTCDate();
+  var dt = currDate.date();
+  // var dt = currDate.getUTCDate();
   if (dt.toString().length == 1) {
     dt = "0" + dt.toString();
   }
-  currDate = yr + "-" + mth + "-" + dt;
-  var cTimeStamp = new Date(currDate).getTime();
-  logger.info("Current Date : ", currDate);
-  var currHr = new Date().getHours();
-  var currMin = new Date().getMinutes();
+  // currDate = yr + "-" + mth + "-" + dt;
+  var cTimeStamp = currDate.valueOf();
+  console.log("Current Date : ", currDate);
+  console.log("cTimeStamp",cTimeStamp);
+  var currHr = currDate.hours();
+  var currMin = currDate.minutes();
   var currTime = currHr * 60 + currMin;
   logger.info("Current Time : " + currTime);
 
@@ -736,7 +759,8 @@ exports.getStudioAvailabilities1 = (req, res, next) => {
 
         let availSlotsNew = allSlots;
         //Filtering to remove past slots for current date
-        if (cTimeStamp <= bTimeStamp) {
+        if (cTimeStamp >= bTimeStamp) {
+          console.log("cTimeStamp == bTimeStamp 1");
           availSlotsNew = availSlotsNew.filter((i) => {
             var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
             var sMin =
@@ -861,7 +885,8 @@ exports.getStudioAvailabilities1 = (req, res, next) => {
           allAvailSlots = allAvailSlots.concat(timeslots);
         });
         //Filtering to remove past slots for current date
-        if (cTimeStamp <= bTimeStamp) {
+        if (cTimeStamp == bTimeStamp) {
+
           allAvailSlots = allAvailSlots.filter((i) => {
             var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
             var sMin =
@@ -1170,6 +1195,256 @@ exports.getStudioAvailabilities = async(req, res, next) => {
     );
   });
 };
+
+// exports.getStudioAvailabilitiesWorkingBackup = (req, res, next) => {
+//   //manually added 5.30 time in UTC for IST
+//   const studioId = req.body.studioId;
+//   const roomId = req.body.roomId;
+//   let bookingDate = req.body.bookingDate;
+//   const bookingHours = +req.body.bookingHours; //Slots will be created based on this
+//   const bufferTime = 15;
+//   const interval = bookingHours * 60;
+//   console.log("slot req data:", req.body);
+//   //get bookingDate from timestamp
+//   bookingDate = new Date(bookingDate);
+//   var yr = bookingDate.getUTCFullYear();
+//   var mth = bookingDate.getUTCMonth() + 1;
+//   if (mth.toString().length == 1) {
+//     mth = "0" + mth.toString();
+//   }
+//   var dt = bookingDate.getUTCDate();
+//   if (dt.toString().length == 1) {
+//     dt = "0" + dt.toString();
+//   }
+//   bookingDate = yr + "-" + mth + "-" + dt;
+//   var bTimeStamp = new Date(bookingDate).getTime();
+//   logger.info("Booking Date :--> ", bookingDate);
+//   console.log("bTimeStamp");
+//   console.log(bTimeStamp);
+//   //get Current Date from timestamp
+//   let currDate = new Date();
+//   console.log("c date:::::");
+//   console.log(currDate);
+//   console.log(currDate.getHours());
+//   var yr = currDate.getUTCFullYear();
+//   var mth = currDate.getUTCMonth() + 1;
+//   if (mth.toString().length == 1) {
+//     mth = "0" + mth.toString();
+//   }
+//   var dt = currDate.getUTCDate();
+//   if (dt.toString().length == 1) {
+//     dt = "0" + dt.toString();
+//   }
+//   currDate = yr + "-" + mth + "-" + dt;
+
+//   var cTimeStamp = new Date(currDate).getTime();
+//   var indianTime = 5.5 * 60 * 60 * 1000
+//   var cTimeStamp = cTimeStamp + indianTime;
+
+//   // var cTimeStamp = 1716286445908
+//   console.log("cTimeStamp");
+//   console.log(cTimeStamp);
+
+//   logger.info("Current Date : ", currDate);
+//   var currHr = new Date().getHours();
+//   var currMin = new Date().getMinutes();
+//   var currTime = currHr * 60 + currMin;
+//   logger.info("Current Time : " + currTime);
+//   Studio.findStudioById(studioId).then((studioData) => {
+//     if (!studioData) {
+//       return res
+//         .status(404)
+//         .json({ status: false, message: "No studio with this ID exists" });
+//     }
+//     if (studioData.roomsDetails == undefined) {
+//       studioData.roomsDetails = [];
+//     }
+//     const roomIndex = studioData.roomsDetails.findIndex(
+//       (i) => i.roomId == roomId
+//     );
+//     if (roomIndex == -1) {
+//       return res
+//         .status(404)
+//         .json({ status: false, message: "No room with this ID exists" });
+//     }
+//     let roomTotalAvailability =
+//       studioData.roomsDetails[roomIndex].availabilities;
+//     // roomTotalAvailability = [{startTime:"09:00",endTime:"13:00"},{startTime:"15:00",endTime:"19:00"}];
+//     logger.info("Rooms Hours : ", roomTotalAvailability);
+//     //Getting all slots first
+//     let allSlots = [];
+//     roomTotalAvailability.forEach((singleAvail) => {
+//       // logger.info(singleAvail);
+//       var startTime = singleAvail.startTime;
+//       var endTime = singleAvail.endTime;
+//       var start_time = parseTime(startTime),
+//         end_time = parseTime(endTime);
+//       // interval = bookingHours * 60;
+//       var timeslots = calculate_time_slot(start_time, end_time, interval);
+//       //Creating range for slots
+//       for (let s = 0; s < timeslots.length - 1; s++) {
+//         timeslots[s] = { startTime: timeslots[s], endTime: timeslots[s + 1] };
+//       }
+//       //removing last extra element of "allSlots"
+//       timeslots.splice(timeslots.length - 1, 1);
+//       // logger.info(timeslots);
+//       allSlots = allSlots.concat(timeslots);
+//     });
+//     // logger.info("All Slots : ", allSlots);
+//     Booking.fetchBookingsByStudioIdAndBookingDate(studioId, bookingDate).then(
+//       (bookingsData) => {
+//         logger.info({ bookingsData });
+//         let availSlotsNew = allSlots;
+//         //Filtering to remove past slots for current date
+//         if (cTimeStamp >= bTimeStamp) {
+//           console.log("cTimeStamp == bTimeStamp 1");
+//           availSlotsNew = availSlotsNew.filter((i) => {
+//             var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
+//             var sMin = +i.startTime.split(":")[0] * 60 + +i.startTime.split(":")[1];
+//             console.log(sMin, eMin, currTime);
+//             if (eMin < currTime || sMin < currTime) {
+//               return false;
+//             } else {
+//               return true;
+//             }
+//           });
+//         }
+//         console.log("availSlotsNew:", availSlotsNew);
+//         if (bookingsData.length == 0) {
+//           //convert to 12 hour format
+//           availSlotsNew.forEach((singleSlot) => {
+//             singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
+//             singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
+//           });
+//           return res.json({
+//             status: true,
+//             message: "Availability returned",
+//             allSlots: allSlots,
+//             availableSlots: availSlotsNew,
+//             bookedSlots: [],
+//             test: "test",
+//           });
+//         }
+//         let bookedSlots = [];
+//         bookingsData.forEach((singleBooking) => {
+//           bookedSlots.push(singleBooking.bookingTime);
+//         });
+//         let availableSlots = [];
+//         let allSplitSlots = [];
+//         // allSlots.forEach(singleSlot=>{
+//         //     let startMin = (+singleSlot.startTime.split(':')[0] * 60) + (+singleSlot.startTime.split(':')[1]);
+//         //     let endMin = (+singleSlot.endTime.split(':')[0] * 60) + (+singleSlot.endTime.split(':')[1]);
+//         //     // logger.info(startMin,endMin);
+//         bookedSlots.forEach((singleBookedSlot) => {
+//           let startMinBooked =
+//             +singleBookedSlot.startTime.split(":")[0] * 60 +
+//             +singleBookedSlot.startTime.split(":")[1];
+//           let endMinBooked =
+//             +singleBookedSlot.endTime.split(":")[0] * 60 +
+//             +singleBookedSlot.endTime.split(":")[1];
+//           roomTotalAvailability.forEach((singleRoomAvail) => {
+//             let startMinRoom =
+//               +singleRoomAvail.startTime.split(":")[0] * 60 +
+//               +singleRoomAvail.startTime.split(":")[1];
+//             let endMinRoom =
+//               +singleRoomAvail.endTime.split(":")[0] * 60 +
+//               +singleRoomAvail.endTime.split(":")[1];
+//             if (startMinBooked >= startMinRoom && endMinBooked <= endMinRoom) {
+//               // logger.info("Single Room Avail : ",singleRoomAvail);
+//               //remove this booked slot from total room slot
+//               let splitSlot1 = {
+//                 startTime: singleRoomAvail.startTime,
+//                 endTime: singleBookedSlot.startTime,
+//               };
+//               let splitSlot2 = {
+//                 startTime: singleBookedSlot.endTime,
+//                 endTime: singleRoomAvail.endTime,
+//               };
+//               logger.info("Split Slot : ", splitSlot1, splitSlot2);
+//               roomTotalAvailability.push(splitSlot1);
+//               roomTotalAvailability.push(splitSlot2);
+//               //Also, before next iteration, remove this availablitiy slot from room (since updated is added)
+//               const availIndex1 = roomTotalAvailability.findIndex(
+//                 (a) =>
+//                   a.startTime == singleRoomAvail.startTime &&
+//                   a.endTime == singleRoomAvail.endTime
+//               );
+//               if (availIndex1 != -1) {
+//                 roomTotalAvailability.splice(availIndex1, 1);
+//               }
+//             }
+//           });
+//         });
+//         // });
+//         logger.info("Availability Sets : ", roomTotalAvailability);
+//         //add 30 min interval before starting next slot
+//         for (let i = 1; i < roomTotalAvailability.length; i++) {
+//           const index = bookedSlots.findIndex((s) =>
+//             s.endTime
+//               .split(":")[0]
+//               .startsWith(roomTotalAvailability[i].startTime.split(":")[0])
+//           );
+//           if (index != -1) {
+//             roomTotalAvailability[i].startTime = addMinToTime(
+//               roomTotalAvailability[i].startTime,
+//               bufferTime
+//             );
+//           }
+//         }
+//         logger.info("Availability Sets : ", roomTotalAvailability);
+//         let allAvailSlots = [];
+//         //Now split these based on SLOT timing
+//         roomTotalAvailability.forEach((singleAvail) => {
+//           // logger.info(singleAvail);
+//           var startTime = singleAvail.startTime;
+//           var endTime = singleAvail.endTime;
+//           var start_time = parseTime(startTime),
+//             end_time = parseTime(endTime),
+//             interval = bookingHours * 60;
+//           var timeslots = calculate_time_slot(start_time, end_time, interval);
+//           //Creating range for slots
+//           for (let s = 0; s < timeslots.length - 1; s++) {
+//             timeslots[s] = {
+//               startTime: timeslots[s],
+//               endTime: timeslots[s + 1],
+//             };
+//           }
+//           //removing last extra element of "allSlots"
+//           timeslots.splice(timeslots.length - 1, 1);
+//           // logger.info(timeslots);
+//           allAvailSlots = allAvailSlots.concat(timeslots);
+//         });
+//         //Filtering to remove past slots for current date
+//         if (cTimeStamp == bTimeStamp) {
+//           allAvailSlots = allAvailSlots.filter((i) => {
+//             var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
+//             var sMin =
+//               +i.startTime.split(":")[0] * 60 + +i.startTime.split(":")[1];
+//             if (eMin < currTime || sMin < currTime) {
+//               return false;
+//             } else {
+//               return true;
+//             }
+//           });
+//         }
+//         //sorting
+//         allAvailSlots.sort((a, b) => (a.startTime >= b.startTime ? 1 : -1));
+//         //convert to 12 hour format
+//         allAvailSlots.forEach((singleSlot) => {
+//           singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
+//           singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
+//         });
+//         return res.json({
+//           status: true,
+//           message: "Availability returned",
+//           allSlots: allSlots,
+//           availableSlots: allAvailSlots,
+//           bookedSlots: bookedSlots,
+//         });
+//       }
+//     );
+//   });
+// };
 
 exports.getStudioAvailabilitiesLate = (req, res, next) => {
   logger.info("req.body | ", req.body);

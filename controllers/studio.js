@@ -142,7 +142,9 @@ exports.getStudios = async (req, res, next) => {
     studioId,
     searchText,
     totalRooms,
-    creationTimeStamp
+    creationTimeStamp,
+    page,
+    limit
   } = req.query;
 
   const filter = pick(req.query, ["name", "role", "city"]);
@@ -184,6 +186,9 @@ exports.getStudios = async (req, res, next) => {
   if(creationTimeStamp){
     filter.creationTimeStamp = {$gte:new Date(creationTimeStamp+"T00:00:00"), $lt:new Date(creationTimeStamp+"T23:59:59")}
   }
+
+  if (options.page) options.page = +page;
+  if (options.limit) options.limit = +limit;
 
   logger.info("filter", filter);
 
@@ -269,10 +274,10 @@ exports.getStudios = async (req, res, next) => {
       .toArray();
     const totalPages = Math.ceil(nearbyStudios.length / options?.limit || 10);
     const paginateData = {
-      page: options?.page,
+      page: parseInt(options?.page),
       limit: parseInt(options?.limit) || 10,
-      totalResults: nearbyStudios.length,
-      totalPages: totalPages,
+      totalResults: parseInt(nearbyStudios.length),
+      totalPages: parseInt(totalPages),
     };
     return res.json({
       status: true,
@@ -314,10 +319,10 @@ exports.getStudios = async (req, res, next) => {
         studioData.totalResults
       );
       const paginateData = {
-        page: studioData.page,
-        limit: studioData.limit,
-        totalPages: studioData.totalPages,
-        totalResults: studioData.totalResults,
+        page: parseInt(studioData.page),
+        limit: parseInt(studioData.limit),
+        totalPages: parseInt(studioData.totalPages),
+        totalResults: parseInt(studioData.totalResults),
       };
       return res.json({
         status: true,
