@@ -143,15 +143,29 @@ class Studio {
 
       let countPromise;
       let docsPromise;
-      if(filter.fullName){
+      if (filter.fullName) {
         // db.collection("studios").createIndex({ fullName: 'text', address: 'text' });
-         countPromise = db.collection("studios").countDocuments({ fullName: { $regex: filter.fullName, $options: 'i' } });
-         docsPromise = db
-        .collection("studios")
-        .find({ fullName: { $regex: filter.fullName, $options: 'i' } })
-        .sort(sort)
-        .skip(skip)
-        .limit(limit);
+        const regex = { $regex: filter.fullName, $options: 'i' };
+    
+        // Modify the countDocuments query to use $or
+        countPromise = db.collection("studios").countDocuments({
+            $or: [
+                { fullName: regex },
+                { address: regex }
+            ]
+        });
+    
+        // Modify the find query to use $or
+        docsPromise = db.collection("studios")
+            .find({
+                $or: [
+                    { fullName: regex },
+                    { address: regex }
+                ]
+            })
+            .sort(sort)
+            .skip(skip)
+            .limit(limit);
       }else {
         countPromise = db.collection("studios").countDocuments(filter);
        docsPromise = db
