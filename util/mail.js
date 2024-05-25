@@ -100,7 +100,7 @@ exports.sendOTP = async function (phoneNumber, otp) {
     }
 }
 
-exports.sendMsg91OTP =  async (phoneNumber, otp)=> {
+exports.sendMsg91OTP =  async (phoneNumber)=> {
     try {
         var options = {
           method: 'POST',
@@ -109,13 +109,13 @@ exports.sendMsg91OTP =  async (phoneNumber, otp)=> {
             template_id: process.env.MSG91_TEMP_ID,
             mobile: phoneNumber,
             authkey: process.env.MSG91_AUT_KEY,
-            otp: otp,
+            // otp: otp,
             otp_length: '4',
             otp_expiry: '10'
           },
           headers: {'Content-Type': 'application/JSON'}
         };
-        axios.request(options).then(function (response) {
+        return await axios.request(options).then(function (response) {
           console.log("DATA--->",response.data);
           if (response.data.type === 'success') {
             return { status: true }
