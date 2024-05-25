@@ -574,6 +574,10 @@ exports.getAllUsers = async (req, res) => {
     const page = +req.query.page || 1;
     const limit = +req.query.limit || 10;
 
+    const source_web_site = req.headers.referer.includes("sadmin.choira.io") ? true:false;
+    console.log("source_web_site");
+    console.log(source_web_site);
+
     let { searchUser, startDate, endDate } = req.query;
     let filter = pick(req.query, ["status"]);
 
@@ -615,11 +619,11 @@ exports.getAllUsers = async (req, res) => {
       pipeline.push(sortStage);
     }
 
-    if (page) {
+    if (page && !source_web_site) {
       const skipStage = { $skip: (parseInt(page) - 1) * parseInt(limit) };
       pipeline.push(skipStage);
     }
-    if (limit) {
+    if (limit && !source_web_site) {
       const limitStage = { $limit: parseInt(limit) };
       pipeline.push(limitStage);
     }
