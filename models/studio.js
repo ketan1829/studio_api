@@ -148,7 +148,7 @@ class Studio {
          countPromise = db.collection("studios").countDocuments({ $text: { $search: filter.fullName } });
          docsPromise = db
         .collection("studios")
-        .find({ $text: { $search: filter.fullName } })
+        .find({ fullName: { $regex: filter.fullName, $options: 'i' } })
         .sort(sort)
         .skip(skip)
         .limit(limit);

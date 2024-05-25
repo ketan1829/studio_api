@@ -69,8 +69,110 @@ const auth = require("../util/authCheck");
 // Create Studio Booking
 router.post('/bookings/create',auth.isAdminOrOwnerOrUser,controller.createNewBooking); 
 
+
+/**
+ * @swagger
+ * /bookings/update:
+ *   post:
+ *     summary: Update Booking Status
+ *     tags: [Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       description: |
+ *         Token is required.
+ *         Only Admins, Owners, or Users can update the booking status.
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               bookingId:
+ *                 type: string
+ *                 description: The ID of the booking to update
+ *               bookingStatus:
+ *                 type: integer
+ *                 description: The new status of the booking (0, 1, 2)
+ *             required:
+ *               - bookingId
+ *               - bookingStatus
+ *           example:
+ *             bookingId: "62c7bf9832688b6c4442ee7b"
+ *             bookingStatus: 1
+ *     responses:
+ *       200:
+ *         description: Booking Status updated successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: true
+ *               message: "Bookings Status updated successfully"
+ *       400:
+ *         description: Bad Request, check request body
+ *       401:
+ *         description: Unauthorized, enter valid token
+ *       404:
+ *         description: No Booking with this ID exists
+ *       500:
+ *         description: Internal server error
+ */
 router.post('/bookings/update',auth.isAdminOrOwnerOrUser, controller.updateServiceBooking); 
 
+/**
+ * @swagger
+ * /bookings/delete:
+ *   post:
+ *     summary: Delete Booking
+ *     tags: [Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       description: |
+ *         Token is required.
+ *         Only Admins, Owners, or Users can delete a booking.
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               bookingId:
+ *                 type: string
+ *                 description: The ID of the booking to delete
+ *             required:
+ *               - bookingId
+ *           example:
+ *             bookingId: "62c7bf9832688b6c4442ee7b"
+ *     responses:
+ *       200:
+ *         description: Booking deleted or error message
+ *         content:
+ *           application/json:
+ *             examples:
+ *               success:
+ *                 summary: Success
+ *                 value:
+ *                   status: true
+ *                   message: "Booking deleted successfully"
+ *               error:
+ *                 summary: Error
+ *                 value:
+ *                   status: false
+ *                   message: "Booking ID is required"
+ *               notFound:
+ *                 summary: Not Found
+ *                 value:
+ *                   status: false
+ *                   message: "No Booking with this ID exists"
+ *               deleteFailed:
+ *                 summary: Delete Failed
+ *                 value:
+ *                   status: false
+ *                   message: "Failed to delete booking"
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
 router.post('/bookings/delete',auth.isAdminOrOwnerOrUser, controller.deleteBooking);
 
 /**
