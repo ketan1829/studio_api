@@ -34,3 +34,5 @@ util/app.log
 logs/info.log
 
 .zip
+.xlsx
+/.xlsx

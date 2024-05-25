@@ -1642,20 +1642,20 @@ exports.exportStudioData = async (req, res) => {
     worksheet.getRow(1).eachCell((cell) => {
       cell.font = { bold: true };
     });
+    let name = new Date().getTime()
+    let file_name = `Studio${name}.xlsx`
 
     const data = await workbook.xlsx
-      .writeFile(`C:/Users/Choira Dev 2/Desktop/studio_api/files/studios.xlsx`)
+      .writeFile(`files/${file_name}`)
       .then(() => {
         logger.info(__dirname);
         res
           .header({
-            "Content-disposition": "attachment; filename=studios.xlsx",
+            "Content-disposition": `attachment; filename=${file_name}`,
             "Content-Type":
               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
           })
-          .sendFile(
-            "studios.xlsx",
-            { root: `C:/Users/Choira Dev 2/Desktop/studio_api/files` },
+          .sendFile(`${file_name}`, { root: `files/` },
             function (err) {
               if (err) {
                 logger.error(err,"Error sending file:");
@@ -1663,7 +1663,7 @@ exports.exportStudioData = async (req, res) => {
                 logger.info({
                   status: "success",
                   message: "file successfully downloaded",
-                  path: `${path}/studios.xlsx`,
+                  path: `${path}/${file_name}`,
                 });
               }
             }
