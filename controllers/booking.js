@@ -4037,18 +4037,20 @@ exports.exportBookingData = async (req, res) => {
       });
     }
 
+    let name = new Date().getTime()
+    let file_name = `Booking${name}.xlsx`
+
     const data = await workbook.xlsx
-      .writeFile(`C:/Users/Choira Dev 2/Desktop/studio_api/files/bookings.xlsx`)
+      .writeFile(`files/${file_name}`)
       .then(() => {
         res
           .header({
-            "Content-disposition": "attachment; filename=bookings.xlsx",
+            "Content-disposition": `attachment; filename=${file_name}`,
             "Content-Type":
               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
           })
           .sendFile(
-            "bookings.xlsx",
-            { root: `C:/Users/Choira Dev 2/Desktop/studio_api/files` },
+            `${file_name}`, { root: `files/` },
             function (err) {
               if (err) {
                 logger.error(err, "Error sending file");
@@ -4056,7 +4058,7 @@ exports.exportBookingData = async (req, res) => {
                 logger.info({
                   status: "success",
                   message: "file successfully downloaded",
-                  path: `${path}/bookings.xlsx`,
+                  path: `${path}/${file_name}`,
                 });
               }
             }

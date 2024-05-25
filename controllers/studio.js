@@ -147,7 +147,7 @@ exports.getStudios = async (req, res, next) => {
     limit
   } = req.query;
 
-  const filter = pick(req.query, ["name", "role", "city"]);
+  const filter = pick(req.query, ["name", "role", "city","state"]);
   const options = pick(req.query, ["sortBy", "limit", "page"]);
 
   // const filter = { isActive: 1 };
@@ -157,7 +157,7 @@ exports.getStudios = async (req, res, next) => {
   if (searchText) filter.fullName = searchText;
   if (city) filter.city = city;
   if (state) filter.state = state;
-  if (state) filter.totalRooms = +totalRooms;
+  if (totalRooms) filter.totalRooms = +totalRooms;
   if (studioId) filter._id = new ObjectId(studioId);
   if (minArea) filter.area = { $gte: parseInt(minArea) };
 
@@ -192,6 +192,7 @@ exports.getStudios = async (req, res, next) => {
 
   logger.info("filter", filter);
 
+  console.log("filter =>", filter);
 
   const check = req.query.check;
   // console.log("latitude?.length:-------------", filter);
@@ -1641,20 +1642,20 @@ exports.exportStudioData = async (req, res) => {
     worksheet.getRow(1).eachCell((cell) => {
       cell.font = { bold: true };
     });
+    let name = new Date().getTime()
+    let file_name = `Studio${name}.xlsx`
 
     const data = await workbook.xlsx
-      .writeFile(`C:/Users/Choira Dev 2/Desktop/studio_api/files/studios.xlsx`)
+      .writeFile(`files/${file_name}`)
       .then(() => {
         logger.info(__dirname);
         res
           .header({
-            "Content-disposition": "attachment; filename=studios.xlsx",
+            "Content-disposition": `attachment; filename=${file_name}`,
             "Content-Type":
               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
           })
-          .sendFile(
-            "studios.xlsx",
-            { root: `C:/Users/Choira Dev 2/Desktop/studio_api/files` },
+          .sendFile(`${file_name}`, { root: `files/` },
             function (err) {
               if (err) {
                 logger.error(err,"Error sending file:");
@@ -1662,7 +1663,7 @@ exports.exportStudioData = async (req, res) => {
                 logger.info({
                   status: "success",
                   message: "file successfully downloaded",
-                  path: `${path}/studios.xlsx`,
+                  path: `${path}/${file_name}`,
                 });
               }
             }

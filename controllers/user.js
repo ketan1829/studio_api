@@ -1573,17 +1573,20 @@ exports.exportUserData = async (req, res) => {
     });
 
     // return res.status(200).json({status:true,"no_of_users":allUser.length,message:"All Users", All_User:allUser})
+    let name = new Date().getTime()
+    let file_name = `Users${name}.xlsx`
+    console.log("this is running");
     const data = await workbook.xlsx
-      .writeFile(`C:/Users/Choira Dev 2/Desktop/studio_api/files/users.xlsx`)
+      .writeFile(`files/${file_name}`)
       .then(() => {
-        res.header({ "Content-disposition": "attachment; filename=users.xlsx", "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }).sendFile("users.xlsx", { root: `C:/Users/Choira Dev 2/Desktop/studio_api/files` }, function (err) {
+        res.header({ "Content-disposition": `attachment; filename=${file_name}`, "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }).sendFile(`${file_name}`, { root: `files/` }, function (err) {
           if (err) {
             logger.error(err, 'Error sending file');
           } else {
             logger.info({
               status: "success",
               message: "file successfully downloaded",
-              path: `${mypath}/users.xlsx`
+              path: `${path}/${file_name}`
             });
           }
         })
