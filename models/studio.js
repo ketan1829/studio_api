@@ -145,7 +145,7 @@ class Studio {
       let docsPromise;
       if(filter.fullName){
         // db.collection("studios").createIndex({ fullName: 'text', address: 'text' });
-         countPromise = db.collection("studios").countDocuments({ $text: { $search: filter.fullName } });
+         countPromise = db.collection("studios").countDocuments({ fullName: { $regex: filter.fullName, $options: 'i' } });
          docsPromise = db
         .collection("studios")
         .find({ fullName: { $regex: filter.fullName, $options: 'i' } })
