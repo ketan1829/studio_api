@@ -147,7 +147,7 @@ exports.getStudios = async (req, res, next) => {
     limit
   } = req.query;
 
-  const filter = pick(req.query, ["name", "role", "city"]);
+  const filter = pick(req.query, ["name", "role", "city","state"]);
   const options = pick(req.query, ["sortBy", "limit", "page"]);
 
   // const filter = { isActive: 1 };
@@ -157,7 +157,7 @@ exports.getStudios = async (req, res, next) => {
   if (searchText) filter.fullName = searchText;
   if (city) filter.city = city;
   if (state) filter.state = state;
-  if (state) filter.totalRooms = +totalRooms;
+  if (totalRooms) filter.totalRooms = +totalRooms;
   if (studioId) filter._id = new ObjectId(studioId);
   if (minArea) filter.area = { $gte: parseInt(minArea) };
 
@@ -192,6 +192,7 @@ exports.getStudios = async (req, res, next) => {
 
   logger.info("filter", filter);
 
+  console.log("filter =>", filter);
 
   const check = req.query.check;
   // console.log("latitude?.length:-------------", filter);
