@@ -591,20 +591,20 @@ exports.createServiceBooking = async (req, res, next) => {
     if (!serviceData) {
       return res.status(200).json({ status: false, message: "Something went wrong, Try again later" });
     }
-
-    if (ExistingServiceData.length && ExistingServiceData.bookingStatus == 0) {
+    let bookingData;
+    if (ExistingServiceData.length && ExistingServiceData[0].bookingStatus == 0) {    
       logger.info("ExistingServiceData:", ExistingServiceData);
       console.log({ userId: userId, studioId: serviceId, roomId: planId, type: serviceType });
       const res_1 = await Service.updateOneRecord({ userId: userId, studioId: serviceId, roomId: +planId, type: serviceType }, { bookingStatus: 0 })
       console.log("res===");
       console.log(res_1);
       return res.status(200).json({ status: false, message: "Requested Package booking has been pre-booked already!" });
-    }
-
+    }else{
       const bookingObj = new Booking(userId, serviceId, parseInt(planId), bookingDate, bookingTime, parseFloat(totalPrice), bookingStatus, serviceType, countryCode);
       const resultData = await bookingObj.save();
-      const bookingData = resultData.ops[0];
+      bookingData = resultData.ops[0];
       bookingData.totalPrice = bookingData.totalPrice.toFixed(2);
+    }
 
       const title = "Congratulations!!";
       const message = `Your booking with '${serviceData.fullName}' is confirmed`;

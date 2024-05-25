@@ -55,7 +55,7 @@ class Booking
         console.log({userId, serviceId, planId});
         const db = getDb();
         try {
-            return db.collection('bookings').find({ userId, studioId: serviceId, roomId: parseInt(planId) }).toArray()
+            return db.collection('bookings').find({ userId, studioId: serviceId, roomId: parseInt(planId) }).limit(1).toArray()
             .then(bookingData=>{
                 // console.log("bookingData:", bookingData);
                 return bookingData;
