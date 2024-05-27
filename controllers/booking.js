@@ -585,45 +585,60 @@ exports.createServiceBooking = async (req, res, next) => {
     let userDeviceId = userData.deviceId || '';
 
     const serviceData = await Service.findServiceById(serviceId);
-    const serData = { userId, serviceId, planId }
+
+    const serData = { userId, studioId: serviceId, roomId: +planId, bookingStatus: 0, type: serviceType }
+
     const ExistingServiceData = await Booking.findBooking(serData);
+
+    console.log("ExistingServiceData");
+    console.log(ExistingServiceData);
 
     if (!serviceData) {
       return res.status(200).json({ status: false, message: "Something went wrong, Try again later" });
     }
     let bookingData;
-    if (ExistingServiceData.length && ExistingServiceData[0].bookingStatus == 0) {    
-      logger.info("ExistingServiceData:", ExistingServiceData);
+    if (ExistingServiceData.length === 1) {
       // console.log({ userId: userId, studioId: serviceId, roomId: planId, type: serviceType });
-      const res_1 = await Service.updateOneRecord({ userId: userId, studioId: serviceId, roomId: +planId, type: serviceType }, { bookingStatus: 0 })
-      // console.log("res===");
-      // console.log(res_1);
+      // const res_1 = await Service.updateOneRecord({ userId: userId, studioId: serviceId, roomId: +planId, type: serviceType }, { bookingStatus: 0 })
+      // if (res_1 === 1) {
+      //   logger.info("Service booking status updated as active booking. Service details :")
+      //   logger.info({ serviceData })
+      //   return res.status(200).json({ status: false, message: "Requested Package booking has been pre-booked already!" });
+      // } else {
+      //   logger.error({ res_1 })
+      //   return res.status(200).json({ status: false, message: "Booking update failed !" });
+      // }
       return res.status(200).json({ status: false, message: "Requested Package booking has been pre-booked already!" });
-    }else{
+
+    } else if (ExistingServiceData.length > 1) {
+      logger.info("More than one booking found for this service !")
+      logger.info({ serviceData })
+      return res.status(200).json({ status: false, message: "More than one booking found for this service !" });
+    } else {
       const bookingObj = new Booking(userId, serviceId, parseInt(planId), bookingDate, bookingTime, parseFloat(totalPrice), bookingStatus, serviceType, countryCode);
       const resultData = await bookingObj.save();
       bookingData = resultData.ops[0];
       bookingData.totalPrice = bookingData.totalPrice.toFixed(2);
     }
 
-      const title = "Congratulations!!";
-      const message = `Your booking with '${serviceData.fullName}' is confirmed`;
-      const myJSONObject = {
-        "app_id": process.env.ONE_SIGNAL_APP_ID,
-        "include_player_ids": [userDeviceId],
-        "data": {},
-        "contents": { "en": `${title}\n${message}` }
-      };
+    const title = "Congratulations!!";
+    const message = `Your booking with '${serviceData.fullName}' is confirmed`;
+    const myJSONObject = {
+      "app_id": process.env.ONE_SIGNAL_APP_ID,
+      "include_player_ids": [userDeviceId],
+      "data": {},
+      "contents": { "en": `${title}\n${message}` }
+    };
 
-      const result = await axios.post("https://onesignal.com/api/v1/notifications", myJSONObject, {
-          headers: {
-              'Content-Type': 'application/json',
-              'Authorization': process.env.ONE_SIGNAL_AUTH
-          }
-      });
-      if (result.status === 1) {
-          const notification = new Notifications(userId, title, message);
-          await notification.save();
+    const result = await axios.post("https://onesignal.com/api/v1/notifications", myJSONObject, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': process.env.ONE_SIGNAL_AUTH
+      }
+    });
+    if (result.status === 1) {
+      const notification = new Notifications(userId, title, message);
+      await notification.save();
 
       const adminNotificationObj = new AdminNotifications(userId, serviceId, bookingData._id.toString(), "Booking created", `${userData.fullName} created new booking with Studio: ${serviceData.fullName}`);
       await adminNotificationObj.save();
@@ -639,7 +654,7 @@ exports.createServiceBooking = async (req, res, next) => {
 };
 
 
-exports.getStudioAvailabilities = async(req, res, next) => {
+exports.getStudioAvailabilities = async (req, res, next) => {
   const studioId = req.body.studioId;
   const roomId = req.body.roomId;
   let bookingDate = req.body.bookingDate;
@@ -647,7 +662,7 @@ exports.getStudioAvailabilities = async(req, res, next) => {
   const bufferTime = 15;
   const interval = bookingHours * 60;
 
-  console.log("slot req data:",req.body)
+  console.log("slot req data:", req.body)
 
   //get bookingDate from timestamp
   bookingDate = new Date(bookingDate);
@@ -666,20 +681,20 @@ exports.getStudioAvailabilities = async(req, res, next) => {
 
   //get Current Date from timestamp
   // let currDate = new Date();
-    let currDate = moment.tz("Asia/Kolkata");
-    let studioData = await Studio.findStudioById(studioId)
-    if (!studioData) {
-      return res
-        .status(404)
-        .json({ status: false, message: "No studio with this ID exists" });
-    }
-    if (studioData?.timeZone) {
-      currDate = moment.tz(studioData.timeZone)
-    } else {
-      currDate = moment.tz("Asia/Kolkata");
-      console.log("object");
-    }
-    console.log("currDate=>",currDate);
+  let currDate = moment.tz("Asia/Kolkata");
+  let studioData = await Studio.findStudioById(studioId)
+  if (!studioData) {
+    return res
+      .status(404)
+      .json({ status: false, message: "No studio with this ID exists" });
+  }
+  if (studioData?.timeZone) {
+    currDate = moment.tz(studioData.timeZone)
+  } else {
+    currDate = moment.tz("Asia/Kolkata");
+    console.log("object");
+  }
+  console.log("currDate=>", currDate);
 
   console.log(
     "Current IST Date and Time:",
@@ -688,7 +703,7 @@ exports.getStudioAvailabilities = async(req, res, next) => {
   // var yr = currDate.getUTCFullYear();
   // var mth = currDate.getUTCMonth() + 1;
   var yr = currDate.year();
-  var mth = currDate.month() + 1; 
+  var mth = currDate.month() + 1;
 
   if (mth.toString().length == 1) {
     mth = "0" + mth.toString();
@@ -701,7 +716,7 @@ exports.getStudioAvailabilities = async(req, res, next) => {
   // currDate = yr + "-" + mth + "-" + dt;
   var cTimeStamp = currDate.valueOf();
   console.log("Current Date : ", currDate);
-  console.log("cTimeStamp",cTimeStamp);
+  console.log("cTimeStamp", cTimeStamp);
   var currHr = currDate.hours();
   var currMin = currDate.minutes();
   var currTime = currHr * 60 + currMin;
@@ -774,7 +789,7 @@ exports.getStudioAvailabilities = async(req, res, next) => {
             }
           });
         }
-        console.log("availSlotsNew:",availSlotsNew);
+        console.log("availSlotsNew:", availSlotsNew);
 
         if (bookingsData.length == 0) {
           //convert to 12 hour format
