@@ -28,6 +28,7 @@ class Studio {
     featuredReviews,
     isActive,
     location,
+    country
   ) {
     this.fullName = fullName;
     this.address = address;
@@ -53,6 +54,7 @@ class Studio {
     this.isActive = isActive; // 0-> No, 1-> Yes
     this.creationTimeStamp = new Date();
     this.location = location;
+    this.country = country;
   }
 
   save() {

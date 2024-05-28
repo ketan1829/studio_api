@@ -653,6 +653,7 @@ exports.createNewStudio = async (req, res, next) => {
   const aboutUs = req.body.aboutUs;
   const teamDetails = req.body.teamDetails;
   const clientPhotos = req.body.clientPhotos;
+  const country = req.body.country || "IN";
   const reviews = {};
   const featuredReviews = [];
 
@@ -705,7 +706,8 @@ exports.createNewStudio = async (req, res, next) => {
             reviews,
             featuredReviews,
             1,
-            location
+            location,
+            country
           );
 
           // saving in database
@@ -1297,6 +1299,7 @@ exports.editStudioDetails = async (req, res, next) => {
   const studioPhotos = req.body.studioPhotos;
   const aboutUs = req.body.aboutUs;
   const teamDetails = req.body.teamDetails;
+  const country = req.body.country;
 
   let studio = await Studio.findStudioById(studioId);
   if (!studio) {
@@ -1358,6 +1361,7 @@ exports.editStudioDetails = async (req, res, next) => {
     studioPhotos,
     aboutUs,
     teamDetails: updatedTeamDetails,
+    country
   };
 
   let newStudioData = await Studio.filterEmptyFields(studioObj);
