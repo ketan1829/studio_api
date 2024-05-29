@@ -22,7 +22,7 @@ const { logger } = require("../util/logger");
 const ObjectId = mongodb.ObjectId;
 
 exports.createNewService = async (req, res, next) => {
-  // logger.info("req.body:", req.body);
+  // logger.info("req.body:",{req.body});
 
   const { source, service_objs } = req.body;
 
@@ -58,7 +58,8 @@ exports.createNewService = async (req, res, next) => {
           })
           pack.amenites = amenities
           pack.photo_url = [pack.photo_url]
-          logger.info("package amenities ---", pack.amenites);
+          let pack_amenites = pack.amenites;
+          logger.info("package amenities ---",{pack_amenites});
       })
 
 
@@ -66,12 +67,12 @@ exports.createNewService = async (req, res, next) => {
       amenitiesData.split(",").map((amm, index)=>{
           amenities.push({name:amm, id: index+1})
       })
-      // logger.info("amenities ---", amenities);
+      // logger.info("amenities ---",{amenities});
       const serviceObj = new Service(service_id, fullName, price, amenities, totalPlans, packages,
           servicePhotos, aboutUs, workDetails, discographyDetails, clientPhotos, reviews, featuredReviews,isActive,type);
 
       
-      logger.info("serviceObj---", serviceObj);
+      logger.info("serviceObj---",{serviceObj});
       serviceObj.checkBeforeSave()
       .then((resultData) => {
         if (resultData.status == false) {
@@ -230,7 +231,8 @@ exports.getServices = (req, res, next) => {
 }
 
 exports.getServiceBookings = (req, res, next) => {
-  logger.info("body---", req.query);
+  let req_query =req.query
+  logger.info("body---",{req_query});
 
   const {
     bookingId,
@@ -266,7 +268,7 @@ exports.getServiceBookings = (req, res, next) => {
   if (bookingStartTime) filter.bookingTime.startTime = bookingStartTime;
   if (bookingEndTime) filter.bookingTime.endTime = bookingEndTime;
 
-  logger.info("collectionName----", _collectionName, filter, options);
+  logger.info("collectionName----",{_collectionName, filter, options});
 
   const { error } = validateServiceFilterSchema(filter);
   if (error) {
@@ -300,9 +302,10 @@ exports.getServiceBookings = (req, res, next) => {
 exports.getServiceBookingsDetails = async (req, res) => {
   let { last_id } = req.query || 0;
 
-  logger.info("last_id:", last_id);
+  logger.info("last_id:",{last_id});
   last_id = last_id === "0" ? 0 : last_id;
-  logger.info("last_id:", typeof last_id);
+  let typeof_last_id = typeof last_id
+  logger.info("last_id:",{typeof_last_id});
 
   const db = getDB();
   const pipeline = [
@@ -387,7 +390,7 @@ exports.updateService = async (req, res) => {
   const type = req.body.type || "c2";
   const isActive = +req.body.isActive;
   const serviceData = await Service.findServiceById(sId);
-  logger.info(sId);
+  logger.info({sId});
   if (!serviceData) {
     return res.status(400).json({
       status: false,
@@ -425,7 +428,7 @@ exports.updateService = async (req, res) => {
   };
 
   let newData = Service.filterEmptyFields(service_obj);
-  // logger.info("newData===================", newData);
+  // logger.info("newData===================",{newData});
   const updated_result = await Service.updateServiceById(sId, newData);
   // logger.info("updated_result===",updated_result)
   res.send(updated_result);
@@ -484,7 +487,7 @@ exports.exportServicesData = async (req, res) => {
       });
     }
 
-    logger.info("this is pipe======>", pipeline);
+    logger.info("this is pipe======>",{pipeline});
     if (options.startDate && options.endDate) {
       let startDate = options.startDate;
       let endDate = options.endDate;
