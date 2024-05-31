@@ -50,45 +50,45 @@ exports.createNewService = async (req, res, next) => {
       const type = req.body.service_type || "c2";
 
       const packages = serviceData.packages;
-      
-      packages.map((pack, index)=>{
-          const amenities = []
-          pack.amenites.split(",").map((amm, index)=>{
-              amenities.push({name:amm, id: index+1})
-          })
-          pack.amenites = amenities
-          pack.photo_url = [pack.photo_url]
-          logger.info("package amenities ---", pack.amenites);
+
+      packages.map((pack, index) => {
+        const amenities = []
+        pack.amenites.split(",").map((amm, index) => {
+          amenities.push({ name: amm, id: index + 1 })
+        })
+        pack.amenites = amenities
+        pack.photo_url = [pack.photo_url]
+        logger.info("package amenities ---", pack.amenites);
       })
 
 
       const amenities = []
-      amenitiesData.split(",").map((amm, index)=>{
-          amenities.push({name:amm, id: index+1})
+      amenitiesData.split(",").map((amm, index) => {
+        amenities.push({ name: amm, id: index + 1 })
       })
       // logger.info("amenities ---", amenities);
       const serviceObj = new Service(service_id, fullName, price, amenities, totalPlans, packages,
-          servicePhotos, aboutUs, workDetails, discographyDetails, clientPhotos, reviews, featuredReviews,isActive,type);
+        servicePhotos, aboutUs, workDetails, discographyDetails, clientPhotos, reviews, featuredReviews, isActive, type);
 
-      
+
       logger.info("serviceObj---", serviceObj);
       serviceObj.checkBeforeSave()
-      .then((resultData) => {
-        if (resultData.status == false) {
+        .then((resultData) => {
+          if (resultData.status == false) {
+            return res.json({
+              status: 400,
+              message: resultData.message,
+            });
+          }
           return res.json({
-            status: 400,
-            message: resultData.message,
+            status: true,
+            message: "Service added successfully",
+            data: resultData["ops"],
           });
-        }
-        return res.json({
-          status: true,
-          message: "Service added successfully",
-          data: resultData["ops"],
-        });
-      })
-      .catch(err => logger.error(err));
-      
-        
+        })
+        .catch(err => logger.error(err));
+
+
     });
     return res.status(200).json({
       status: true,
@@ -96,7 +96,7 @@ exports.createNewService = async (req, res, next) => {
       data: addedData,
     });
   } else {
-    const service_id = req.body.service_id || -1 ;
+    const service_id = req.body.service_id || -1;
     const fullName = req.body.serviceName;
     const price = parseFloat(req.body.startingPrice);
     const amenities = req.body.offerings;
@@ -105,23 +105,24 @@ exports.createNewService = async (req, res, next) => {
     const servicePhotos = req.body.ServicePhotos;
     const aboutUs = req.body.description;
     const workDetails = req.body.portfolio;
-    const discographyDetails = req.body.discography;
-    const clientPhotos = req.body.userPhotos;
-    const reviews = req.body.userReviews;
-    const featuredReviews = req.body.starredReviews;
+    const discographyDetails = req.body.discography || [];
+    const clientPhotos = req.body.userPhotos || [];
+    const reviews = req.body.userReviews || [];
+    const featuredReviews = req.body.starredReviews || [];
     const type = req.body.type || "c2";
-    const isActive = [0,1,2].includes(req.body.isActive) ? req.body.isActive:1;
+    const isActive = [0, 1, 2].includes(req.body.isActive) ? req.body.isActive : 1;
     let pricing = {};
     console.log(packages.length);
-    if(packages.length < 1){
+    if (packages.length < 1) {
       return res.status(400).json({
-            status: false,
-            message: "Add at least one package for the service."
-        });
+        status: false,
+        message: "Add at least one package for the service."
+      });
     }
 
-    logger.info("else is running",req.body);
-    logger.info("else is running",type,isActive);
+    logger.info("else is running");
+    logger.info(req.body);
+    logger.info("else is running", type, isActive);
     // const { error } = validateService(req.body);
     // if (error) {
     //   return res.status(400).json({ error: error.details[0].message });
@@ -147,38 +148,41 @@ exports.createNewService = async (req, res, next) => {
       type,
       pricing
     );
+
+    logger.info({serviceObj})
     // saving in database
     return serviceObj
       .save()
-      .then(async(resultData) => {
+      .then(async (resultData) => {
         if (resultData.status == false) {
           return res.json({
             status: 400,
             message: resultData.message,
           });
         }
-         await Service.minStartPrice(resultData._id) // this caluculate minimum price and update the pricing field
+        await Service.minStartPrice(resultData._id) // this caluculate minimum price and update the pricing field
         return res.json({
           status: true,
           message: "Service added successfully",
           data: resultData["ops"],
         });
       })
-      .catch((err) =>{ logger.error(err,"Error saving service");
-      return res.status(500).json({
+      .catch((err) => {
+        logger.error(err, "Error saving service");
+        return res.status(500).json({
           status: false,
           message: err.message
         })
-    });
+      });
   }
 };
 
 exports.getServices = (req, res, next) => {
 
-  
+
 
   // const { serviceName, startingPrice, offerings, TotalServices, avgReview, serviceId } = req.query;
-  const filter = pick(req.query, ['serviceType', 'active', 'serviceName', 'startPrice','endPrice','planId','TotalServices'])
+  const filter = pick(req.query, ['serviceType', 'active', 'serviceName', 'startPrice', 'endPrice', 'planId', 'TotalServices'])
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
   console.log("body---", req.query)
   let mappedFilter = {}
@@ -190,20 +194,20 @@ exports.getServices = (req, res, next) => {
   filter.active ? mappedFilter.isActive = parseInt(filter.active) : mappedFilter.isActive = 1;
 
   if (filter.planId) {
-      // var o_id = new ObjectId(filter.planId);
-      // filter._id = o_id
-      mappedFilter['packages.planId'] = +filter.planId
+    // var o_id = new ObjectId(filter.planId);
+    // filter._id = o_id
+    mappedFilter['packages.planId'] = +filter.planId
   }
 
   if (filter.serviceName) mappedFilter.fullName = filter.serviceName;
-  if(filter.startPrice && filter.endPrice){
-    mappedFilter.price = { $gte : +filter.startPrice, $lte: +filter.endPrice}
-  } else if(filter.startPrice){
-    mappedFilter.price = {$gte:+filter.startPrice}
-  } else if(filter.endPrice){
-    mappedFilter.price = {$lte:+filter.endPrice}
+  if (filter.startPrice && filter.endPrice) {
+    mappedFilter.price = { $gte: +filter.startPrice, $lte: +filter.endPrice }
+  } else if (filter.startPrice) {
+    mappedFilter.price = { $gte: +filter.startPrice }
+  } else if (filter.endPrice) {
+    mappedFilter.price = { $lte: +filter.endPrice }
   }
- 
+
   if (filter.TotalServices) mappedFilter.totalPlans = +filter.TotalServices;
   if (filter.avgReview) mappedFilter.featuredReviews.avgService = parseFloat(filter.avgReview);
 
@@ -216,15 +220,15 @@ exports.getServices = (req, res, next) => {
   // }
 
   paginate(collectionName, mappedFilter, options).then((ServiceData) => {
-    const paginateData = 
+    const paginateData =
     {
       page: ServiceData.page,
       limit: ServiceData.limit,
       totalPages: ServiceData.totalPages,
       totalResults: ServiceData.totalResults,
-      
+
     }
-      return res.json({ status: true, message: `Page ${ServiceData.page} of ${ServiceData.totalPages} - ${ServiceData.totalResults} services returned`, services: ServiceData, paginate: paginateData });
+    return res.json({ status: true, message: `Page ${ServiceData.page} of ${ServiceData.totalPages} - ${ServiceData.totalResults} services returned`, services: ServiceData, paginate: paginateData });
   })
 
 }
@@ -372,7 +376,7 @@ exports.updateService = async (req, res) => {
   const sId = req.params.serviceId;
   const pId = req.params.packageId;
   const service_id = req.body.service_id || -1;
-  const fullName = req.body.serviceName;
+  const fullName = req.body.fullName;
   const price = parseFloat(req.body.startingPrice);
   const amenities = req.body.offerings;
   const totalPlans = +req.body.TotalServices;
@@ -388,6 +392,8 @@ exports.updateService = async (req, res) => {
   const isActive = +req.body.isActive;
   const serviceData = await Service.findServiceById(sId);
   logger.info(sId);
+  logger.info("<< REQ.BODY >>");
+  logger.info(req.body);
   if (!serviceData) {
     return res.status(400).json({
       status: false,
@@ -466,7 +472,7 @@ exports.editPackageDetails = async (req, res) => {
 
 exports.exportServicesData = async (req, res) => {
   try {
-    const filter = pick(req.query, ['type','fullName']); // {startDate: 2022-19-01}
+    const filter = pick(req.query, ['type', 'fullName']); // {startDate: 2022-19-01}
     const options = pick(req.query, [
       "sort",
       "limit",
@@ -522,11 +528,11 @@ exports.exportServicesData = async (req, res) => {
     }
     logger.info(JSON.stringify(pipeline));
     let allService;
-      if(filter || options) {
-        allService = await Service.fetchAllServicesByAggregate(pipeline);
-      }else {
-        allService = await Service.fetchAllService()
-      }
+    if (filter || options) {
+      allService = await Service.fetchAllServicesByAggregate(pipeline);
+    } else {
+      allService = await Service.fetchAllService()
+    }
     const workbook = new excelJS.Workbook();
     const worksheet = workbook.addWorksheet("serviceData");
     const path = "./files";
@@ -565,20 +571,20 @@ exports.exportServicesData = async (req, res) => {
     let file_name = `Service${name}.xlsx`
 
     const data = await workbook.xlsx
-    .writeFile(`files/${file_name}`)
-    .then(() => {
-      res.header({"Content-disposition" : `attachment; filename=${file_name}` ,"Content-Type" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}).sendFile(`${file_name}`, { root: `files/` }, function (err) {
-        if (err) {
-            logger.error(err,'Error sending file:');
-        } else {
+      .writeFile(`files/${file_name}`)
+      .then(() => {
+        res.header({ "Content-disposition": `attachment; filename=${file_name}`, "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }).sendFile(`${file_name}`, { root: `files/` }, function (err) {
+          if (err) {
+            logger.error(err, 'Error sending file:');
+          } else {
             logger.info({
               status: "success",
               message: "file successfully downloaded",
               path: `${path}/${file_name}`
             });
-        }
-    })
-    });
+          }
+        })
+      });
   } catch (error) {
     res.send({
       status: "error",
