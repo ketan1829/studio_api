@@ -6,7 +6,7 @@ const { google } = require("googleapis");
 const OAuth2 = google.auth.OAuth2;
 const nodemailer = require("nodemailer");
 const axios = require("axios");
-const { logger, log } = require("./logger.js");
+const { logger } = require("./logger.js");
 
 const OAuth2_client = new OAuth2(
   process.env.clientId,
@@ -107,6 +107,7 @@ exports.sendOTP = async function (phoneNumber, otp) {
     }
   } catch (error) {
     console.error("Error sending OTP:", error);
+    logger.error(error,"Error sending OTP:");
     return { success: false };
   }
 };
@@ -129,8 +130,6 @@ exports.sendMsg91OTP = async (phoneNumber) => {
     return await axios
       .request(options)
       .then(function (response) {
-        log.info("TTTTTTTTTTTTTTTTTTTTTTTT");
-        logger.info(response.data, `For this phone no:- ${phoneNumber}`);
         if (response.data.type === "success") {
           return { status: true };
         } else {
@@ -138,7 +137,7 @@ exports.sendMsg91OTP = async (phoneNumber) => {
         }
       })
       .catch(function (error) {
-        logger.info(
+        logger.error(
           error,
           `Error sending OTP For this phone no:- ${phoneNumber}`
         );
@@ -166,7 +165,7 @@ exports.verifyOTP = async (phoneNumber, otp) => {
       );
       return { status: true, message: "otp verified successfully" };
     } else {
-      logger.info(
+      logger.error(
         response.data,
         `Error verifiying OTP for phone no ${phoneNumber}`
       );

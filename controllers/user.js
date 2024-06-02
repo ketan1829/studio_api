@@ -141,18 +141,19 @@ exports.loginUserOTP2 = (req, res, next) => {
 
 exports.signupUserV2 = async (req, res, next) => {
   try {
+    
     const { fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role } = req.body;
-
+    logger.info({ fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role },"User details for sign-up",)
+    console.log("Hit");
     // let phone = (phoneNumber.length > 10)? phoneNumber.slice(2) : `91${phoneNumber}`
     let phone = (phoneNumber.length == 10) ? `91${phoneNumber}` : phoneNumber
 
-    logger.info({ fullName, dateOfBirth, email, phone, deviceId });
+    // logger.info({ fullName, dateOfBirth, email, phone, deviceId });
 
     let _userData = await User.findUserByPhone(phone, 0, false);
 
-    logger.info("REGISTER USER DATA",{_userData});
-
-
+    logger.info({_userData},"REGISTER USER DATA");
+    
     const user_data = {
       fullName: fullName.trim(),
       dateOfBirth,
@@ -187,7 +188,10 @@ exports.signupUserV2 = async (req, res, next) => {
       }
       userObj._id = _userData._id;
       const udata = await User.update(phone, updated_user_data)
-      console.log(udata ? `udata count:${udata?.matchedCount}` : "nottttt");
+      let updatedData = udata ? `udata count:${udata?.matchedCount}` : "user not updated"
+      console.log("updatedData",updatedData);
+      logger.info({updatedData},"Updated user data for Sign-up if user already exist and status is 0")
+      // console.log(udata ? `udata count:${udata?.matchedCount}` : "user not updated");
     } else {
 
       let _userData_active = await User.findUserByPhone(phone, 1);
@@ -205,8 +209,11 @@ exports.signupUserV2 = async (req, res, next) => {
         }
 
         const udata = await User.update(phone, updated_user_data)
+        logger.info({udata},"Updated user data for Sign-up if user already exist and status is 1")
         userObj._id = _userData_active._id
-        console.log(udata ? `update count:${udata?.matchedCount}` : "update failed");
+        let updatedData = udata ? `udata count:${udata?.matchedCount}` : "user not updated"
+      logger.info({updatedData},"Updated user data for Sign-up if user already exist")
+        // console.log(udata ? `update count:${udata?.matchedCount}` : "update failed");
 
       } else {
 
@@ -228,11 +235,12 @@ exports.signupUserV2 = async (req, res, next) => {
 
     const token = jwt.sign({ user: userObj }, "myAppSecretKey");
 
-    console.log("userObj:", userObj);
+    // logger.info({userObj},"userObj:");
     return res.json({ status: true, message: "Signup successful", user: userObj, token });
 
   } catch (error) {
     console.error("Error in signupUserV2:", error);
+    logger.error(error,"Error in signupUserV2")
     return res.status(500).json({ status: false, message: "Something went wrong, try again later" });
   }
 };
@@ -240,11 +248,11 @@ exports.signupUserV2 = async (req, res, next) => {
 exports.loginUserOTP = async (req, res, next) => {
   try {
     const { phoneNumber, deviceId, userType, role } = req.body;
-    logger.info({ phoneNumber, deviceId, userType, role });
+    logger.info({ phoneNumber, deviceId, userType, role },"User data for login:");
 
     const userData = await User.findUserByPhone(phoneNumber, 1, false);
 
-    logger.info("DATA::::",{userData});
+    logger.info({userData},"userDATA in DB");
     // console.log("DATA::::", userData);
 
     let statusInfo = { status: false, message: "something went wrong" };
@@ -339,7 +347,8 @@ exports.loginUserOTP = async (req, res, next) => {
 
         if (deviceId) {
           userData.deviceId = deviceId;
-          await User.update(phoneNumber, { deviceId: deviceId });
+          let {matchedCount} = await User.update(phoneNumber, { deviceId: deviceId });
+          logger.info(matchedCount,"Device Id updated for Existing User Login");
         }
 
         if (status_otp.status) {
@@ -596,7 +605,7 @@ exports.getAllUsers = async (req, res) => {
     const page = +req.query.page || 1;
     const limit = +req.query.limit || 10;
 
-    const source_web_site = req.headers.referer.includes("sadmin.choira.io") ? true:false;
+    const source_web_site = req.headers?.referer.includes("sadmin.choira.io") ? true:false;
     console.log("source_web_site");
     console.log(source_web_site);
 
@@ -684,9 +693,6 @@ exports.getAllUsers = async (req, res) => {
     });
   }
 };
-
-
-
 
 
 
