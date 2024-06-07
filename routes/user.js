@@ -4,7 +4,7 @@ const controller = require('../controllers/user');
 const {verifyOTP} = require('../util/mail');
 
 
-const serverName = `${process.env.SERVER_NAME}/download/`;
+const serverName = `${process.env.SERVER_NAME}`;
 
 console.log(serverName);
 
@@ -1116,7 +1116,6 @@ router.post('/upload-single-image',(req,res,next)=>{
 
 //Upload multiple files
 router.post('/upload-multiple-images',(req,res,next)=>{
-
     console.log(req.files);
 
     upload2(req,res,function(err){

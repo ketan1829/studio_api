@@ -339,7 +339,7 @@ exports.createNewBooking2 = async (req, res, next) => {
   // logger.info({bookingTime});
   bookingTime.startTime = convertTo24HourFormat(bookingTime.startTime);
   bookingTime.endTime = convertTo24HourFormat(bookingTime.endTime);
-  logger.info({bookingTime});
+  logger.info({ bookingTime });
 
   let userDeviceId = "";
 
@@ -388,85 +388,82 @@ exports.createNewBooking2 = async (req, res, next) => {
       );
 
       //saving new booking in database
-      return bookingObj
-        .save()
-        .then((resultData) => {
-          let bookingData = resultData["ops"][0];
-          logger.info({bookingData});
-          bookingData.totalPrice = bookingData.totalPrice.toString();
-          if (bookingData.totalPrice.split(".")[1] == undefined) {
-            bookingData.totalPrice = bookingData.totalPrice + ".0";
-          }
-          const title = "Congratulations!!";
-          const message =
-            "Your booking with '" + studioData.fullName + "' is confirmed";
-          var myJSONObject = {
-            app_id: process.env.ONE_SIGNAL_APP_ID,
-            include_player_ids: [userData.deviceId],
-            data: {},
-            contents: { en: title + "\n" + message },
-          };
+      return bookingObj.save().then((resultData) => {
+        let bookingData = resultData["ops"][0];
+        logger.info({ bookingData });
+        bookingData.totalPrice = bookingData.totalPrice.toString();
+        if (bookingData.totalPrice.split(".")[1] == undefined) {
+          bookingData.totalPrice = bookingData.totalPrice + ".0";
+        }
+        const title = "Congratulations!!";
+        const message =
+          "Your booking with '" + studioData.fullName + "' is confirmed";
+        var myJSONObject = {
+          app_id: process.env.ONE_SIGNAL_APP_ID,
+          include_player_ids: [userData.deviceId],
+          data: {},
+          contents: { en: title + "\n" + message },
+        };
 
-          axios({
-            method: "post",
-            url: "https://onesignal.com/api/v1/notifications",
-            data: myJSONObject,
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: process.env.ONE_SIGNAL_AUTH,
-            },
-          })
-            .then(async (result) => {
-              if (result.data.recipients == 1) {
-                const notification = new Notifications(userId, title, message);
+        axios({
+          method: "post",
+          url: "https://onesignal.com/api/v1/notifications",
+          data: myJSONObject,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: process.env.ONE_SIGNAL_AUTH,
+          },
+        })
+          .then(async (result) => {
+            if (result.data.recipients == 1) {
+              const notification = new Notifications(userId, title, message);
 
-                //saving in database
-                return notification.save().then((resultData) => {
-                  // return res.json({ status: true, message: "Booking created successfully", booking: bookingData });
-                  const adminNotificationObj = new AdminNotifications(
-                    userId,
-                    studioId,
-                    bookingData._id.toString(),
-                    "Booking created",
-                    userData.fullName +
+              //saving in database
+              return notification.save().then((resultData) => {
+                // return res.json({ status: true, message: "Booking created successfully", booking: bookingData });
+                const adminNotificationObj = new AdminNotifications(
+                  userId,
+                  studioId,
+                  bookingData._id.toString(),
+                  "Booking created",
+                  userData.fullName +
                     " created new booking with Studio : " +
                     studioData.fullName
-                  );
-                  //saving in database
-                  return adminNotificationObj.save().then((resultData1) => {
-                    return res.json({
-                      status: true,
-                      message: "Booking created successfully",
-                      booking: bookingData,
-                    });
+                );
+                //saving in database
+                return adminNotificationObj.save().then((resultData1) => {
+                  return res.json({
+                    status: true,
+                    message: "Booking created successfully",
+                    booking: bookingData,
                   });
                 });
-              } else {
-                return res.json({
-                  status: true,
-                  message:
-                    "Booking created successfully(Notification not sent)",
-                  booking: bookingData,
-                });
-              }
-            })
-            .catch((err) => {
-              logger.error(err);
+              });
+            } else {
               return res.json({
                 status: true,
                 message: "Booking created successfully(Notification not sent)",
                 booking: bookingData,
               });
+            }
+          })
+          .catch((err) => {
+            logger.error(err);
+            return res.json({
+              status: true,
+              message: "Booking created successfully(Notification not sent)",
+              booking: bookingData,
             });
-        })
+          });
+      });
     });
   });
 };
 
 exports.createNewBooking = async (req, res, next) => {
   try {
-    const req_body = req.body
-    logger.info("req.body |",{req_body});
+    const req_body = req.body;
+    logger.info("req.body |", { req_body });
 
     // Validate input
     // const errors = validationResult(req);
@@ -508,17 +505,24 @@ exports.createNewBooking = async (req, res, next) => {
       "c1"
     );
     const resultData = await bookingObj.save();
-    sendMailToUserAndAdmin({ userId, studioId, roomId, bookingDate, bookingTime, totalPrice })
+    sendMailToUserAndAdmin({
+      userId,
+      studioId,
+      roomId,
+      bookingDate,
+      bookingTime,
+      totalPrice,
+    });
     const bookingData = resultData.ops[0];
     bookingData.totalPrice = bookingData.totalPrice.toFixed(2);
 
     const title = "Congratulations!!";
     const message = `Your booking with '${studioData.fullName}' is confirmed`;
     const myJSONObject = {
-      "app_id": process.env.ONE_SIGNAL_APP_ID,
-      "include_player_ids": [userDeviceId],
-      "data": {},
-      "contents": { "en": `${title}\n${message}` },
+      app_id: process.env.ONE_SIGNAL_APP_ID,
+      include_player_ids: [userDeviceId],
+      data: {},
+      contents: { en: `${title}\n${message}` },
     };
 
     const result = await axios.post(
@@ -527,7 +531,7 @@ exports.createNewBooking = async (req, res, next) => {
       {
         headers: {
           "Content-Type": "application/json",
-          "Authorization": process.env.ONE_SIGNAL_AUTH,
+          Authorization: process.env.ONE_SIGNAL_AUTH,
         },
       }
     );
@@ -572,7 +576,16 @@ exports.createServiceBooking = async (req, res, next) => {
     //     return res.status(400).json({ errors: errors.array() });
     // }
 
-    const { userId, serviceId, planId, bookingDate, bookingTime, totalPrice, serviceType, countryCode } = req.body;
+    const {
+      userId,
+      serviceId,
+      planId,
+      bookingDate,
+      bookingTime,
+      totalPrice,
+      serviceType,
+      countryCode,
+    } = req.body;
     const bookingStatus = 0;
 
     bookingTime.startTime = convertTo24HourFormat(bookingTime.startTime);
@@ -580,14 +593,22 @@ exports.createServiceBooking = async (req, res, next) => {
 
     let userData = await findUserById(userId);
     if (!userData) {
-      return res.status(404).json({ status: false, message: "Enter valid user ID" });
+      return res
+        .status(404)
+        .json({ status: false, message: "Enter valid user ID" });
     }
 
-    let userDeviceId = userData.deviceId || '';
+    let userDeviceId = userData.deviceId || "";
 
     const serviceData = await Service.findServiceById(serviceId);
 
-    const serData = { userId, studioId: serviceId, roomId: +planId, bookingStatus: 0, type: serviceType }
+    const serData = {
+      userId,
+      studioId: serviceId,
+      roomId: +planId,
+      bookingStatus: 0,
+      type: serviceType,
+    };
 
     const ExistingServiceData = await Booking.findBooking(serData);
 
@@ -595,7 +616,10 @@ exports.createServiceBooking = async (req, res, next) => {
     console.log(ExistingServiceData);
 
     if (!serviceData) {
-      return res.status(200).json({ status: false, message: "Something went wrong, Try again later" });
+      return res.status(200).json({
+        status: false,
+        message: "Something went wrong, Try again later",
+      });
     }
     let bookingData;
     if (ExistingServiceData.length === 1) {
@@ -609,14 +633,29 @@ exports.createServiceBooking = async (req, res, next) => {
       //   logger.error({ res_1 })
       //   return res.status(200).json({ status: false, message: "Booking update failed !" });
       // }
-      return res.status(200).json({ status: false, message: "Requested Package booking has been pre-booked already!" });
-
+      return res.status(200).json({
+        status: false,
+        message: "Requested Package booking has been pre-booked already!",
+      });
     } else if (ExistingServiceData.length > 1) {
-      logger.info("More than one booking found for this service !")
-      logger.info({ serviceData })
-      return res.status(200).json({ status: false, message: "More than one booking found for this service !" });
+      logger.info("More than one booking found for this service !");
+      logger.info({ serviceData });
+      return res.status(200).json({
+        status: false,
+        message: "More than one booking found for this service !",
+      });
     } else {
-      const bookingObj = new Booking(userId, serviceId, parseInt(planId), bookingDate, bookingTime, parseFloat(totalPrice), bookingStatus, serviceType, countryCode);
+      const bookingObj = new Booking(
+        userId,
+        serviceId,
+        parseInt(planId),
+        bookingDate,
+        bookingTime,
+        parseFloat(totalPrice),
+        bookingStatus,
+        serviceType,
+        countryCode
+      );
       const resultData = await bookingObj.save();
       bookingData = resultData.ops[0];
       bookingData.totalPrice = bookingData.totalPrice.toFixed(2);
@@ -625,35 +664,54 @@ exports.createServiceBooking = async (req, res, next) => {
     const title = "Congratulations!!";
     const message = `Your booking with '${serviceData.fullName}' is confirmed`;
     const myJSONObject = {
-      "app_id": process.env.ONE_SIGNAL_APP_ID,
-      "include_player_ids": [userDeviceId],
-      "data": {},
-      "contents": { "en": `${title}\n${message}` }
+      app_id: process.env.ONE_SIGNAL_APP_ID,
+      include_player_ids: [userDeviceId],
+      data: {},
+      contents: { en: `${title}\n${message}` },
     };
 
-    const result = await axios.post("https://onesignal.com/api/v1/notifications", myJSONObject, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': process.env.ONE_SIGNAL_AUTH
+    const result = await axios.post(
+      "https://onesignal.com/api/v1/notifications",
+      myJSONObject,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: process.env.ONE_SIGNAL_AUTH,
+        },
       }
-    });
+    );
     if (result.status === 1) {
       const notification = new Notifications(userId, title, message);
       await notification.save();
 
-      const adminNotificationObj = new AdminNotifications(userId, serviceId, bookingData._id.toString(), "Booking created", `${userData.fullName} created new booking with Studio: ${serviceData.fullName}`);
+      const adminNotificationObj = new AdminNotifications(
+        userId,
+        serviceId,
+        bookingData._id.toString(),
+        "Booking created",
+        `${userData.fullName} created new booking with Studio: ${serviceData.fullName}`
+      );
       await adminNotificationObj.save();
 
-      return res.json({ status: true, message: "Booking created successfully", booking: bookingData });
+      return res.json({
+        status: true,
+        message: "Booking created successfully",
+        booking: bookingData,
+      });
     } else {
-      return res.json({ status: true, message: "Booking created successfully (Notification not sent)", booking: bookingData });
+      return res.json({
+        status: true,
+        message: "Booking created successfully (Notification not sent)",
+        booking: bookingData,
+      });
     }
   } catch (error) {
     logger.error(error);
-    return res.status(500).json({ status: false, message: "Internal Server Error" });
+    return res
+      .status(500)
+      .json({ status: false, message: "Internal Server Error" });
   }
 };
-
 
 exports.getStudioAvailabilities = async (req, res, next) => {
   const studioId = req.body.studioId;
@@ -663,7 +721,7 @@ exports.getStudioAvailabilities = async (req, res, next) => {
   const bufferTime = 15;
   const interval = bookingHours * 60;
 
-  console.log("slot req data:", req.body)
+  console.log("slot req data:", req.body);
 
   //get bookingDate from timestamp
   bookingDate = new Date(bookingDate);
@@ -678,19 +736,19 @@ exports.getStudioAvailabilities = async (req, res, next) => {
   }
   bookingDate = yr + "-" + mth + "-" + dt;
   var bTimeStamp = new Date(bookingDate).getTime();
-  logger.info("Booking Date :--> ",{bookingDate});
+  logger.info("Booking Date :--> ", { bookingDate });
 
   //get Current Date from timestamp
   // let currDate = new Date();
   let currDate = moment.tz("Asia/Kolkata");
-  let studioData = await Studio.findStudioById(studioId)
+  let studioData = await Studio.findStudioById(studioId);
   if (!studioData) {
     return res
       .status(404)
       .json({ status: false, message: "No studio with this ID exists" });
   }
   if (studioData?.timeZone) {
-    currDate = moment.tz(studioData.timeZone)
+    currDate = moment.tz(studioData.timeZone);
   } else {
     currDate = moment.tz("Asia/Kolkata");
     console.log("object");
@@ -699,7 +757,7 @@ exports.getStudioAvailabilities = async (req, res, next) => {
 
   console.log(
     "Current IST Date and Time:",
-    currDate.format("YYYY-MM-DD HH:mm:ss"),
+    currDate.format("YYYY-MM-DD HH:mm:ss")
   );
   // var yr = currDate.getUTCFullYear();
   // var mth = currDate.getUTCMonth() + 1;
@@ -744,7 +802,7 @@ exports.getStudioAvailabilities = async (req, res, next) => {
     let roomTotalAvailability =
       studioData.roomsDetails[roomIndex].availabilities;
     // roomTotalAvailability = [{startTime:"09:00",endTime:"13:00"},{startTime:"15:00",endTime:"19:00"}];
-    logger.info("Rooms Hours : ",{roomTotalAvailability});
+    logger.info("Rooms Hours : ", { roomTotalAvailability });
 
     //Getting all slots first
     let allSlots = [];
@@ -843,7 +901,7 @@ exports.getStudioAvailabilities = async (req, res, next) => {
                 startTime: singleBookedSlot.endTime,
                 endTime: singleRoomAvail.endTime,
               };
-              logger.info("Split Slot : ",{splitSlot1, splitSlot2});
+              logger.info("Split Slot : ", { splitSlot1, splitSlot2 });
               roomTotalAvailability.push(splitSlot1);
               roomTotalAvailability.push(splitSlot2);
 
@@ -860,7 +918,7 @@ exports.getStudioAvailabilities = async (req, res, next) => {
           });
         });
         // });
-        logger.info("Availability Sets : ",{roomTotalAvailability});
+        logger.info("Availability Sets : ", { roomTotalAvailability });
         //add 30 min interval before starting next slot
         for (let i = 1; i < roomTotalAvailability.length; i++) {
           const index = bookedSlots.findIndex((s) =>
@@ -875,7 +933,7 @@ exports.getStudioAvailabilities = async (req, res, next) => {
             );
           }
         }
-        logger.info("Availability Sets : ",{roomTotalAvailability});
+        logger.info("Availability Sets : ", { roomTotalAvailability });
         let allAvailSlots = [];
         //Now split these based on SLOT timing
         roomTotalAvailability.forEach((singleAvail) => {
@@ -903,7 +961,6 @@ exports.getStudioAvailabilities = async (req, res, next) => {
         });
         //Filtering to remove past slots for current date
         if (cTimeStamp == bTimeStamp) {
-
           allAvailSlots = allAvailSlots.filter((i) => {
             var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
             var sMin =
@@ -1185,8 +1242,8 @@ exports.getStudioAvailabilities = async (req, res, next) => {
 // };
 
 exports.getStudioAvailabilitiesLate = (req, res, next) => {
-  const req_body = req.body 
-logger.info("req.body | ",{req_body});
+  const req_body = req.body;
+  logger.info("req.body | ", { req_body });
 
   const studioId = req.body.studioId;
   const roomId = req.body.roomId;
@@ -1210,7 +1267,7 @@ logger.info("req.body | ",{req_body});
   }
   bookingDate = yr + "-" + mth + "-" + dt;
   var bTimeStamp = new Date(bookingDate).getTime();
-  logger.info("Booking Date : ",{bookingDate});
+  logger.info("Booking Date : ", { bookingDate });
 
   //get Current Date from timestamp
   let currDate = new Date();
@@ -1225,7 +1282,7 @@ logger.info("req.body | ",{req_body});
   }
   currDate = yr + "-" + mth + "-" + dt;
   var cTimeStamp = new Date(currDate).getTime();
-  logger.info("Current Date : ",{currDate});
+  logger.info("Current Date : ", { currDate });
   var currHr = new Date().getHours();
   var currMin = new Date().getMinutes();
   var currTime = currHr * 60 + currMin;
@@ -1252,12 +1309,12 @@ logger.info("req.body | ",{req_body});
     let roomTotalAvailability =
       studioData.roomsDetails[roomIndex].availabilities;
     // roomTotalAvailability = [{startTime:"09:00",endTime:"13:00"},{startTime:"15:00",endTime:"19:00"}];
-    logger.info("Rooms Hours : ",{roomTotalAvailability});
+    logger.info("Rooms Hours : ", { roomTotalAvailability });
 
     //Getting all slots first
     let allSlots = [];
     roomTotalAvailability.forEach((singleAvail) => {
-      logger.info("singleAvail:::",{singleAvail});
+      logger.info("singleAvail:::", { singleAvail });
       var startTime = singleAvail.startTime;
       var endTime = singleAvail.endTime;
 
@@ -1267,7 +1324,7 @@ logger.info("req.body | ",{req_body});
 
       var timeslots = calculate_time_slot(start_time, end_time, interval);
 
-      logger.info("|||timeslots --",{timeslots});
+      logger.info("|||timeslots --", { timeslots });
 
       //Creating range for slots
       for (let s = 0; s < timeslots.length - 1; s++) {
@@ -1278,7 +1335,7 @@ logger.info("req.body | ",{req_body});
       // logger.info({timeslots});
       allSlots = allSlots.concat(timeslots);
     });
-    logger.info("\n\n----All Slots : ",{allSlots});
+    logger.info("\n\n----All Slots : ", { allSlots });
 
     Booking.fetchBookingsByStudioIdAndBookingDate(studioId, bookingDate).then(
       (bookingsData) => {
@@ -1295,7 +1352,7 @@ logger.info("req.body | ",{req_body});
             var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
             var sMin =
               +i.startTime.split(":")[0] * 60 + +i.startTime.split(":")[1];
-            logger.info("-------",{sMin, eMin, currTime});
+            logger.info("-------", { sMin, eMin, currTime });
             if (eMin < currTime || sMin < currTime) {
               return false;
             } else {
@@ -1310,7 +1367,9 @@ logger.info("req.body | ",{req_body});
             singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
             singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
           });
-          logger.info("allSlots",{allSlots}, "availableSlots", {availSlotsNew});
+          logger.info("allSlots", { allSlots }, "availableSlots", {
+            availSlotsNew,
+          });
           return res.json({
             status: true,
             message: "Availability returned",
@@ -1322,7 +1381,7 @@ logger.info("req.body | ",{req_body});
 
         let bookedSlots = [];
         bookingsData.forEach((singleBooking) => {
-          logger.info("singleBooking.bookingTime:::",{singleBooking});
+          logger.info("singleBooking.bookingTime:::", { singleBooking });
           bookedSlots.push(singleBooking.bookingTime);
         });
 
@@ -1350,7 +1409,7 @@ logger.info("req.body | ",{req_body});
           );
 
           roomTotalAvailability.forEach((singleRoomAvail) => {
-            logger.info("roomTotalAvailability:",{roomTotalAvailability});
+            logger.info("roomTotalAvailability:", { roomTotalAvailability });
             let startMinRoom =
               +singleRoomAvail.startTime.split(":")[0] * 60 +
               +singleRoomAvail.startTime.split(":")[1];
@@ -1416,7 +1475,7 @@ logger.info("req.body | ",{req_body});
         // });
         // const updatedAvailabilitySets = removeBookedSlots(roomTotalAvailability, bookedSlots);
         // roomTotalAvailability = updatedAvailabilitySets
-        logger.info("Availability Sets : ",{roomTotalAvailability});
+        logger.info("Availability Sets : ", { roomTotalAvailability });
         //add 30 min interval before starting next slot
         // for(let i=1;i<roomTotalAvailability.length;i++)
         // {
@@ -1470,7 +1529,7 @@ logger.info("req.body | ",{req_body});
             // return index
           });
 
-          logger.info("bookedSlots Index:",{index});
+          logger.info("bookedSlots Index:", { index });
           if (index !== -1) {
             const bufferStart = addMinToTime(
               bookedSlots[index].endTime,
@@ -1507,7 +1566,7 @@ logger.info("req.body | ",{req_body});
           }
         }
 
-        logger.info("Availability Sets : ",{roomTotalAvailability});
+        logger.info("Availability Sets : ", { roomTotalAvailability });
         let allAvailSlots = [];
         //Now split these based on SLOT timing
         roomTotalAvailability.forEach((singleAvail) => {
@@ -1521,7 +1580,7 @@ logger.info("req.body | ",{req_body});
 
           var timeslots = calculate_time_slot(start_time, end_time, interval);
 
-          logger.info("Timeslots:",{timeslots});
+          logger.info("Timeslots:", { timeslots });
           //Creating range for slots
           for (let s = 0; s < timeslots.length - 1; s++) {
             timeslots[s] = {
@@ -1591,7 +1650,7 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
   }
   bookingDate = yr + "-" + mth + "-" + dt;
   var bTimeStamp = new Date(bookingDate).getTime();
-  logger.info("Booking Date : ",{bookingDate});
+  logger.info("Booking Date : ", { bookingDate });
 
   //get Current Date from timestamp
   let currDate = new Date();
@@ -1606,7 +1665,7 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
   }
   currDate = yr + "-" + mth + "-" + dt;
   var cTimeStamp = new Date(currDate).getTime();
-  logger.info("Current Date : ",{currDate});
+  logger.info("Current Date : ", { currDate });
   var currHr = new Date().getHours();
   var currMin = new Date().getMinutes();
   var currTime = currHr * 60 + currMin;
@@ -1633,7 +1692,7 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
     let roomTotalAvailability =
       studioData.roomsDetails[roomIndex].availabilities;
     // roomTotalAvailability = [{startTime:"09:00",endTime:"13:00"},{startTime:"15:00",endTime:"19:00"}];
-    logger.info("Rooms Hours : ",{roomTotalAvailability});
+    logger.info("Rooms Hours : ", { roomTotalAvailability });
 
     //Getting all slots first
     let allSlots = [];
@@ -1730,7 +1789,7 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
                 startTime: singleBookedSlot.endTime,
                 endTime: singleRoomAvail.endTime,
               };
-              logger.info("Split Slot : ",{splitSlot1, splitSlot2});
+              logger.info("Split Slot : ", { splitSlot1, splitSlot2 });
               roomTotalAvailability.push(splitSlot1);
               roomTotalAvailability.push(splitSlot2);
 
@@ -1822,7 +1881,7 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
           });
         });
         // });
-        logger.info("Availability Sets : ",{roomTotalAvailability});
+        logger.info("Availability Sets : ", { roomTotalAvailability });
         //add 30 min interval before starting next slot
         for (let i = 1; i < roomTotalAvailability.length; i++) {
           const index = bookedSlots.findIndex((s) =>
@@ -1837,7 +1896,7 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
             );
           }
         }
-        logger.info("Availability Sets : ",{roomTotalAvailability});
+        logger.info("Availability Sets : ", { roomTotalAvailability });
         let allAvailSlots = [];
         //Now split these based on SLOT timing
         roomTotalAvailability.forEach((singleAvail) => {
@@ -1896,8 +1955,8 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
 };
 
 exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
-  const req_body = req.body 
-logger.info("req.body | ",{req_body});
+  const req_body = req.body;
+  logger.info("req.body | ", { req_body });
 
   const studioId = req.body.studioId;
   const roomId = req.body.roomId;
@@ -1917,7 +1976,7 @@ logger.info("req.body | ",{req_body});
   }
   bookingDate = yr + "-" + mth + "-" + dt;
   var bTimeStamp = new Date(bookingDate).getTime();
-  logger.info("Booking Date : ",{bookingDate});
+  logger.info("Booking Date : ", { bookingDate });
 
   //get Current Date from timestamp
   let currDate = new Date();
@@ -1932,7 +1991,7 @@ logger.info("req.body | ",{req_body});
   }
   currDate = yr + "-" + mth + "-" + dt;
   var cTimeStamp = new Date(currDate).getTime();
-  logger.info("Current Date : ",{currDate});
+  logger.info("Current Date : ", { currDate });
   var currHr = new Date().getHours();
   var currMin = new Date().getMinutes();
   var currTime = currHr * 60 + currMin;
@@ -1956,14 +2015,15 @@ logger.info("req.body | ",{req_body});
         .status(404)
         .json({ status: false, message: "No room with this ID exists" });
     }
-    let roomTotalAvailability = studioData.roomsDetails[roomIndex].availabilities;
+    let roomTotalAvailability =
+      studioData.roomsDetails[roomIndex].availabilities;
     // roomTotalAvailability = [{startTime:"09:00",endTime:"13:00"},{startTime:"15:00",endTime:"19:00"}];
-    logger.info("Rooms Hours : ",{roomTotalAvailability});
+    logger.info("Rooms Hours : ", { roomTotalAvailability });
 
     //Getting all slots first
     let allSlots = [];
     roomTotalAvailability.forEach((singleAvail) => {
-      logger.info("singleAvail:::",{singleAvail});
+      logger.info("singleAvail:::", { singleAvail });
       var startTime = singleAvail.startTime;
       var endTime = singleAvail.endTime;
 
@@ -1973,7 +2033,7 @@ logger.info("req.body | ",{req_body});
 
       var timeslots = calculate_time_slot(start_time, end_time, interval);
 
-      logger.info("|||timeslots --",{timeslots});
+      logger.info("|||timeslots --", { timeslots });
 
       //Creating range for slots
       for (let s = 0; s < timeslots.length - 1; s++) {
@@ -1997,8 +2057,9 @@ logger.info("req.body | ",{req_body});
         if (cTimeStamp == bTimeStamp) {
           availSlotsNew = availSlotsNew.filter((i) => {
             var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
-            var sMin = +i.startTime.split(":")[0] * 60 + +i.startTime.split(":")[1];
-            logger.info("-------",{sMin, eMin, currTime});
+            var sMin =
+              +i.startTime.split(":")[0] * 60 + +i.startTime.split(":")[1];
+            logger.info("-------", { sMin, eMin, currTime });
             if (eMin < currTime || sMin < currTime) {
               return false;
             } else {
@@ -2013,7 +2074,9 @@ logger.info("req.body | ",{req_body});
             singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
             singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
           });
-          logger.info("allSlots",{allSlots},"availableSlots",{availSlotsNew});
+          logger.info("allSlots", { allSlots }, "availableSlots", {
+            availSlotsNew,
+          });
           return res.json({
             status: true,
             message: "Availability returned",
@@ -2024,7 +2087,7 @@ logger.info("req.body | ",{req_body});
         }
         let bookedSlots = [];
         bookingsData.forEach((singleBooking) => {
-          logger.info("singleBooking.bookingTime:::",{singleBooking});
+          logger.info("singleBooking.bookingTime:::", { singleBooking });
           bookedSlots.push(singleBooking.bookingTime);
         });
 
@@ -2075,7 +2138,7 @@ logger.info("req.body | ",{req_body});
                 startTime: singleBookedSlot.endTime,
                 endTime: singleRoomAvail.endTime,
               };
-              logger.info("Split Slot : ",{splitSlot1, splitSlot2});
+              logger.info("Split Slot : ", { splitSlot1, splitSlot2 });
               roomTotalAvailability.push(splitSlot1);
               roomTotalAvailability.push(splitSlot2);
 
@@ -2093,7 +2156,7 @@ logger.info("req.body | ",{req_body});
         });
 
         // });
-        logger.info("Availability Sets : ",{roomTotalAvailability});
+        logger.info("Availability Sets : ", { roomTotalAvailability });
         // Loop through roomTotalAvailability to add 30 min buffer before starting next slot
         for (let i = 1; i < roomTotalAvailability.length; i++) {
           const index = bookedSlots.findIndex((s) =>
@@ -2108,7 +2171,7 @@ logger.info("req.body | ",{req_body});
             );
           }
         }
-        logger.info("Availability Sets : ",{roomTotalAvailability});
+        logger.info("Availability Sets : ", { roomTotalAvailability });
         let allAvailSlots = [];
         roomTotalAvailability.forEach((singleAvail) => {
           // logger.info({singleAvail});
@@ -2121,7 +2184,7 @@ logger.info("req.body | ",{req_body});
 
           var timeslots = calculate_time_slot(start_time, end_time, interval);
 
-          logger.info("Timeslots:",{timeslots});
+          logger.info("Timeslots:", { timeslots });
           // Creating range for slots
           for (let s = 0; s < timeslots.length - 1; s++) {
             timeslots[s] = {
@@ -2181,7 +2244,6 @@ logger.info("req.body | ",{req_body});
 // TEST_SLOTS
 
 exports.getStudioAvailabilitiesTEST = async (req, res, next) => {
-
   const studioId = req.body.studioId;
   const roomId = req.body.roomId;
   let bookingDate = req.body.bookingDate;
@@ -2189,20 +2251,17 @@ exports.getStudioAvailabilitiesTEST = async (req, res, next) => {
   const bufferTime = 15;
   const interval = bookingHours * 60;
 
-  const start_and_end_times = []
+  const start_and_end_times = [];
 
-  Studio.findStudioById(studioId).then(studioData => {
+  Studio.findStudioById(studioId).then((studioData) => {
     // console.log(studioData);
-    studioData.roomsDetails.forEach(room => {
-      room.availabilities.map(avail => {
-        start_and_end_times.push(avail)
-      })
-    })
-    return res.send({ avails: start_and_end_times })
-
-  })
-
-
+    studioData.roomsDetails.forEach((room) => {
+      room.availabilities.map((avail) => {
+        start_and_end_times.push(avail);
+      });
+    });
+    return res.send({ avails: start_and_end_times });
+  });
 };
 //
 
@@ -2221,7 +2280,7 @@ function getCompletedBookings(allBookings, _callback) {
   // logger.info({fullDate});
 
   var currTotalMin = currDate.getHours() * 60 + currDate.getMinutes();
-  logger.info({currTotalMin});
+  logger.info({ currTotalMin });
 
   if (allBookings.length == 0) {
     return _callback([], []);
@@ -2244,7 +2303,7 @@ function getCompletedBookings(allBookings, _callback) {
         var bTotalMin =
           +singleBooking.bookingTime.endTime.split(":")[0] * 60 +
           +singleBooking.bookingTime.endTime.split(":")[1];
-        logger.info({bTotalMin});
+        logger.info({ bTotalMin });
         if (bTotalMin < currTotalMin) {
           completedBookings.push(singleBooking);
         } else {
@@ -2287,98 +2346,213 @@ function checkBookingRating(completedBookings, _callback) {
 }
 
 exports.getBookingsOfParticularUser = (req, res, next) => {
+  console.log("req.params", req.params);
+  console.log("req.query", req.query);
   const userId = req.params.userId;
+  const source = req.query.source;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
 
-  User.findUserByUserId(userId).then((userData) => {
+  User.findUserByUserId(userId).then(async(userData) => {
     if (!userData) {
       return res
         .status(404)
         .json({ status: false, message: "No User with this ID exists" });
     }
-    Booking.fetchAllBookingsByUserId(userId).then((bookingsData) => {
-      if (bookingsData.length == 0) {
-        return res.json({
-          status: true,
-          message: "All booking(s) returned",
-          activeBookings: [],
-          completedBookings: [],
-          cancelledBookings: [],
-        });
-      } else {
-        let mappedBookings = [];
-        let allBookings = bookingsData.map(async (i) => {
-          i.studioData = null;
-          let studioInfo = await Studio.findStudioById(i.studioId);
-          if (studioInfo != null) {
-            i.studioData = studioInfo;
-          }
-          mappedBookings.push(i);
-          if (mappedBookings.length == bookingsData.length) {
-            //Filter non-null studios
-            mappedBookings = mappedBookings.filter((i) => i.studioData != null);
 
-            let cancelledBookings = mappedBookings.filter(
-              (i) => i.bookingStatus == 2
-            );
-            // let activeBookings = mappedBookings.filter(i=>i.bookingStatus==undefined || i.bookingStatus==0);
-            // let completedBookings = mappedBookings.filter(i=>i.bookingStatus==1);
-            getCompletedBookings(mappedBookings, (resActive, resComplete) => {
-              checkBookingRating(resComplete, (resCheckData) => {
-                resActive.sort((a, b) => {
-                  if (
-                    new Date(a.bookingDate).toString() ==
-                    new Date(b.bookingDate).toString()
-                  ) {
-                    logger.info("Same startTime");
-                    let startTime =
-                      +a.bookingTime.startTime.split(":")[0] * 60 +
-                      +a.bookingTime.startTime.split(":")[1];
-                    let endTime =
-                      +b.bookingTime.startTime.split(":")[0] * 60 +
-                      +b.bookingTime.startTime.split(":")[1];
-                    return startTime - endTime;
-                  } else {
-                    return new Date(a.bookingDate) - new Date(b.bookingDate);
-                  }
-                });
+    else if (source === "website") {
+      console.log("this runnnn");
+      const skip = (page - 1) * limit;
+      const pipelineForStudio = [
+        {
+          $match: { type: "c1", userId: userId },
+        },
+        {
+          $lookup: {
+            from: "studios",
+            let: { studioIdStr: "$studioId" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] },
+                },
+              },
+            ],
+            as: "studioInfo",
+          },
+        },
+        {
+          $addFields: {
+            studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
+          },
+        },
+        {
+          $match: {
+            $or: [{ studioName: { $exists: true, $ne: null } }],
+          },
+        },
+        {
+          $skip: skip,
+        },
+        {
+          $limit: limit,
+        },
+        {
+          $project: {
+            studioInfo: 0,
+          },
+        },
+      ];
+    
+      const pipelineForStudioCount = [
+        {
+          $match: { type: "c1", userId: userId },
+        },
+        {
+          $lookup: {
+            from: "studios",
+            let: { studioIdStr: "$studioId" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] },
+                },
+              },
+            ],
+            as: "studioInfo",
+          },
+        },
+        {
+          $addFields: {
+            studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
+          },
+        },
+        {
+          $match: {
+            $or: [{ studioName: { $exists: true, $ne: null } }],
+          },
+        },
+        {
+          $count: "totalcount",
+        },
+      ];
+    
+      let allStudioBooking = await Booking.aggregate(pipelineForStudio)
+      const countResult = await Booking.aggregate(pipelineForStudioCount)
+      const totalRecords = countResult[0] ? countResult[0].totalcount : 0;
+      const totalPages = Math.ceil(totalRecords / limit);
 
-                resActive.forEach((singleBooking) => {
-                  singleBooking.bookingTime.startTime = convertTo12HourFormat(
-                    singleBooking.bookingTime.startTime
-                  );
-                  singleBooking.bookingTime.endTime = convertTo12HourFormat(
-                    singleBooking.bookingTime.endTime
-                  );
+      let diff = allStudioBooking.map((booking,i)=>{
+        let {startTime,endTime} = booking.bookingTime
+        let result = parseInt(endTime)-parseInt(startTime)
+        booking.no_of_hours = result
+        allStudioBooking[i] = booking
+      })
+    
+      return res.json({
+        status: true,
+        message: "All booking(s) returned",
+        allStudioBooking,
+        NoOfHours:diff,
+        paginate: {
+          page,
+          limit,
+          totalPages,
+          totalRecords,
+        },
+      });
+    }else{
+      Booking.fetchAllBookingsByUserId(userId).then((bookingsData) => {
+
+          if (bookingsData.length == 0) {
+            return res.json({
+              status: true,
+              message: "All booking(s) returned",
+              activeBookings: [],
+              completedBookings: [],
+              cancelledBookings: [],
+            });
+          } else {
+            let mappedBookings = [];
+            let allBookings = bookingsData.map(async (i) => {
+              i.studioData = null;
+              let studioInfo = await Studio.findStudioById(i.studioId);
+              if (studioInfo != null) {
+                i.studioData = studioInfo;
+              }
+              mappedBookings.push(i);
+              if (mappedBookings.length == bookingsData.length) {
+                //Filter non-null studios
+                mappedBookings = mappedBookings.filter(
+                  (i) => i.studioData != null
+                );
+
+                let cancelledBookings = mappedBookings.filter(
+                  (i) => i.bookingStatus == 2
+                );
+                // let activeBookings = mappedBookings.filter(i=>i.bookingStatus==undefined || i.bookingStatus==0);
+                // let completedBookings = mappedBookings.filter(i=>i.bookingStatus==1);
+                getCompletedBookings(mappedBookings, (resActive, resComplete) => {
+                  checkBookingRating(resComplete, (resCheckData) => {
+                    resActive.sort((a, b) => {
+                      if (
+                        new Date(a.bookingDate).toString() ==
+                        new Date(b.bookingDate).toString()
+                      ) {
+                        logger.info("Same startTime");
+                        let startTime =
+                          +a.bookingTime.startTime.split(":")[0] * 60 +
+                          +a.bookingTime.startTime.split(":")[1];
+                        let endTime =
+                          +b.bookingTime.startTime.split(":")[0] * 60 +
+                          +b.bookingTime.startTime.split(":")[1];
+                        return startTime - endTime;
+                      } else {
+                        return new Date(a.bookingDate) - new Date(b.bookingDate);
+                      }
+                    });
+
+                    resActive.forEach((singleBooking) => {
+                      singleBooking.bookingTime.startTime = convertTo12HourFormat(
+                        singleBooking.bookingTime.startTime
+                      );
+                      singleBooking.bookingTime.endTime = convertTo12HourFormat(
+                        singleBooking.bookingTime.endTime
+                      );
+                    });
+                    resCheckData.forEach((singleBooking) => {
+                      singleBooking.bookingTime.startTime = convertTo12HourFormat(
+                        singleBooking.bookingTime.startTime
+                      );
+                      singleBooking.bookingTime.endTime = convertTo12HourFormat(
+                        singleBooking.bookingTime.endTime
+                      );
+                    });
+                    cancelledBookings.forEach((singleBooking) => {
+                      singleBooking.bookingTime.startTime = convertTo12HourFormat(
+                        singleBooking.bookingTime.startTime
+                      );
+                      singleBooking.bookingTime.endTime = convertTo12HourFormat(
+                        singleBooking.bookingTime.endTime
+                      );
+                    });
+                    //  else {
+                    return res.json({
+                      status: true,
+                      message: "All booking(s) returned",
+                      activeBookings: resActive,
+                      completedBookings: resCheckData,
+                      cancelledBookings: cancelledBookings,
+                    });
+                    // }
+                  });
                 });
-                resCheckData.forEach((singleBooking) => {
-                  singleBooking.bookingTime.startTime = convertTo12HourFormat(
-                    singleBooking.bookingTime.startTime
-                  );
-                  singleBooking.bookingTime.endTime = convertTo12HourFormat(
-                    singleBooking.bookingTime.endTime
-                  );
-                });
-                cancelledBookings.forEach((singleBooking) => {
-                  singleBooking.bookingTime.startTime = convertTo12HourFormat(
-                    singleBooking.bookingTime.startTime
-                  );
-                  singleBooking.bookingTime.endTime = convertTo12HourFormat(
-                    singleBooking.bookingTime.endTime
-                  );
-                });
-                return res.json({
-                  status: true,
-                  message: "All booking(s) returned",
-                  activeBookings: resActive,
-                  completedBookings: resCheckData,
-                  cancelledBookings: cancelledBookings,
-                });
-              });
+              }
             });
           }
-        });
-      }
-    });
+      })
+    }
+    
   });
 };
 
@@ -2419,8 +2593,8 @@ exports.cancelParticularBooking = (req, res, next) => {
             },
           })
             .then(async (result) => {
-              let result_data =result.data;
-              logger.info("Success : ",{result_data});
+              let result_data = result.data;
+              logger.info("Success : ", { result_data });
               if (result.data.recipients == 1) {
                 const notification = new Notifications(
                   userData._id.toString(),
@@ -2737,7 +2911,7 @@ exports.getAllBookings3 = async (req, res, next) => {
     const filters = buildFilters(req.query);
     const sort = buildSort(req.query);
 
-    logger.info("oprions----",{filters, sort});
+    logger.info("oprions----", { filters, sort });
 
     let bookingsData;
 
@@ -2765,7 +2939,7 @@ exports.getAllBookings3 = async (req, res, next) => {
       return res.json({ status: true, message: "No bookings found", data: [] });
     }
 
-    logger.info("bookingsData---",{bookingsData});
+    logger.info("bookingsData---", { bookingsData });
 
     const totalBookings = await Booking.fetchAllBookingsCount(bookingTypeValue);
     // logger.info("totalBookings------",{totalBookings});
@@ -2777,11 +2951,11 @@ exports.getAllBookings3 = async (req, res, next) => {
           const [studioInfo, userData] = await Promise.all([
             Service.findServiceById(booking.studioId),
             User.findUserByUserId(booking.userId) ||
-            Admin.findAdminById(booking.userId) ||
-            SubAdmin.findSubAdminById(booking.userId) ||
-            Owner.findOwnerByOwnerId(booking.userId),
+              Admin.findAdminById(booking.userId) ||
+              SubAdmin.findSubAdminById(booking.userId) ||
+              Owner.findOwnerByOwnerId(booking.userId),
           ]);
-          logger.info("studioInfo-------",{studioInfo});
+          logger.info("studioInfo-------", { studioInfo });
           booking.studioName = studioInfo?.fullName || "";
           booking.userName = userData
             ? userData.fullName || `${userData.firstName} ${userData.lastName}`
@@ -2797,7 +2971,7 @@ exports.getAllBookings3 = async (req, res, next) => {
 
           return booking;
         } catch (error) {
-          logger.error(error, "Error while processing booking:",);
+          logger.error(error, "Error while processing booking:");
           throw error; // Rethrow the error to be caught by the outer try-catch
         }
       })
@@ -2846,14 +3020,16 @@ exports.getAllBookings3 = async (req, res, next) => {
 // only Studio Bookings
 exports.getAllBookings = async (req, res, next) => {
   let req_query = req.query;
-  logger.info("HITTTT")
-  logger.info("data:",{req_query})
+  logger.info("HITTTT");
+  logger.info("data:", { req_query });
   try {
     let skip = +req.query.skip || 0;
     let limit = +req.query.limit || 10;
-    let bookingType = [0, 1, 2].includes(+req.query.bookingType) ? +req.query.bookingType : -1;
+    let bookingType = [0, 1, 2].includes(+req.query.bookingType)
+      ? +req.query.bookingType
+      : -1;
     let booking_category = req.query.category || "c1";
-    logger.info("bookingType",{bookingType});
+    logger.info("bookingType", { bookingType });
     logger.info({ booking_category, bookingType });
     logger.info("hello");
     if (isNaN(skip)) {
@@ -2864,7 +3040,6 @@ exports.getAllBookings = async (req, res, next) => {
     const pipeline_lane = [];
 
     if (bookingType === -1) {
-
       pipeline_lane.push({
         $lookup: {
           from: "studios",
@@ -2872,12 +3047,12 @@ exports.getAllBookings = async (req, res, next) => {
           pipeline: [
             {
               $match: {
-                $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] }
-              }
-            }
+                $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] },
+              },
+            },
           ],
-          as: "studioInfo"
-        }
+          as: "studioInfo",
+        },
       });
       pipeline_lane.push({
         $lookup: {
@@ -2886,12 +3061,12 @@ exports.getAllBookings = async (req, res, next) => {
           pipeline: [
             {
               $match: {
-                $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] }
-              }
-            }
+                $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] },
+              },
+            },
           ],
-          as: "userInfo"
-        }
+          as: "userInfo",
+        },
       });
       pipeline_lane.push({
         $addFields: {
@@ -2899,34 +3074,38 @@ exports.getAllBookings = async (req, res, next) => {
           userName: { $arrayElemAt: ["$userInfo.fullName", 0] },
           userEmail: { $arrayElemAt: ["$userInfo.email", 0] },
           userPhone: { $arrayElemAt: ["$userInfo.phone", 0] },
-          userType: { $cond: [{ $eq: ["$userInfo", []] }, "", "USER"] }
-        }
+          userType: { $cond: [{ $eq: ["$userInfo", []] }, "", "USER"] },
+        },
       });
       pipeline_lane.push({ $skip: skip });
       pipeline_lane.push({ $limit: limit });
       pipeline_lane.push({
         $project: {
           studioInfo: 0,
-          userInfo: 0
-        }
+          userInfo: 0,
+        },
       });
     } else {
-      pipeline_lane.push({ $match: { bookingStatus: bookingType, $or: [{ type: "c1" }, { type: { $nin: ["c2", "c3"] } }] } });
-      pipeline_lane.push({ $sort: { _id: -1 } })
       pipeline_lane.push({
-
+        $match: {
+          bookingStatus: bookingType,
+          $or: [{ type: "c1" }, { type: { $nin: ["c2", "c3"] } }],
+        },
+      });
+      pipeline_lane.push({ $sort: { _id: -1 } });
+      pipeline_lane.push({
         $lookup: {
           from: "studios",
           let: { studioIdStr: "$studioId" }, // define a variable to hold the string serviceId
           pipeline: [
             {
               $match: {
-                $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] }
-              }
-            }
+                $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] },
+              },
+            },
           ],
-          as: "studioInfo"
-        }
+          as: "studioInfo",
+        },
       });
       pipeline_lane.push({
         $lookup: {
@@ -2935,95 +3114,99 @@ exports.getAllBookings = async (req, res, next) => {
           pipeline: [
             {
               $match: {
-                $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] }
-              }
-            }
+                $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] },
+              },
+            },
           ],
-          as: "userInfo"
-        }
+          as: "userInfo",
+        },
       });
-      pipeline_lane.push({
-        $project: {
-          studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
-          userName: {
-            $ifNull: [
-              { $arrayElemAt: ["$userInfo.fullName", 0] },
-              "Admin"
-            ]
-          },
-          userEmail: {
-            $ifNull: [
-              { $arrayElemAt: ["$userInfo.email", 0] },
-              "Admin"
-            ]
-          },
-          userPhone: {
-            $ifNull: [
-              { $arrayElemAt: ["$userInfo.phone", 0] },
-              "Admin"
-            ]
-          },
-          userType: {
-            $ifNull: [
-              { $arrayElemAt: ["$userInfo.userType", 0] },
-              "Admin"
-            ]
-          },
+      pipeline_lane.push(
+        {
+          $project: {
+            studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
+            userName: {
+              $ifNull: [{ $arrayElemAt: ["$userInfo.fullName", 0] }, "Admin"],
+            },
+            userEmail: {
+              $ifNull: [{ $arrayElemAt: ["$userInfo.email", 0] }, "Admin"],
+            },
+            userPhone: {
+              $ifNull: [{ $arrayElemAt: ["$userInfo.phone", 0] }, "Admin"],
+            },
+            userType: {
+              $ifNull: [{ $arrayElemAt: ["$userInfo.userType", 0] }, "Admin"],
+            },
 
-          otherFields: "$$ROOT"
-        }
-      },
+            otherFields: "$$ROOT",
+          },
+        },
         {
           $replaceRoot: {
             newRoot: {
-              $mergeObjects: ["$otherFields", {
-                studioName: "$studioName",
-                userName: "$userName",
-                userEmail: "$userEmail",
-                userPhone: "$userPhone",
-                userType: "$userType",
-                // Add more specific fields as needed
-              }]
-            }
-          }
+              $mergeObjects: [
+                "$otherFields",
+                {
+                  studioName: "$studioName",
+                  userName: "$userName",
+                  userEmail: "$userEmail",
+                  userPhone: "$userPhone",
+                  userType: "$userType",
+                  // Add more specific fields as needed
+                },
+              ],
+            },
+          },
         }
       );
       pipeline_lane.push({ $limit: limit });
       pipeline_lane.push({ $skip: skip });
       pipeline_lane.push({
         $project: {
-
           studioInfo: 0,
           userInfo: 0,
-
-        }
+        },
       });
     }
     const bookingsData = await Booking.aggregate(pipeline_lane);
-    logger.info("bookingsData")
-    logger.info(bookingsData.length)
-    logger.info(bookingsData[0])
+    logger.info("bookingsData");
+    logger.info(bookingsData.length);
+    logger.info(bookingsData[0]);
 
-
-    const activeBookings = bookingsData.filter(booking => booking.bookingStatus === 0);
-    const completedBookings = bookingsData.filter(booking => booking.bookingStatus === 1);
-    const cancelledBookings = bookingsData.filter(booking => booking.bookingStatus === 2);
+    const activeBookings = bookingsData.filter(
+      (booking) => booking.bookingStatus === 0
+    );
+    const completedBookings = bookingsData.filter(
+      (booking) => booking.bookingStatus === 1
+    );
+    const cancelledBookings = bookingsData.filter(
+      (booking) => booking.bookingStatus === 2
+    );
 
     let bookingsstatus_wise = [];
-    bookingsstatus_wise = bookingsData.filter(booking => booking.bookingStatus === bookingType);
-
+    bookingsstatus_wise = bookingsData.filter(
+      (booking) => booking.bookingStatus === bookingType
+    );
 
     // return res.json({ status: true, message: "All booking(s) returned", data: bookingsstatus_wise, bookings: { activeBookings, completedBookings, cancelledBookings } });
-    return res.json({ status: true, message: "All booking(s) returned", data: bookingsstatus_wise });
+    return res.json({
+      status: true,
+      message: "All booking(s) returned",
+      data: bookingsstatus_wise,
+    });
   } catch (error) {
     logger.error(error, "Internal server error:");
-    return res.status(500).json({ status: false, message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ status: false, message: "Internal server error" });
   }
 };
 
 // get All Packages/Service Bookings
 exports.getServiceBookings = async (req, res) => {
-  const { bookingType, userId, phoneNumber, active } = req.query;
+  let { bookingType, userId, phoneNumber, active, page, limit } = req.query;
+  page = +page || 1;
+  limit = +limit || 10;
   // console.log("req.query |", req.query);
   const matchStage = {};
 
@@ -3041,15 +3224,13 @@ exports.getServiceBookings = async (req, res) => {
 
   // matchStage.bookingStatus = 0;
 
-
   const db = getDb();
   const pipeline = [
     {
       $match: matchStage, // filters
     },
     {
-      $sort: { _id: -1 }
-
+      $sort: { _id: -1 },
     },
     {
       $lookup: {
@@ -3058,22 +3239,22 @@ exports.getServiceBookings = async (req, res) => {
         pipeline: [
           {
             $match: {
-              $expr: { $eq: ["$_id", { $toObjectId: "$$serviceIdStr" }] }
-            }
+              $expr: { $eq: ["$_id", { $toObjectId: "$$serviceIdStr" }] },
+            },
           },
           {
-            $unwind: "$packages" // Unwind the packages array
+            $unwind: "$packages", // Unwind the packages array
           },
           {
             $match: {
               $expr: {
-                $eq: ["$$roomIdint", "$packages.planId"] // Match bookings.roomId with services.packages.planId
-              }
-            }
-          }
+                $eq: ["$$roomIdint", "$packages.planId"], // Match bookings.roomId with services.packages.planId
+              },
+            },
+          },
         ],
-        as: "service"
-      }
+        as: "service",
+      },
     },
     {
       $lookup: {
@@ -3082,16 +3263,15 @@ exports.getServiceBookings = async (req, res) => {
         pipeline: [
           {
             $match: {
-              $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] }
-            }
-          }
+              $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] },
+            },
+          },
         ],
-        as: "user"
-      }
+        as: "user",
+      },
     },
     {
       $project: {
-
         serviceId: { $arrayElemAt: ["$service._id", 0] },
         service_id: { $arrayElemAt: ["$service.service_id", 0] },
         planId: "$roomId",
@@ -3104,17 +3284,35 @@ exports.getServiceBookings = async (req, res) => {
         bookingDate: "$bookingDate",
         package: { $arrayElemAt: ["$service.packages", 0] },
         bookingStatus: "$bookingStatus",
-        countryCode: "$countryCode"
-      }
-    }
+        countryCode: "$countryCode",
+      },
+    },
+    {
+      $skip: (page - 1) * parseInt(limit),
+    },
+    {
+      $limit: parseInt(limit),
+    },
   ];
 
-
   const data = await db.collection("bookings").aggregate(pipeline).toArray();
+  const totalRecords = await db
+    .collection("bookings")
+    .countDocuments(matchStage);
+  const totalPages = Math.ceil(totalRecords / limit);
 
-  return res.json({ status: true, data })
-
-}
+  // return res.json({ status: true, data, page: parseInt(page), totalPages, totalRecords });
+  return res.json({
+    status: true,
+    data,
+    paginate: {
+      page,
+      limit,
+      totalPages,
+      totalResults: totalRecords,
+    },
+  });
+};
 
 // update booking status of any category
 exports.updateServiceBooking = async (req, res) => {
@@ -3122,50 +3320,67 @@ exports.updateServiceBooking = async (req, res) => {
   logger.info(req.body);
   const bookingData = await getSingleBooking(bookingId);
   if (!bookingData || !bookingId) {
-    return res.status(404).json({ status: false, message: "No Booking with this ID exists" });
+    return res
+      .status(404)
+      .json({ status: false, message: "No Booking with this ID exists" });
   }
 
-  logger.info(">>>>>>>>>bbbbb:",{bookingStatus})
-  if ([0, 1, 2].includes(+bookingStatus)) bookingData.bookingStatus = +bookingStatus;
+  logger.info(">>>>>>>>>bbbbb:", { bookingStatus });
+  if ([0, 1, 2].includes(+bookingStatus))
+    bookingData.bookingStatus = +bookingStatus;
   const db = getDb();
   var o_id = new ObjectId(bookingId);
-  logger.info(">>>>>>>>>>>>>.bookingData:",{bookingData});
-  db.collection('bookings').updateOne({ _id: o_id }, { $set: bookingData })
-    .then(resultData => {
-      res.status(200).json({ status: true, message: 'Bookings Status updated successfully' });
+  logger.info(">>>>>>>>>>>>>.bookingData:", { bookingData });
+  db.collection("bookings")
+    .updateOne({ _id: o_id }, { $set: bookingData })
+    .then((resultData) => {
+      res.status(200).json({
+        status: true,
+        message: "Bookings Status updated successfully",
+      });
     })
-    .catch(err => logger.error(err));
-}
-
+    .catch((err) => logger.error(err));
+};
 
 exports.deleteBooking = async (req, res) => {
-
   // // console.log("DEDDDDDDDD");
   const { bookingId } = req.body;
 
   if (!bookingId) {
-    return res.status(200).json({ status: false, message: "Booking ID, package ID, and user ID are required" });
+    return res.status(200).json({
+      status: false,
+      message: "Booking ID, package ID, and user ID are required",
+    });
   }
-
 
   const bookingData = await getSingleBooking(bookingId);
   if (!bookingData) {
-    return res.status(200).json({ status: false, message: "No Booking with this ID exists" });
+    return res
+      .status(200)
+      .json({ status: false, message: "No Booking with this ID exists" });
   }
 
   const db = getDb();
   try {
     // const result = await db.collection('bookings').deleteOne({ _id: ObjectId(bookingId) });
-    const result = await db.collection('bookings').updateOne({ _id: ObjectId(bookingId) }, { $set: { bookingStatus: 2 } });
+    const result = await db
+      .collection("bookings")
+      .updateOne({ _id: ObjectId(bookingId) }, { $set: { bookingStatus: 2 } });
     // console.log(result?.matchedCount);
     if (result?.matchedCount === 1) {
-      return res.status(200).json({ status: true, message: "Booking deleted successfully" });
+      return res
+        .status(200)
+        .json({ status: true, message: "Booking deleted successfully" });
     } else {
-      return res.status(200).json({ status: false, message: "Failed to delete booking" });
+      return res
+        .status(200)
+        .json({ status: false, message: "Failed to delete booking" });
     }
   } catch (error) {
     logger.error(error, "Error deleting booking");
-    return res.status(500).json({ status: false, message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ status: false, message: "Internal server error" });
   }
 };
 
@@ -3198,13 +3413,11 @@ exports.deleteBooking = async (req, res) => {
 //       $match: {
 //         creationTimeStamp: {
 //           $gte: startDate,
-//           $lt: endDate     
+//           $lt: endDate
 //         }
 //       }
 //     });
 //   }
-
-
 
 //   logger.info({filter});
 //   const bookingData = await Booking.aggregate(aggregationPipeline);
@@ -3221,14 +3434,14 @@ exports.getAllBookingsOptimized = async (req, res, next) => {
   try {
     let skipValue = parseInt(req.query.skip) || 0;
     let limitValue = parseInt(req.query.limit) || 10;
-    let bookingTypeValue = parseInt(req.query.bookingType) // || -1;
-    let bookingCategory = req.query.category
+    let bookingTypeValue = parseInt(req.query.bookingType); // || -1;
+    let bookingCategory = req.query.category;
     // logger.info("Parsed bookingType value:",{bookingTypeValue});
 
-    const filters = buildFilters(req.query)
-    const sort = buildSort(req.query)
+    const filters = buildFilters(req.query);
+    const sort = buildSort(req.query);
 
-    logger.info("oprions----",{filters, sort})
+    logger.info("oprions----", { filters, sort });
 
     const aggregationPipeline = [];
 
@@ -3251,8 +3464,8 @@ exports.getAllBookingsOptimized = async (req, res, next) => {
         from: "studios",
         localField: "studioId",
         foreignField: "_id",
-        as: "studioInfo"
-      }
+        as: "studioInfo",
+      },
     });
 
     aggregationPipeline.push({
@@ -3260,18 +3473,17 @@ exports.getAllBookingsOptimized = async (req, res, next) => {
         from: "services",
         localField: "studioId",
         foreignField: "_id",
-        as: "studioInfo"
-      }
+        as: "studioInfo",
+      },
     });
-
 
     aggregationPipeline.push({
       $lookup: {
         from: "users",
         localField: "userId",
         foreignField: "_id",
-        as: "userInfo"
-      }
+        as: "userInfo",
+      },
     });
 
     aggregationPipeline.push({
@@ -3279,22 +3491,55 @@ exports.getAllBookingsOptimized = async (req, res, next) => {
         _id: 1,
         bookingStatus: { $arrayElemAt: ["$studioInfo.isActive", 0] },
         studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
-        userName: { $cond: [{ $eq: [{ $size: "$userInfo" }, 0] }, "", { $arrayElemAt: ["$userInfo.fullName", 0] }] },
-        userEmail: { $cond: [{ $eq: [{ $size: "$userInfo" }, 0] }, "NA", { $arrayElemAt: ["$userInfo.email", 0] }] },
-        userPhone: { $cond: [{ $eq: [{ $size: "$userInfo" }, 0] }, "NA", { $arrayElemAt: ["$userInfo.phone", 0] }] },
-        userType: { $cond: [{ $eq: [{ $size: "$userInfo" }, 0] }, "", { $cond: [{ $eq: [{ $arrayElemAt: ["$userInfo.role", 0] }, "user"] }, "USER", "ADMIN"] }] },
-        type: { $cond: [{ $eq: [{ $size: "$studioInfo" }, 0] }, "NA", { $arrayElemAt: ["$studioInfo.type", 0] }] },
+        userName: {
+          $cond: [
+            { $eq: [{ $size: "$userInfo" }, 0] },
+            "",
+            { $arrayElemAt: ["$userInfo.fullName", 0] },
+          ],
+        },
+        userEmail: {
+          $cond: [
+            { $eq: [{ $size: "$userInfo" }, 0] },
+            "NA",
+            { $arrayElemAt: ["$userInfo.email", 0] },
+          ],
+        },
+        userPhone: {
+          $cond: [
+            { $eq: [{ $size: "$userInfo" }, 0] },
+            "NA",
+            { $arrayElemAt: ["$userInfo.phone", 0] },
+          ],
+        },
+        userType: {
+          $cond: [
+            { $eq: [{ $size: "$userInfo" }, 0] },
+            "",
+            {
+              $cond: [
+                { $eq: [{ $arrayElemAt: ["$userInfo.role", 0] }, "user"] },
+                "USER",
+                "ADMIN",
+              ],
+            },
+          ],
+        },
+        type: {
+          $cond: [
+            { $eq: [{ $size: "$studioInfo" }, 0] },
+            "NA",
+            { $arrayElemAt: ["$studioInfo.type", 0] },
+          ],
+        },
         // Add more fields as needed
-      }
+      },
     });
-
-
 
     // logger.info("aggregationPipeline---",{aggregationPipeline});
 
-
     const bookingData = await Booking.aggregate(aggregationPipeline);
-    logger.info("bookingData bookings:",{bookingData});
+    logger.info("bookingData bookings:", { bookingData });
 
     // logger.info("Mapped bookings:",{mappedBookings[0]});
     // logger.info("Grouped bookings:",{groupedBookings});
@@ -3312,12 +3557,13 @@ exports.getAllBookingsOptimized = async (req, res, next) => {
     });
   } catch (error) {
     logger.error(error, "Internal server error");
-    return res.status(500).json({ status: false, message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ status: false, message: "Internal server error" });
   }
 };
 
 exports.getAllBookingsForParticularStudio = (req, res, next) => {
-
   const studioId = req.params.studioId;
   let skip = +req.query.skip;
   let limit = +req.query.limit;
@@ -3327,10 +3573,10 @@ exports.getAllBookingsForParticularStudio = (req, res, next) => {
     limit = 0;
   }
 
-  Booking.fetchAllBookingsByStudioId(studioId, skip, limit)
-    .then(bookingsData => {
+  Booking.fetchAllBookingsByStudioId(studioId, skip, limit).then(
+    (bookingsData) => {
       let mappedBookings = [];
-      let allBookings = bookingsData.map(async i => {
+      let allBookings = bookingsData.map(async (i) => {
         i.studioName = "";
         let studioInfo = await Studio.findStudioById(i.studioId);
         if (studioInfo != null) {
@@ -3346,22 +3592,19 @@ exports.getAllBookingsForParticularStudio = (req, res, next) => {
           i.userEmail = userData.email;
           i.userPhone = userData.phone;
           i.userType = "USER";
-        }
-        else {
+        } else {
           let adminData = await Admin.findAdminById(i.userId);
           if (adminData != null) {
             i.userName = adminData.firstName + " " + adminData.lastName;
             i.userEmail = adminData.email;
             i.userType = "ADMIN";
-          }
-          else {
+          } else {
             let subAdminData = await SubAdmin.findSubAdminById(i.userId);
             if (subAdminData != null) {
               i.userName = subAdminData.firstName + " " + subAdminData.lastName;
               i.userEmail = subAdminData.email;
               i.userType = "ADMIN";
-            }
-            else {
+            } else {
               let ownerData = await Owner.findOwnerByOwnerId(i.userId);
               if (ownerData != null) {
                 i.userName = ownerData.firstName + " " + ownerData.lastName;
@@ -3373,22 +3616,25 @@ exports.getAllBookingsForParticularStudio = (req, res, next) => {
         }
         mappedBookings.push(i);
         if (mappedBookings.length == bookingsData.length) {
-          let cancelledBookings = mappedBookings.filter(i => i.bookingStatus == 2);
+          let cancelledBookings = mappedBookings.filter(
+            (i) => i.bookingStatus == 2
+          );
           getCompletedBookings(mappedBookings, (resActive, resComplete) => {
             return res.json({
-              status: true, message: "All booking(s) for studio returned", activeBookings: resActive, completedBookings: resComplete,
-              cancelledBookings: cancelledBookings
+              status: true,
+              message: "All booking(s) for studio returned",
+              activeBookings: resActive,
+              completedBookings: resComplete,
+              cancelledBookings: cancelledBookings,
             });
           });
         }
       });
-    })
-
-}
-
+    }
+  );
+};
 
 exports.getBookingsByDate = (req, res, next) => {
-
   let startDate = req.body.startDate;
   let endDate = req.body.endDate;
 
@@ -3405,7 +3651,7 @@ exports.getBookingsByDate = (req, res, next) => {
   }
   startDate = yr + "-" + mth + "-" + dt;
   var sTimeStamp = new Date(startDate).getTime();
-  logger.info("Start Date : ",{startDate});
+  logger.info("Start Date : ", { startDate });
 
   //get endDate from timestamp
   endDate = new Date(endDate);
@@ -3420,18 +3666,21 @@ exports.getBookingsByDate = (req, res, next) => {
   }
   endDate = yr + "-" + mth + "-" + dt;
   var eTimeStamp = new Date(endDate).getTime();
-  logger.info("End Date : ",{endDate});
+  logger.info("End Date : ", { endDate });
 
-  Booking.fetchBookingsByBookingDateRange(startDate, endDate)
-    .then(bookingsData => {
+  Booking.fetchBookingsByBookingDateRange(startDate, endDate).then(
+    (bookingsData) => {
       if (bookingsData.length == 0) {
         return res.json({
-          status: true, message: "No bookings exists for this range", activeBookings: [], completedBookings: [],
-          cancelledBookings: []
+          status: true,
+          message: "No bookings exists for this range",
+          activeBookings: [],
+          completedBookings: [],
+          cancelledBookings: [],
         });
       }
       let mappedBookings = [];
-      let allBookings = bookingsData.map(async i => {
+      let allBookings = bookingsData.map(async (i) => {
         i.studioName = "";
         let studioInfo = await Studio.findStudioById(i.studioId);
         if (studioInfo != null) {
@@ -3448,22 +3697,25 @@ exports.getBookingsByDate = (req, res, next) => {
         }
         mappedBookings.push(i);
         if (mappedBookings.length == bookingsData.length) {
-          let cancelledBookings = mappedBookings.filter(i => i.bookingStatus == 2);
+          let cancelledBookings = mappedBookings.filter(
+            (i) => i.bookingStatus == 2
+          );
           getCompletedBookings(mappedBookings, (resActive, resComplete) => {
             return res.json({
-              status: true, message: "All booking(s) returned", activeBookings: resActive, completedBookings: resComplete,
-              cancelledBookings: cancelledBookings
+              status: true,
+              message: "All booking(s) returned",
+              activeBookings: resActive,
+              completedBookings: resComplete,
+              cancelledBookings: cancelledBookings,
             });
           });
         }
       });
-    })
-
-}
-
+    }
+  );
+};
 
 exports.getAllBookingsGraphDetails = (req, res, next) => {
-
   var today = new Date();
   // var today = new Date();
   var d;
@@ -3481,90 +3733,96 @@ exports.getAllBookingsGraphDetails = (req, res, next) => {
     d = new Date(today.getFullYear(), today.getMonth() - i, 1);
     //   logger.info(d.getFullYear())
 
-    months.push({ month: d.getMonth(), year: d.getFullYear(), key: keyData, bookingCount: 0 });
+    months.push({
+      month: d.getMonth(),
+      year: d.getFullYear(),
+      key: keyData,
+      bookingCount: 0,
+    });
     keyData = keyData + 1;
   }
-  logger.info({months});
+  logger.info({ months });
 
-  Booking.fetchAllBookings(0, 0)
-    .then(bookingsData => {
-      // bookingsData = bookingsData.filter(i=>i.bookingStatus==1);
-      bookingsData.forEach(singleBooking => {
-        var dt1 = new Date(singleBooking.creationTimeStamp);
-        var monthOnly = dt1.getMonth();
-        months.forEach(mth => {
-          if ((+mth.month) == (+monthOnly)) {
-            mth.bookingCount = mth.bookingCount + 1;
-          }
-        });
+  Booking.fetchAllBookings(0, 0).then((bookingsData) => {
+    // bookingsData = bookingsData.filter(i=>i.bookingStatus==1);
+    bookingsData.forEach((singleBooking) => {
+      var dt1 = new Date(singleBooking.creationTimeStamp);
+      var monthOnly = dt1.getMonth();
+      months.forEach((mth) => {
+        if (+mth.month == +monthOnly) {
+          mth.bookingCount = mth.bookingCount + 1;
+        }
+      });
+    });
+
+    setTimeout(() => {
+      months.forEach((mthData) => {
+        if (mthData.month == 0) {
+          mthData.month = "January";
+        }
+        if (mthData.month == 1) {
+          mthData.month = "Febuary";
+        }
+        if (mthData.month == 2) {
+          mthData.month = "March";
+        }
+        if (mthData.month == 3) {
+          mthData.month = "April";
+        }
+        if (mthData.month == 4) {
+          mthData.month = "May";
+        }
+        if (mthData.month == 5) {
+          mthData.month = "June";
+        }
+        if (mthData.month == 6) {
+          mthData.month = "July";
+        }
+        if (mthData.month == 7) {
+          mthData.month = "August";
+        }
+        if (mthData.month == 8) {
+          mthData.month = "September";
+        }
+        if (mthData.month == 9) {
+          mthData.month = "Ocober";
+        }
+        if (mthData.month == 10) {
+          mthData.month = "November";
+        }
+        if (mthData.month == 11) {
+          mthData.month = "December";
+        }
       });
 
-      setTimeout(() => {
-        months.forEach(mthData => {
-          if (mthData.month == 0) {
-            mthData.month = "January"
-          }
-          if (mthData.month == 1) {
-            mthData.month = "Febuary"
-          }
-          if (mthData.month == 2) {
-            mthData.month = "March"
-          }
-          if (mthData.month == 3) {
-            mthData.month = "April"
-          }
-          if (mthData.month == 4) {
-            mthData.month = "May"
-          }
-          if (mthData.month == 5) {
-            mthData.month = "June"
-          }
-          if (mthData.month == 6) {
-            mthData.month = "July"
-          }
-          if (mthData.month == 7) {
-            mthData.month = "August"
-          }
-          if (mthData.month == 8) {
-            mthData.month = "September"
-          }
-          if (mthData.month == 9) {
-            mthData.month = "Ocober"
-          }
-          if (mthData.month == 10) {
-            mthData.month = "November"
-          }
-          if (mthData.month == 11) {
-            mthData.month = "December"
-          }
+      months.sort((a, b) => {
+        return a.key - b.key;
+      });
 
-        });
+      //retrieving only months
+      var allMonths = [];
+      months.forEach((m) => {
+        allMonths.push(m.month);
+      });
 
-        months.sort((a, b) => {
-          return a.key - b.key;
-        });
+      //retrieving only bookingCounts
+      var allBookingCounts = [];
+      months.forEach((m) => {
+        allBookingCounts.push(m.bookingCount);
+      });
 
-        //retrieving only months
-        var allMonths = [];
-        months.forEach(m => {
-          allMonths.push(m.month);
-        });
-
-        //retrieving only bookingCounts
-        var allBookingCounts = [];
-        months.forEach(m => {
-          allBookingCounts.push(m.bookingCount);
-        });
-
-        res.json({ status: true, message: "All data returned", allMonths: allMonths, allBookingCounts: allBookingCounts, allData: months });
-      }, 1000);
-    })
-
-}
-
+      res.json({
+        status: true,
+        message: "All data returned",
+        allMonths: allMonths,
+        allBookingCounts: allBookingCounts,
+        allData: months,
+      });
+    }, 1000);
+  });
+};
 
 exports.getAllBookingsGraphDetailsForParticularStudio = (req, res, next) => {
-
   const studioId = req.params.studioId;
 
   var today = new Date();
@@ -3584,86 +3842,94 @@ exports.getAllBookingsGraphDetailsForParticularStudio = (req, res, next) => {
     d = new Date(today.getFullYear(), today.getMonth() - i, 1);
     //   logger.info(d.getFullYear())
 
-    months.push({ month: d.getMonth(), year: d.getFullYear(), key: keyData, bookingCount: 0 });
+    months.push({
+      month: d.getMonth(),
+      year: d.getFullYear(),
+      key: keyData,
+      bookingCount: 0,
+    });
     keyData = keyData + 1;
   }
-  logger.info({months});
+  logger.info({ months });
 
-  Booking.fetchAllBookingsByStudioId(studioId, 0, 0)
-    .then(bookingsData => {
-      // bookingsData = bookingsData.filter(i=>i.bookingStatus==1);
-      bookingsData.forEach(singleBooking => {
-        var dt1 = new Date(singleBooking.creationTimeStamp);
-        var monthOnly = dt1.getMonth();
-        months.forEach(mth => {
-          if ((+mth.month) == (+monthOnly)) {
-            mth.bookingCount = mth.bookingCount + 1;
-          }
-        });
+  Booking.fetchAllBookingsByStudioId(studioId, 0, 0).then((bookingsData) => {
+    // bookingsData = bookingsData.filter(i=>i.bookingStatus==1);
+    bookingsData.forEach((singleBooking) => {
+      var dt1 = new Date(singleBooking.creationTimeStamp);
+      var monthOnly = dt1.getMonth();
+      months.forEach((mth) => {
+        if (+mth.month == +monthOnly) {
+          mth.bookingCount = mth.bookingCount + 1;
+        }
+      });
+    });
+
+    setTimeout(() => {
+      months.forEach((mthData) => {
+        if (mthData.month == 0) {
+          mthData.month = "January";
+        }
+        if (mthData.month == 1) {
+          mthData.month = "Febuary";
+        }
+        if (mthData.month == 2) {
+          mthData.month = "March";
+        }
+        if (mthData.month == 3) {
+          mthData.month = "April";
+        }
+        if (mthData.month == 4) {
+          mthData.month = "May";
+        }
+        if (mthData.month == 5) {
+          mthData.month = "June";
+        }
+        if (mthData.month == 6) {
+          mthData.month = "July";
+        }
+        if (mthData.month == 7) {
+          mthData.month = "August";
+        }
+        if (mthData.month == 8) {
+          mthData.month = "September";
+        }
+        if (mthData.month == 9) {
+          mthData.month = "Ocober";
+        }
+        if (mthData.month == 10) {
+          mthData.month = "November";
+        }
+        if (mthData.month == 11) {
+          mthData.month = "December";
+        }
       });
 
-      setTimeout(() => {
-        months.forEach(mthData => {
-          if (mthData.month == 0) {
-            mthData.month = "January"
-          }
-          if (mthData.month == 1) {
-            mthData.month = "Febuary"
-          }
-          if (mthData.month == 2) {
-            mthData.month = "March"
-          }
-          if (mthData.month == 3) {
-            mthData.month = "April"
-          }
-          if (mthData.month == 4) {
-            mthData.month = "May"
-          }
-          if (mthData.month == 5) {
-            mthData.month = "June"
-          }
-          if (mthData.month == 6) {
-            mthData.month = "July"
-          }
-          if (mthData.month == 7) {
-            mthData.month = "August"
-          }
-          if (mthData.month == 8) {
-            mthData.month = "September"
-          }
-          if (mthData.month == 9) {
-            mthData.month = "Ocober"
-          }
-          if (mthData.month == 10) {
-            mthData.month = "November"
-          }
-          if (mthData.month == 11) {
-            mthData.month = "December"
-          }
+      months.sort((a, b) => {
+        return a.key - b.key;
+      });
 
-        });
+      //retrieving only months
+      var allMonths = [];
+      months.forEach((m) => {
+        allMonths.push(m.month);
+      });
 
-        months.sort((a, b) => {
-          return a.key - b.key;
-        });
+      //retrieving only bookingCounts
+      var allBookingCounts = [];
+      months.forEach((m) => {
+        allBookingCounts.push(m.bookingCount);
+      });
 
-        //retrieving only months
-        var allMonths = [];
-        months.forEach(m => {
-          allMonths.push(m.month);
-        });
-
-        //retrieving only bookingCounts
-        var allBookingCounts = [];
-        months.forEach(m => {
-          allBookingCounts.push(m.bookingCount);
-        });
-
-        res.json({ status: true, message: "All data returned", allMonths: allMonths, allBookingCounts: allBookingCounts, allData: months });
-      }, 1000);
-    })
-
-}
+      res.json({
+        status: true,
+        message: "All data returned",
+        allMonths: allMonths,
+        allBookingCounts: allBookingCounts,
+        allData: months,
+      });
+    }, 1000);
+  });
+};
 
 exports.exportBookingData = async (req, res) => {
   try {
@@ -3986,7 +4252,7 @@ exports.exportBookingData = async (req, res) => {
       allBookingsforServices = await Booking.AggregateForServiceData(
         pipeline_service
       );
-      logger.info({allBookingsforServices});
+      logger.info({ allBookingsforServices });
       workbook = new excelJS.Workbook();
       worksheet = workbook.addWorksheet("bookingDataForServices");
       path = "./files";
@@ -4031,7 +4297,11 @@ exports.exportBookingData = async (req, res) => {
         { header: "User_No", key: "userPhone", width: 10 },
         // { header: "studioId", key: "studioId", width: 10 },
         { header: "Studio_Name", key: "studioName", width: 10 },
-        { header: "Studio_Price_PerHour", key: "studioPricePerHour", width: 10 },
+        {
+          header: "Studio_Price_PerHour",
+          key: "studioPricePerHour",
+          width: 10,
+        },
         { header: "Studio_Address", key: "studioAddress", width: 10 },
         { header: "Studio_City", key: "studioCity", width: 10 },
         { header: "Studio_State", key: "studioState", width: 10 },
@@ -4056,8 +4326,8 @@ exports.exportBookingData = async (req, res) => {
       });
     }
 
-    let name = new Date().getTime()
-    let file_name = `Booking${name}.xlsx`
+    let name = new Date().getTime();
+    let file_name = `Booking${name}.xlsx`;
 
     const data = await workbook.xlsx
       .writeFile(`files/${file_name}`)
@@ -4068,20 +4338,17 @@ exports.exportBookingData = async (req, res) => {
             "Content-Type":
               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
           })
-          .sendFile(
-            `${file_name}`, { root: `files/` },
-            function (err) {
-              if (err) {
-                logger.error(err, "Error sending file");
-              } else {
-                logger.info({
-                  status: "success",
-                  message: "file successfully downloaded",
-                  path: `${path}/${file_name}`,
-                });
-              }
+          .sendFile(`${file_name}`, { root: `files/` }, function (err) {
+            if (err) {
+              logger.error(err, "Error sending file");
+            } else {
+              logger.info({
+                status: "success",
+                message: "file successfully downloaded",
+                path: `${path}/${file_name}`,
+              });
             }
-          );
+          });
       });
   } catch (error) {
     logger.error(error);
@@ -4096,132 +4363,127 @@ exports.exportBookingData = async (req, res) => {
 // send mails
 
 async function sendMailToUserAndAdmin(datas) {
+  const { userId, studioId, roomId, bookingDate, bookingTime, totalPrice } =
+    datas;
 
-
-  const { userId, studioId, roomId, bookingDate, bookingTime, totalPrice } = datas
-
-  const bookingDetails = { userName: "", userNumber: "", studioName: "", studioLocation: "", bookingDateTime: "", totalPrice: "" }
+  const bookingDetails = {
+    userName: "",
+    userNumber: "",
+    studioName: "",
+    studioLocation: "",
+    bookingDateTime: "",
+    totalPrice: "",
+  };
 
   bookingDetails.bookingDateTime = `${bookingDate} at ${bookingTime.startTime}-${bookingTime.endTime}`;
-  bookingDetails.totalPrice = totalPrice
+  bookingDetails.totalPrice = totalPrice;
   const user_data = await User.findUserByUserId(userId);
   if (user_data) {
-
-    bookingDetails.userName = user_data.fullName
-    bookingDetails.userNumber = user_data.phone
-
+    bookingDetails.userName = user_data.fullName;
+    bookingDetails.userNumber = user_data.phone;
   } else {
-    const subAdmin_data = await SubAdmin.findSubAdminById(userId)
+    const subAdmin_data = await SubAdmin.findSubAdminById(userId);
     if (subAdmin_data) {
-      bookingDetails.userName = `"${subAdmin_data.firstName} ${subAdmin_data.lastName}`
-      bookingDetails.adminEmail = subAdmin_data.email
-
+      bookingDetails.userName = `"${subAdmin_data.firstName} ${subAdmin_data.lastName}`;
+      bookingDetails.adminEmail = subAdmin_data.email;
     } else {
-
-      const admin_data = await Admin.findAdminById(userId)
+      const admin_data = await Admin.findAdminById(userId);
       if (admin_data) {
-        bookingDetails.userName = `"${admin_data.firstName} ${admin_data.lastName}`
-        bookingDetails.adminEmail = admin_data.email
+        bookingDetails.userName = `"${admin_data.firstName} ${admin_data.lastName}`;
+        bookingDetails.adminEmail = admin_data.email;
       } else {
-
-        const owner_data = await Owner.findOwnerByOwnerId(userId)
+        const owner_data = await Owner.findOwnerByOwnerId(userId);
         if (owner_data) {
-          bookingDetails.ownerName = `"${owner_data.firstName} ${owner_data.lastName}`
-          bookingDetails.ownerEmail = owner_data.email
+          bookingDetails.ownerName = `"${owner_data.firstName} ${owner_data.lastName}`;
+          bookingDetails.ownerEmail = owner_data.email;
         } else {
-          bookingDetails.userName = "Admin"
+          bookingDetails.userName = "Admin";
         }
       }
-
     }
   }
-  const studioData = await Studio.findStudioById(studioId)
+  const studioData = await Studio.findStudioById(studioId);
   if (studioData) {
     bookingDetails.studioName = studioData.fullName;
     bookingDetails.studioLocation = studioData.address;
 
-    studioData.roomsDetails.map(room => {
+    studioData.roomsDetails.map((room) => {
       if (room.roomId === roomId) {
-        bookingDetails.roomName = room.roomName
-        bookingDetails.area = room.area
-        bookingDetails.priceperhour = room.pricePerHour
+        bookingDetails.roomName = room.roomName;
+        bookingDetails.area = room.area;
+        bookingDetails.priceperhour = room.pricePerHour;
       }
-    })
+    });
   }
-  send_mail(bookingDetails)
+  send_mail(bookingDetails);
 }
 
 //Automatch API for cronjob
 cron.schedule("*/10 * * * * *", function () {
   // logger.info("running a task every 10 second");
-  Booking.fetchAllBookingsByType(0, 0, 0)
-    .then(bookingsData => {
-      // logger.info(bookingsData.length);
+  Booking.fetchAllBookingsByType(0, 0, 0).then((bookingsData) => {
+    // logger.info(bookingsData.length);
 
-      var currDate = new Date();
-      var mth = currDate.getMonth() + 1;
-      if (mth.toString().length == 1) {
-        mth = "0" + mth.toString();
-      }
-      var dt = currDate.getDate();
-      if (dt.toString().length == 1) {
-        dt = "0" + dt.toString();
-      }
-      var fullDate = currDate.getFullYear() + "-" + mth + "-" + dt;
-      fullDate = new Date(fullDate).getTime();
-      // logger.info({fullDate});
+    var currDate = new Date();
+    var mth = currDate.getMonth() + 1;
+    if (mth.toString().length == 1) {
+      mth = "0" + mth.toString();
+    }
+    var dt = currDate.getDate();
+    if (dt.toString().length == 1) {
+      dt = "0" + dt.toString();
+    }
+    var fullDate = currDate.getFullYear() + "-" + mth + "-" + dt;
+    fullDate = new Date(fullDate).getTime();
+    // logger.info({fullDate});
 
-      var currTotalMin = ((currDate.getHours() * 60) + (currDate.getMinutes()));
-      // logger.info({currTotalMin});
+    var currTotalMin = currDate.getHours() * 60 + currDate.getMinutes();
+    // logger.info({currTotalMin});
 
+    if (bookingsData.length != 0) {
+      let count = 0;
+      let completedBookings = [];
+      let activeBookings = [];
+      bookingsData = bookingsData.filter((i) => i.bookingStatus != 2);
       if (bookingsData.length != 0) {
-        let count = 0;
-        let completedBookings = [];
-        let activeBookings = [];
-        bookingsData = bookingsData.filter(i => i.bookingStatus != 2);
-        if (bookingsData.length != 0) {
-          bookingsData.forEach(singleBooking => {
-            count++;
-            var onlyDate = singleBooking.bookingDate.split('T')[0];
-            var bDate = new Date(onlyDate).getTime();
-            if (bDate < fullDate) {
+        bookingsData.forEach((singleBooking) => {
+          count++;
+          var onlyDate = singleBooking.bookingDate.split("T")[0];
+          var bDate = new Date(onlyDate).getTime();
+          if (bDate < fullDate) {
+            completedBookings.push(singleBooking);
+          } else if (bDate == fullDate) {
+            // logger.info("Same");
+            var bTotalMin =
+              +singleBooking.bookingTime.endTime.split(":")[0] * 60 +
+              +singleBooking.bookingTime.endTime.split(":")[1];
+            // logger.info({bTotalMin});
+            if (bTotalMin < currTotalMin) {
               completedBookings.push(singleBooking);
-            }
-            else if (bDate == fullDate) {
-              // logger.info("Same");
-              var bTotalMin = ((+singleBooking.bookingTime.endTime.split(':')[0]) * 60) + (+singleBooking.bookingTime.endTime.split(':')[1])
-              // logger.info({bTotalMin});
-              if (bTotalMin < currTotalMin) {
-                completedBookings.push(singleBooking);
-              }
-              else {
-                activeBookings.push(singleBooking);
-              }
-            }
-            else {
+            } else {
               activeBookings.push(singleBooking);
             }
+          } else {
+            activeBookings.push(singleBooking);
+          }
 
-            if (count == bookingsData.length) {
-              // logger.info(activeBookings.length,completedBookings.length);
-              completedBookings.forEach(singleBooking => {
-                // logger.info(singleBooking._id.toString());
-                singleBooking.bookingStatus = 1;
-                const db = getDb();
-                var o_id = new ObjectId(singleBooking._id.toString());
+          if (count == bookingsData.length) {
+            // logger.info(activeBookings.length,completedBookings.length);
+            completedBookings.forEach((singleBooking) => {
+              // logger.info(singleBooking._id.toString());
+              singleBooking.bookingStatus = 1;
+              const db = getDb();
+              var o_id = new ObjectId(singleBooking._id.toString());
 
-                db.collection('bookings').updateOne({ _id: o_id }, { $set: singleBooking })
-                  .then(resultData => {
-                    logger.info("Updated");
-                  })
-              });
-            }
-          })
-        }
+              db.collection("bookings")
+                .updateOne({ _id: o_id }, { $set: singleBooking })
+                .then((resultData) => {
+                  logger.info("Updated");
+                });
+            });
+          }
+        });
       }
-    })
+    }
+  });
 });
-
-
-
-
