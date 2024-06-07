@@ -147,7 +147,7 @@ exports.signupUserV2 = async (req, res, next) => {
 
     let _userData = await User.findUserByPhone(phoneNumber, 0, false);
 
-    logger.info("REGISTER USER DATA", _userData);
+    logger.info("REGISTER USER DATA",{_userData});
 
 
     const user_data = {
@@ -244,7 +244,7 @@ exports.loginUserOTP = async (req, res, next) => {
 
     const userData = await User.findUserByPhone(phone,1,false);
 
-    logger.info("DATA::::", userData);
+    logger.info("DATA::::",{userData});
     // console.log("DATA::::", userData);
 
     let statusInfo = { status: false, message: "something went wrong" };
@@ -381,11 +381,11 @@ exports.TestloginUserOTP = async (req, res, next) => {
 
     const userData = await User.findUserByPhone(phoneNumber);
 
-    logger.info("userdata ==========>", userData);
+    logger.info("userdata ==========>",{userData});
 
     if (userType === "NUMBER") {
       const token = generateRandomCode(4);
-      logger.info("test mobile otp:", token);
+      logger.info("test mobile otp:",{token});
       statusInfo.message = "Test OTP sent successfully";
       statusInfo.otp = token;
       statusInfo.status = true;
@@ -507,7 +507,7 @@ exports.sendSignUpOtp = (req, res, next) => {
           });
       }
       let token = generateRandomCode(4);
-      logger.info("phone token otp :", token);
+      logger.info("phone token otp :",{token});
       // let token = "123456";
       //send OTP to both email and OTP
       //To Phone
@@ -676,7 +676,7 @@ exports.getAllUsers = async (req, res) => {
 exports.getParticularUserDetails = (req, res, next) => {
   const userId = req.params.userId;
 
-  logger.info("userId===>", userId);
+  logger.info("userId===>",{userId});
 
   User.findUserByUserId(userId).then((userData) => {
     if (!userData) {
@@ -1366,7 +1366,7 @@ exports.getAllUsersGraphDetails = (req, res, next) => {
     });
     keyData = keyData + 1;
   }
-  logger.info(months);
+  logger.info({months});
 
   User.fetchAllUsers(0, 0).then((usersData) => {
     usersData.forEach((user) => {
@@ -1453,7 +1453,7 @@ exports.getUserNearyByLocations = async (req, res, next) => {
   const longitude = 72.9050809;
   const range = 100;
   var point1 = new GeoPoint(+latitude, +longitude);
-  logger.info("point1", point1);
+  logger.info("point1",{point1});
   return res.json({ msg: "near by places" });
 };
 

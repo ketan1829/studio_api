@@ -367,7 +367,7 @@ router.get('/bookings/graph/studio/:studioId',auth.isAdminOrOwner,controller.get
 *       500:
 *         description: Some server error, enter valid mongo object ID
 */
-router.get('/bookings/user/:userId',auth.isUser,controller.getBookingsOfParticularUser);
+router.get('/bookings/user/:userId',auth.isBoth,controller.getBookingsOfParticularUser);
 
 /**
 * @swagger

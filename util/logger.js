@@ -61,12 +61,3 @@ module.exports.contextMiddleware = (req, res, next) => {
 // module.exports.log = (message="",value) =>{
 //   logger.info({ [message] :value });
 // }
-
-module.exports.log = (message = '', value = null) => {
-  let logObject = {};
-  if (message !== "") {
-    logObject = { [message]: value };
-  } else {
-    logObject = { "value": value };
-  }
-};

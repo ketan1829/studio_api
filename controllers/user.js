@@ -141,18 +141,19 @@ exports.loginUserOTP2 = (req, res, next) => {
 
 exports.signupUserV2 = async (req, res, next) => {
   try {
+    
     const { fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role } = req.body;
-
+    logger.info({ fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role },"User details for sign-up",)
+    console.log("Hit");
     // let phone = (phoneNumber.length > 10)? phoneNumber.slice(2) : `91${phoneNumber}`
     let phone = (phoneNumber.length == 10) ? `91${phoneNumber}` : phoneNumber
 
-    logger.info({ fullName, dateOfBirth, email, phone, deviceId });
+    // logger.info({ fullName, dateOfBirth, email, phone, deviceId });
 
     let _userData = await User.findUserByPhone(phone, 0, false);
 
-    logger.info("REGISTER USER DATA", _userData);
-
-
+    logger.info({_userData},"REGISTER USER DATA");
+    
     const user_data = {
       fullName: fullName.trim(),
       dateOfBirth,
@@ -187,7 +188,10 @@ exports.signupUserV2 = async (req, res, next) => {
       }
       userObj._id = _userData._id;
       const udata = await User.update(phone, updated_user_data)
-      console.log(udata ? `udata count:${udata?.matchedCount}` : "nottttt");
+      let updatedData = udata ? `udata count:${udata?.matchedCount}` : "user not updated"
+      console.log("updatedData",updatedData);
+      logger.info({updatedData},"Updated user data for Sign-up if user already exist and status is 0")
+      // console.log(udata ? `udata count:${udata?.matchedCount}` : "user not updated");
     } else {
 
       let _userData_active = await User.findUserByPhone(phone, 1);
@@ -205,8 +209,11 @@ exports.signupUserV2 = async (req, res, next) => {
         }
 
         const udata = await User.update(phone, updated_user_data)
+        logger.info({udata},"Updated user data for Sign-up if user already exist and status is 1")
         userObj._id = _userData_active._id
-        console.log(udata ? `update count:${udata?.matchedCount}` : "update failed");
+        let updatedData = udata ? `udata count:${udata?.matchedCount}` : "user not updated"
+      logger.info({updatedData},"Updated user data for Sign-up if user already exist")
+        // console.log(udata ? `update count:${udata?.matchedCount}` : "update failed");
 
       } else {
 
@@ -228,11 +235,12 @@ exports.signupUserV2 = async (req, res, next) => {
 
     const token = jwt.sign({ user: userObj }, "myAppSecretKey");
 
-    console.log("userObj:", userObj);
+    // logger.info({userObj},"userObj:");
     return res.json({ status: true, message: "Signup successful", user: userObj, token });
 
   } catch (error) {
     console.error("Error in signupUserV2:", error);
+    logger.error(error,"Error in signupUserV2")
     return res.status(500).json({ status: false, message: "Something went wrong, try again later" });
   }
 };
@@ -240,11 +248,11 @@ exports.signupUserV2 = async (req, res, next) => {
 exports.loginUserOTP = async (req, res, next) => {
   try {
     const { phoneNumber, deviceId, userType, role } = req.body;
-    logger.info({ phoneNumber, deviceId, userType, role });
+    logger.info({ phoneNumber, deviceId, userType, role },"User data for login:");
 
     const userData = await User.findUserByPhone(phoneNumber, 1, false);
 
-    logger.info("DATA::::", userData);
+    logger.info({userData},"userDATA in DB");
     // console.log("DATA::::", userData);
 
     let statusInfo = { status: false, message: "something went wrong" };
@@ -339,7 +347,8 @@ exports.loginUserOTP = async (req, res, next) => {
 
         if (deviceId) {
           userData.deviceId = deviceId;
-          await User.update(phoneNumber, { deviceId: deviceId });
+          let {matchedCount} = await User.update(phoneNumber, { deviceId: deviceId });
+          logger.info(matchedCount,"Device Id updated for Existing User Login");
         }
 
         if (status_otp.status) {
@@ -405,11 +414,11 @@ exports.TestloginUserOTP = async (req, res, next) => {
 
     const userData = await User.findUserByPhone(phoneNumber);
 
-    logger.info("userdata ==========>", userData);
+    logger.info("userdata ==========>",{userData});
 
     if (userType === "NUMBER") {
       const token = generateRandomCode(4);
-      logger.info("test mobile otp:", token);
+      logger.info("test mobile otp:",{token});
       statusInfo.message = "Test OTP sent successfully";
       statusInfo.otp = token;
       statusInfo.status = true;
@@ -531,7 +540,7 @@ exports.sendSignUpOtp = (req, res, next) => {
           });
       }
       let token = generateRandomCode(4);
-      logger.info("phone token otp :", token);
+      logger.info("phone token otp :",{token});
       // let token = "123456";
       //send OTP to both email and OTP
       //To Phone
@@ -596,7 +605,7 @@ exports.getAllUsers = async (req, res) => {
     const page = +req.query.page || 1;
     const limit = +req.query.limit || 10;
 
-    const source_web_site = req.headers.referer.includes("sadmin.choira.io") ? true:false;
+    const source_web_site = req.headers?.referer.includes("sadmin.choira.io") ? true:false;
     console.log("source_web_site");
     console.log(source_web_site);
 
@@ -684,9 +693,6 @@ exports.getAllUsers = async (req, res) => {
     });
   }
 };
-
-
-
 
 
 
@@ -1384,7 +1390,7 @@ exports.getAllUsersGraphDetails = (req, res, next) => {
     });
     keyData = keyData + 1;
   }
-  logger.info(months);
+  logger.info({months});
 
   User.fetchAllUsers(0, 0).then((usersData) => {
     usersData.forEach((user) => {
@@ -1471,7 +1477,7 @@ exports.getUserNearyByLocations = async (req, res, next) => {
   const longitude = 72.9050809;
   const range = 100;
   var point1 = new GeoPoint(+latitude, +longitude);
-  logger.info("point1", point1);
+  logger.info("point1",{point1});
   return res.json({ msg: "near by places" });
 };
 
@@ -1490,7 +1496,7 @@ exports.exportUserData = async (req, res) => {
     }
 
 
-    logger.info("this is pipe======>", pipeline);
+    logger.info("this is pipe======>",{pipeline});
     if (options.startDate && options.endDate) {
       let startDate = options.startDate
       let endDate = options.endDate
@@ -1606,8 +1612,7 @@ exports.exportUserData = async (req, res) => {
 exports.sendOTP2 = async (req, res) => {
   try {
     const db = getDb();
-    console.log("object");
-    let phoneNumber = req.body.phoneNumber
+    var phoneNumber = req.body.phoneNumber
     // let otp = req.query.otp
     let userData = await db.collection("users").findOne({ phone: phoneNumber })
     if (!userData) {
@@ -1631,18 +1636,20 @@ exports.sendOTP2 = async (req, res) => {
       headers: { 'Content-Type': 'application/JSON' }
     };
     axios.request(options).then(function (response) {
-      console.log("DATA--->", response.data);
+      const res_data = response.data
+      logger.info("DATA--->",{res_data});
       if (response.data.type === 'success') {
         res.status(200).json({ status: true, message: "otp successfully sent", userId: userData._id })
       } else {
+        logger.error(error,"Error sending OTP:",)
         res.status(404).json({ status: false, message: "otp sending failed" })
       }
     }).catch(function (error) {
-      console.error("Error sending OTP:", error);
+      logger.error(error,"Error sending OTP:",);
       res.status(404).json({ status: false, message: "otp sending failed" })
     });
   } catch (error) {
-    logger.error(error, "Error sending OTP",);
+    logger.error(error, `Error sending OTP for ${phoneNumber}`,);
     res.status(404).json({ status: false, message: "otp sending failed" })
   }
 }

@@ -190,7 +190,7 @@ exports.getStudios = async (req, res, next) => {
   if (options.page) options.page = +page;
   if (options.limit) options.limit = +limit;
 
-  logger.info("filter", filter);
+  logger.info("filter",{filter});
 
   console.log("filter =>", filter);
 
@@ -218,7 +218,7 @@ exports.getStudios = async (req, res, next) => {
     db.collection("studios")
       .createIndex({ location: "2dsphere" })
       .then((data) => {
-        logger.info("2dSphrere created", data);
+        logger.info("2dSphrere created",{data});
         return res.json({ status: true, message: "2dSphrere created" });
       });
   }
@@ -338,7 +338,9 @@ exports.getStudios = async (req, res, next) => {
 // Added Aggregation performing operations on it but shows incorrect results
 exports.getStudios_aggreation = async (req, res, next) => {
   try {
-    logger.info("body---", req.body, parseFloat(req.body.longitude));
+    let req_body = req.body;
+    let req_body_longitude = parseFloat(req.body.longitude)
+    logger.info("body---",{req_body, req_body_longitude});
     const db = getDb();
     const {
       city,
@@ -421,7 +423,7 @@ exports.getStudios_aggreation = async (req, res, next) => {
         .collection("studios")
         .countDocuments(filter);
       const totalPages = Math.ceil(totalNearbyStudios / options.limit);
-      logger.info("nearbyStudios---", nearbyStudios);
+      logger.info("nearbyStudios---",{nearbyStudios});
       return res.json({
         status: true,
         message: `Page ${options.page} of ${totalPages} - ${nearbyStudios.length} studios returned`,
@@ -450,7 +452,8 @@ exports.getStudios_aggreation = async (req, res, next) => {
 };
 
 exports.getStudiosOptimized = (req, res, next) => {
-  logger.info("body---", req.body);
+  let req_body = req.body
+  logger.info("body---",{req_body});
   const {
     city,
     state,
@@ -658,7 +661,7 @@ exports.createNewStudio = async (req, res, next) => {
   const featuredReviews = [];
 
   try {
-    logger.info(address);
+    logger.info({address});
     address = address.replace("&", "and");
     axios
       .get(
@@ -799,7 +802,7 @@ exports.getParticularStudioDetails = (req, res, next) => {
             parseFloat(studioData.reviews.avgStudio) +
             parseFloat(studioData.reviews.avgAmenity) +
             parseFloat(studioData.reviews.avgLocation);
-            logger.info(overallAvgRating);
+            logger.info({overallAvgRating});
           studioData.reviews.overallAvgRating = parseFloat(
             (overallAvgRating / 4).toFixed(1)
           );
@@ -863,7 +866,7 @@ exports.getDashboardStudios = (req, res, next) => {
     logger.info("Studios COunt : " + studiosData.length);
     //get offers mapping
     offersMapping(studiosData, (resData) => {
-      // logger.info(resData);
+      // logger.info({resData});
       studiosData = resData;
       if (studiosData.length == 0) {
         logger.info("availableStudios1:");
@@ -892,7 +895,7 @@ exports.getDashboardStudios = (req, res, next) => {
               //this means localities not selected for filter and we need to skip it
               index = 1;
             }
-            logger.info("Index : ", index);
+            logger.info("Index : ",{index});
 
             //Checking for amenities
             let matchedAmenities = [];
@@ -916,10 +919,10 @@ exports.getDashboardStudios = (req, res, next) => {
               //this means amenties not selected for filter and we need to skip it
               matchCount = 1;
             }
-            logger.info("Match amenities : ", matchCount);
+            logger.info("Match amenities : ",{matchCount});
 
             let budget1 = budget;
-            logger.info("Budget : ", budget);
+            logger.info("Budget : ",{budget});
             if (isNaN(budget)) {
               //this means budget not selected for filter and we need to skip it
               // budget = parseFloat(studiosData[i].pricePerHour);
@@ -933,14 +936,14 @@ exports.getDashboardStudios = (req, res, next) => {
             }
 
             let person1 = person;
-            logger.info("Person : ", person);
+            logger.info("Person : ",{person});
             if (isNaN(person)) {
               //this means person not selected for filter and we need to skip it
               person = parseFloat(studiosData[i].maxGuests);
             }
 
             let rooms1 = rooms;
-            logger.info("Rooms : ", rooms);
+            logger.info("Rooms : ",{rooms});
             if (isNaN(rooms)) {
               //this means person not selected for filter and we need to skip it
               rooms = parseFloat(studiosData[i].totalRooms);
@@ -1033,7 +1036,8 @@ exports.getDashboardStudios = (req, res, next) => {
               );
               var distance = point1.distanceTo(point2, true); //output in kilometers
               studiosData[i].distance = distance.toFixed(2);
-              logger.info("Distance:", distance.toFixed(2));
+              let distance_toFixed =distance.toFixed(2)
+              logger.info("Distance:",{distance_toFixed});
 
               //Checking for localities
               let index = 1;
@@ -1048,7 +1052,7 @@ exports.getDashboardStudios = (req, res, next) => {
                 //this means localities not selected for filter and we need to skip it
                 index = 1;
               }
-              logger.info("Index : ", index);
+              logger.info("Index : ",{index});
 
               //Checking for amenities
               let matchedAmenities = [];
@@ -1073,10 +1077,10 @@ exports.getDashboardStudios = (req, res, next) => {
                 //this means amenties not selected for filter and we need to skip it
                 matchCount = 1;
               }
-              logger.info("Match amenities : ", matchCount);
+              logger.info("Match amenities : ",{matchCount});
 
               let budget1 = budget;
-              logger.info("Budget : ", budget);
+              logger.info("Budget : ",{budget});
               // if(isNaN(budget))  //this means budget not selected for filter and we need to skip it
               // {
               // budget = parseFloat(studiosData[i].pricePerHour);
@@ -1391,7 +1395,7 @@ exports.getStudiosByDate = (req, res, next) => {
   }
   creationDate = yr + "-" + mth + "-" + dt;
   var sTimeStamp = new Date(creationDate).getTime();
-  logger.info("Creation Date : ", creationDate);
+  logger.info("Creation Date : ",{creationDate});
 
   Studio.fetchStudiosByDate(creationDate).then((studioData) => {
     return res.json({
@@ -1462,7 +1466,7 @@ exports.getAllStudiosGraphDetails = (req, res, next) => {
     });
     keyData = keyData + 1;
   }
-  logger.info(months);
+  logger.info({months});
 
   Studio.fetchAllStudios(0, 0).then((studiosData) => {
     studiosData.forEach((singleStudio) => {
@@ -1562,7 +1566,7 @@ exports.exportStudioData = async (req, res) => {
       });
     }
 
-    logger.info("this is pipe======>", pipeline);
+    logger.info("this is pipe======>",{pipeline});
     if (options.startDate && options.endDate) {
       let startDate = options.startDate;
       let endDate = options.endDate;
@@ -1652,7 +1656,7 @@ exports.exportStudioData = async (req, res) => {
     const data = await workbook.xlsx
       .writeFile(`files/${file_name}`)
       .then(() => {
-        logger.info(__dirname);
+        logger.info({__dirname});
         res
           .header({
             "Content-disposition": `attachment; filename=${file_name}`,
@@ -1673,7 +1677,7 @@ exports.exportStudioData = async (req, res) => {
             }
           );
       });
-    logger.info(data);
+    logger.info({data});
   } catch (error) {
     res.send({
       status: "error",
