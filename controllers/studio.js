@@ -659,6 +659,7 @@ exports.createNewStudio = async (req, res, next) => {
   const country = req.body.country || "IN";
   const reviews = {};
   const featuredReviews = [];
+  let minPrice = {}
 
   try {
     logger.info({address});
@@ -710,13 +711,17 @@ exports.createNewStudio = async (req, res, next) => {
             featuredReviews,
             1,
             location,
-            country
+            country,
+            minPrice
           );
 
           // saving in database
           return studioObj
             .save()
-            .then((resultData) => {
+            .then(async(resultData) => {
+              let {insertedId} = resultData
+               logger.info({insertedId},"insertedId");
+              await Studio.minPriceOfStudio(insertedId)
               return res.json({
                 status: true,
                 message: "Studio created successfully",
