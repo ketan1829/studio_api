@@ -107,6 +107,8 @@ router.post('/studios/create',controller.createNewStudio);
 */
 router.get('/studios/graph',auth.isAdmin,controller.getAllStudiosGraphDetails);
 
+router.get('/studios/unassignedstudios',auth.isAdmin,controller.getUnassignedStudios)
+
 /**
  * @swagger
  * /studios/{studioId}:

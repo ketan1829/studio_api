@@ -1687,3 +1687,20 @@ exports.exportStudioData = async (req, res) => {
   }
   // return res.status(200).json({status:true,"no_of_studios":allStudios.length,message:"All Studios", All_Studios:allStudios})
 };
+
+
+
+exports.getUnassignedStudios = async (req, res, next) => {
+  try {
+      const db = getDb();
+      const owners = await db.collection('owners').find({}).toArray();
+      const assignedStudioIds = owners.map(owner => owner.studioId);
+      const studios = await db.collection('studios').find({}).toArray();
+      const unassignedStudios = studios.filter(studio => !assignedStudioIds.includes(studio._id.toString()));
+      console.log("unassignedStudios",unassignedStudios);
+    res.status(200).json({ status: true, message: "Unassigned studios fetched successfully", studios: unassignedStudios });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ status: false, message: "An error occurred while fetching unassigned studios" });
+  }
+};
