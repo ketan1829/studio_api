@@ -1252,7 +1252,7 @@ router.get('/userData/exports',auth.isAdminV2,controller.exportUserData)
 router.get('/get-user-nearby-location',controller.getUserNearyByLocations)
 
 
-router.post('/user/offlineRegister',auth.isAdminV2,controller.registerOfflineUser)
+// router.post('/user/offlineRegister',auth.isAdminV2,controller.registerOfflineUser)
 
 
 
