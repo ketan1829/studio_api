@@ -645,7 +645,7 @@ router.post('/bookings/date-filter',auth.isAdminOrOwner,controller.getBookingsBy
  */
 router.get('/exportBookingData',auth.isAdminV2,controller.exportBookingData)
 
-router.post('/adminBooking',controller.adminBooking)
+router.post('/booking/adminBooking',controller.adminBooking)
 
 
 

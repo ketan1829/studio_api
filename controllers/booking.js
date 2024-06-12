@@ -341,6 +341,7 @@ exports.createNewBooking2 = async (req, res, next) => {
   bookingTime.startTime = convertTo24HourFormat(bookingTime.startTime);
   bookingTime.endTime = convertTo24HourFormat(bookingTime.endTime);
   logger.info({ bookingTime });
+  
 
   let userDeviceId = "";
 
@@ -507,7 +508,6 @@ exports.createNewBooking = async (req, res, next) => {
     // );
     // const resultData = await bookingObj.save();
     let response = await createBooking({ userId, studioId, roomId, bookingDate, bookingTime, totalPrice })
-    console.log("response=>",response.studioData);
      await sendMailToUserAndAdmin({
       userId,
       studioId,
@@ -579,18 +579,12 @@ async function createBooking({ userId, studioId, roomId, bookingDate, bookingTim
     // Convert time to 24-hour format
     bookingTime.startTime = convertTo24HourFormat(bookingTime.startTime);
     bookingTime.endTime = convertTo24HourFormat(bookingTime.endTime);
-    console.log("userId",userId);
     let userData = await findUserById(userId);
-    console.log("userData",userData);
     if (!userData) {
       return res.status(404).json({ status: false, message: "Enter valid ID" });
     }
-
     let userDeviceId = userData.deviceId || "";
-
     const studioData = await Studio.findStudioById(studioId);
-    console.log("studioId",studioId);
-    console.log("studioData",studioData);
     if (!studioData) {
       return res
         .status(404)
@@ -608,8 +602,7 @@ async function createBooking({ userId, studioId, roomId, bookingDate, bookingTim
       "c1"
     );
     const resultData = await bookingObj.save();
-    console.log("resultData",resultData);
-    return{ resultData,studioData,userData,userDeviceId, status:true, message:"Booking created successfully in DB" }
+    return { resultData,studioData,userData,userDeviceId, status:true, message:"Booking created successfully " }
   } catch (error) {
     logger.error(error,"Error while create booking in DB")
   }
@@ -4466,18 +4459,42 @@ async function sendMailToUserAndAdmin(datas) {
 }
 
 exports.adminBooking = async(req,res)=>{
-  let { fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role,studioId, roomId, bookingDate, bookingTime, totalPrice } = req.body
-  let createdUser = await registerOfflineUser({ fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role })
-  console.log("createdUser",createdUser);
-  // if(!createdUser.status){
-  //   res.status(400).json({status:true,message:"Error creating User"})
-  // }
-  let bookingCreated = await createBooking({ userId, studioId, roomId, bookingDate, bookingTime, totalPrice })
-  console.log("bookingCreated",bookingCreated);
-  res.status(200).json({
-    status:true,
-    message:"success"
-  })
+try {
+    let {bookingType,userId, fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role,studioId, roomId, bookingDate, bookingTime, totalPrice } = req.body
+    if(bookingType==="offline"){
+      let createdUser = await registerOfflineUser({ fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role })
+    if(!createdUser.status){
+      res.status(400).json({status:true,message:createdUser.message})
+    }
+     userId = String(createdUser.result.insertedId)
+    await createBooking({ userId,studioId, roomId, bookingDate, bookingTime, totalPrice })
+    if(!createBooking.status){
+      return res.status(400).json({status:true,message:"Error occured While Booking"})
+    }
+    res.status(200).json({
+      status:true,
+      message:"User Registered and Booking Confirmed"
+    })
+    } else if(bookingType==="registered"){
+      let createdBooking = await createBooking({ userId,studioId, roomId, bookingDate, bookingTime, totalPrice })
+      if(!createdBooking.status){
+        res.status(400).json({status:true,message:"Error occured While Booking"})
+      }else{
+        res.status(200).json({status:true,message:"Booking successfully created for Registered User"})
+      }
+    }
+    sendMailToUserAndAdmin({
+      userId,
+      studioId,
+      roomId,
+      bookingDate,
+      bookingTime,
+      totalPrice,
+    });
+} catch (error) {
+  console.log(error);
+  logger.error(error,"Error while creating Admin Booking")
+}
 }
 
 //Automatch API for cronjob

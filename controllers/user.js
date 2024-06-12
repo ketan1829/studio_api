@@ -393,7 +393,6 @@ exports.loginUserOTP = async (req, res, next) => {
 
 exports.registerOfflineUser = async({ fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role })=>{
   try {
-    // console.log("Inside",{ fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role });
     const user_data = {
       fullName: fullName,
       dateOfBirth : dateOfBirth || "Offline",
@@ -401,7 +400,7 @@ exports.registerOfflineUser = async({ fullName, userType, dateOfBirth, email, ph
       phone: phoneNumber,
       password: "",
       userType: userType || "Offline",
-      deviceId : deviceId || "offline",
+      deviceId : deviceId || "Offline",
       latitude: "",
       longitude: "",
       city: "",
@@ -412,17 +411,15 @@ exports.registerOfflineUser = async({ fullName, userType, dateOfBirth, email, ph
       favourites: [],
       status: 0
     };
-    // console.log("user_data",user_data);
     let alreadyExist = await User.findUserByPhone(phoneNumber,0,false)
-    // console.log("alreadyExist",alreadyExist);
     if(alreadyExist) return {status:false, message:"User Already Exist by this Number"}
     const userObj = new User(user_data);
     userObj.status = 0
     let result = await userObj.save()
-    console.log("User create offline",result);
     return {
       status:true,
-      message:"User Successfully Registered(Offline)"
+      message:"User Successfully Registered(Offline)",
+      result
     }
   } catch (error) {
     logger.error(error,"Error occure while offline registering user")
