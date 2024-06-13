@@ -4467,8 +4467,8 @@ try {
       res.status(400).json({status:true,message:createdUser.message})
     }
      userId = String(createdUser.result.insertedId)
-    await createBooking({ userId,studioId, roomId, bookingDate, bookingTime, totalPrice })
-    if(!createBooking.status){
+     let createdBookingg = await createBooking({ userId,studioId, roomId, bookingDate, bookingTime, totalPrice })
+    if(!createdBookingg.status){
       return res.status(400).json({status:true,message:"Error occured While Booking"})
     }
     res.status(200).json({
