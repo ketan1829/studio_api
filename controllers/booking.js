@@ -1019,6 +1019,15 @@ exports.getStudioAvailabilities = async (req, res, next) => {
           singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
           singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
         });
+
+        allSlots.forEach((singleSlot) => {
+          singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
+          singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
+        });
+        bookedSlots.forEach((singleSlot) => {
+          singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
+          singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
+        });
         return res.json({
           status: true,
           message: "Availability returned",
@@ -4483,14 +4492,14 @@ try {
         res.status(200).json({status:true,message:"Booking successfully created for Registered User"})
       }
     }
-    sendMailToUserAndAdmin({
-      userId,
-      studioId,
-      roomId,
-      bookingDate,
-      bookingTime,
-      totalPrice,
-    });
+    // sendMailToUserAndAdmin({
+    //   userId,
+    //   studioId,
+    //   roomId,
+    //   bookingDate,
+    //   bookingTime,
+    //   totalPrice,
+    // });
 } catch (error) {
   console.log(error);
   logger.error(error,"Error while creating Admin Booking")
