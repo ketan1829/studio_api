@@ -34,8 +34,7 @@ exports.send_mail = function (bookingDetails) {
     to: [
       "nitin.goswami@choira.io",
       "ketan.salvi@choira.io",
-      // "uday.singh@choira.io",
-      process.env.NODE_ENV === 'production' ? "support@choira.io" : "uday.singh@choira.io"
+      "support@choira.io"
     ],
     subject: "New Booking Arrived!",
     html: BOOKING_SUCCESS_ADMIN(bookingDetails),
@@ -71,8 +70,7 @@ exports.sendRegisterMail = async function (userdata) {
     to: [
       "nitin.goswami@choira.io",
       "ketan.salvi@choira.io",
-      // "uday.singh@choira.io"
-      process.env.NODE_ENV === 'production' ? "support@choira.io" : "uday.singh@choira.io"
+      "support@choira.io"
     ],
     subject: "New User Registered !",
     html: WELCOME_TEMPLATE(userdata),

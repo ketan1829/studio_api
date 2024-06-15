@@ -467,46 +467,15 @@ exports.createNewBooking = async (req, res, next) => {
     const req_body = req.body;
     logger.info("req.body |", { req_body });
 
-    //// Validate input
-    //// const errors = validationResult(req);
-    //// if (!errors.isEmpty()) {
-    ////     return res.status(400).json({ errors: errors.array() });
-    //// }
+    // Validate input
+    // const errors = validationResult(req);
+    // if (!errors.isEmpty()) {
+    //     return res.status(400).json({ errors: errors.array() });
+    // }
 
     const { userId, studioId, roomId, bookingDate, bookingTime, totalPrice } =
       req.body;
 
-    // const bookingStatus = 0; // Initially active
-
-    // // Convert time to 24-hour format
-    // bookingTime.startTime = convertTo24HourFormat(bookingTime.startTime);
-    // bookingTime.endTime = convertTo24HourFormat(bookingTime.endTime);
-
-    // let userData = await findUserById(userId);
-    // if (!userData) {
-    //   return res.status(404).json({ status: false, message: "Enter valid ID" });
-    // }
-
-    // let userDeviceId = userData.deviceId || "";
-
-    // const studioData = await Studio.findStudioById(studioId);
-    // if (!studioData) {
-    //   return res
-    //     .status(404)
-    //     .json({ status: false, message: "No studio with this ID exists" });
-    // }
-
-    // const bookingObj = new Booking(
-    //   userId,
-    //   studioId,
-    //   roomId,
-    //   bookingDate,
-    //   bookingTime,
-    //   totalPrice,
-    //   bookingStatus,
-    //   "c1"
-    // );
-    // const resultData = await bookingObj.save();
     let response = await createBooking({ userId, studioId, roomId, bookingDate, bookingTime, totalPrice })
      await sendMailToUserAndAdmin({
       userId,
@@ -4492,14 +4461,14 @@ try {
         res.status(200).json({status:true,message:"Booking successfully created for Registered User"})
       }
     }
-    // sendMailToUserAndAdmin({
-    //   userId,
-    //   studioId,
-    //   roomId,
-    //   bookingDate,
-    //   bookingTime,
-    //   totalPrice,
-    // });
+    sendMailToUserAndAdmin({
+      userId,
+      studioId,
+      roomId,
+      bookingDate,
+      bookingTime,
+      totalPrice,
+    });
 } catch (error) {
   console.log(error);
   logger.error(error,"Error while creating Admin Booking")
