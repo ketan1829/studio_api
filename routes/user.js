@@ -1061,6 +1061,7 @@ router.get('/users/:userId/delete',auth.isBoth,controller.deleteParticularUser);
 //Upload media file
 router.post('/upload-single-image',(req,res,next)=>{
 
+    console.log("upload-single-image========");
     console.log(req.file);
 
     upload1(req,res,function(err){
@@ -1080,10 +1081,11 @@ router.post('/upload-single-image',(req,res,next)=>{
            
         if(err)
         {
+            console.log("ERRRRRORRRRR:",err)
             return res.status(500).json({status:false,message:"Error Occured",error:err})
         }
         let newImage = serverName+req.file.filename;
-        // console.log("new IMG:", newImage);
+        console.log("new IMG:", newImage);
         return res.json({status:true,message:"Image Uploaded Successfully",imageUrl:newImage});
     })
 });
