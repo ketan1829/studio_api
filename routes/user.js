@@ -1259,4 +1259,5 @@ router.get('/get-user-nearby-location',controller.getUserNearyByLocations)
 
 
 
+
 module.exports = router;

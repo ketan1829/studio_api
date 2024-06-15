@@ -25,6 +25,7 @@ const { getLogger } = require("nodemailer/lib/shared");
 const { logger } = require("../util/logger");
 const { json } = require("body-parser");
 const moment = require("moment-timezone");
+const { registerOfflineUser } = require("./user.js");
 
 function convertTo24HourFormat(time12h) {
   const [time, modifier] = time12h.split(" ");
@@ -340,6 +341,7 @@ exports.createNewBooking2 = async (req, res, next) => {
   bookingTime.startTime = convertTo24HourFormat(bookingTime.startTime);
   bookingTime.endTime = convertTo24HourFormat(bookingTime.endTime);
   logger.info({ bookingTime });
+  
 
   let userDeviceId = "";
 
@@ -465,47 +467,48 @@ exports.createNewBooking = async (req, res, next) => {
     const req_body = req.body;
     logger.info("req.body |", { req_body });
 
-    // Validate input
-    // const errors = validationResult(req);
-    // if (!errors.isEmpty()) {
-    //     return res.status(400).json({ errors: errors.array() });
-    // }
+    //// Validate input
+    //// const errors = validationResult(req);
+    //// if (!errors.isEmpty()) {
+    ////     return res.status(400).json({ errors: errors.array() });
+    //// }
 
     const { userId, studioId, roomId, bookingDate, bookingTime, totalPrice } =
       req.body;
 
-    const bookingStatus = 0; // Initially active
+    // const bookingStatus = 0; // Initially active
 
-    // Convert time to 24-hour format
-    bookingTime.startTime = convertTo24HourFormat(bookingTime.startTime);
-    bookingTime.endTime = convertTo24HourFormat(bookingTime.endTime);
+    // // Convert time to 24-hour format
+    // bookingTime.startTime = convertTo24HourFormat(bookingTime.startTime);
+    // bookingTime.endTime = convertTo24HourFormat(bookingTime.endTime);
 
-    let userData = await findUserById(userId);
-    if (!userData) {
-      return res.status(404).json({ status: false, message: "Enter valid ID" });
-    }
+    // let userData = await findUserById(userId);
+    // if (!userData) {
+    //   return res.status(404).json({ status: false, message: "Enter valid ID" });
+    // }
 
-    let userDeviceId = userData.deviceId || "";
+    // let userDeviceId = userData.deviceId || "";
 
-    const studioData = await Studio.findStudioById(studioId);
-    if (!studioData) {
-      return res
-        .status(404)
-        .json({ status: false, message: "No studio with this ID exists" });
-    }
+    // const studioData = await Studio.findStudioById(studioId);
+    // if (!studioData) {
+    //   return res
+    //     .status(404)
+    //     .json({ status: false, message: "No studio with this ID exists" });
+    // }
 
-    const bookingObj = new Booking(
-      userId,
-      studioId,
-      roomId,
-      bookingDate,
-      bookingTime,
-      totalPrice,
-      bookingStatus,
-      "c1"
-    );
-    const resultData = await bookingObj.save();
-    sendMailToUserAndAdmin({
+    // const bookingObj = new Booking(
+    //   userId,
+    //   studioId,
+    //   roomId,
+    //   bookingDate,
+    //   bookingTime,
+    //   totalPrice,
+    //   bookingStatus,
+    //   "c1"
+    // );
+    // const resultData = await bookingObj.save();
+    let response = await createBooking({ userId, studioId, roomId, bookingDate, bookingTime, totalPrice })
+     await sendMailToUserAndAdmin({
       userId,
       studioId,
       roomId,
@@ -513,14 +516,14 @@ exports.createNewBooking = async (req, res, next) => {
       bookingTime,
       totalPrice,
     });
-    const bookingData = resultData.ops[0];
+    const bookingData = response.resultData.ops[0];
     bookingData.totalPrice = bookingData.totalPrice.toFixed(2);
 
     const title = "Congratulations!!";
-    const message = `Your booking with '${studioData.fullName}' is confirmed`;
+    const message = `Your booking with '${response.studioData.fullName}' is confirmed`;
     const myJSONObject = {
       app_id: process.env.ONE_SIGNAL_APP_ID,
-      include_player_ids: [userDeviceId],
+      include_player_ids: [response.userDeviceId],
       data: {},
       contents: { en: `${title}\n${message}` },
     };
@@ -545,7 +548,7 @@ exports.createNewBooking = async (req, res, next) => {
         studioId,
         bookingData._id.toString(),
         "Booking created",
-        `${userData.fullName} created new booking with Studio: ${studioData.fullName}`
+        `${response.userData.fullName} created new booking with Studio: ${response.studioData.fullName}`
       );
       await adminNotificationObj.save();
 
@@ -568,6 +571,43 @@ exports.createNewBooking = async (req, res, next) => {
       .json({ status: false, message: "Internal Server Error" });
   }
 };
+
+async function createBooking({ userId, studioId, roomId, bookingDate, bookingTime, totalPrice }){
+  try {
+    const bookingStatus = 0; // Initially active
+
+    // Convert time to 24-hour format
+    bookingTime.startTime = convertTo24HourFormat(bookingTime.startTime);
+    bookingTime.endTime = convertTo24HourFormat(bookingTime.endTime);
+    let userData = await findUserById(userId);
+    if (!userData) {
+      return res.status(404).json({ status: false, message: "Enter valid ID" });
+    }
+    let userDeviceId = userData.deviceId || "";
+    const studioData = await Studio.findStudioById(studioId);
+    if (!studioData) {
+      return res
+        .status(404)
+        .json({ status: false, message: "No studio with this ID exists" });
+    }
+
+    const bookingObj = new Booking(
+      userId,
+      studioId,
+      roomId,
+      bookingDate,
+      bookingTime,
+      totalPrice,
+      bookingStatus,
+      "c1"
+    );
+    const resultData = await bookingObj.save();
+    return { resultData,studioData,userData,userDeviceId, status:true, message:"Booking created successfully " }
+  } catch (error) {
+    logger.error(error,"Error while create booking in DB")
+  }
+
+}
 
 exports.createServiceBooking = async (req, res, next) => {
   try {
@@ -976,6 +1016,15 @@ exports.getStudioAvailabilities = async (req, res, next) => {
         allAvailSlots.sort((a, b) => (a.startTime >= b.startTime ? 1 : -1));
         //convert to 12 hour format
         allAvailSlots.forEach((singleSlot) => {
+          singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
+          singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
+        });
+
+        allSlots.forEach((singleSlot) => {
+          singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
+          singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
+        });
+        bookedSlots.forEach((singleSlot) => {
           singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
           singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
         });
@@ -4416,6 +4465,45 @@ async function sendMailToUserAndAdmin(datas) {
     });
   }
   send_mail(bookingDetails);
+}
+
+exports.adminBooking = async(req,res)=>{
+try {
+    let {bookingType,userId, fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role,studioId, roomId, bookingDate, bookingTime, totalPrice } = req.body
+    if(bookingType==="offline"){
+      let createdUser = await registerOfflineUser({ fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role })
+    if(!createdUser.status){
+      res.status(400).json({status:true,message:createdUser.message})
+    }
+     userId = String(createdUser.result.insertedId)
+     let createdBookingg = await createBooking({ userId,studioId, roomId, bookingDate, bookingTime, totalPrice })
+    if(!createdBookingg.status){
+      return res.status(400).json({status:true,message:"Error occured While Booking"})
+    }
+    res.status(200).json({
+      status:true,
+      message:"User Registered and Booking Confirmed"
+    })
+    } else if(bookingType==="registered"){
+      let createdBooking = await createBooking({ userId,studioId, roomId, bookingDate, bookingTime, totalPrice })
+      if(!createdBooking.status){
+        res.status(400).json({status:true,message:"Error occured While Booking"})
+      }else{
+        res.status(200).json({status:true,message:"Booking successfully created for Registered User"})
+      }
+    }
+    // sendMailToUserAndAdmin({
+    //   userId,
+    //   studioId,
+    //   roomId,
+    //   bookingDate,
+    //   bookingTime,
+    //   totalPrice,
+    // });
+} catch (error) {
+  console.log(error);
+  logger.error(error,"Error while creating Admin Booking")
+}
 }
 
 //Automatch API for cronjob

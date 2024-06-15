@@ -659,6 +659,7 @@ exports.createNewStudio = async (req, res, next) => {
   const country = req.body.country || "IN";
   const reviews = {};
   const featuredReviews = [];
+  let minPrice = {}
 
   try {
     logger.info({address});
@@ -710,13 +711,17 @@ exports.createNewStudio = async (req, res, next) => {
             featuredReviews,
             1,
             location,
-            country
+            country,
+            minPrice
           );
 
           // saving in database
           return studioObj
             .save()
-            .then((resultData) => {
+            .then(async(resultData) => {
+              let {insertedId} = resultData
+               logger.info({insertedId},"insertedId");
+              await Studio.minPriceOfStudio(insertedId)
               return res.json({
                 status: true,
                 message: "Studio created successfully",
@@ -1686,4 +1691,21 @@ exports.exportStudioData = async (req, res) => {
     });
   }
   // return res.status(200).json({status:true,"no_of_studios":allStudios.length,message:"All Studios", All_Studios:allStudios})
+};
+
+
+
+exports.getUnassignedStudios = async (req, res, next) => {
+  try {
+      const db = getDb();
+      const owners = await db.collection('owners').find({}).toArray();
+      const assignedStudioIds = owners.map(owner => owner.studioId);
+      const studios = await db.collection('studios').find({}).toArray();
+      const unassignedStudios = studios.filter(studio => !assignedStudioIds.includes(studio._id.toString()));
+      console.log("unassignedStudios",unassignedStudios);
+    res.status(200).json({ status: true, message: "Unassigned studios fetched successfully", studios: unassignedStudios });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ status: false, message: "An error occurred while fetching unassigned studios" });
+  }
 };

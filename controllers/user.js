@@ -390,6 +390,41 @@ exports.loginUserOTP = async (req, res, next) => {
   }
 };
 
+
+exports.registerOfflineUser = async({ fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role })=>{
+  try {
+    const user_data = {
+      fullName: fullName,
+      dateOfBirth : dateOfBirth || "Offline",
+      email,
+      phone: phoneNumber,
+      password: "",
+      userType: userType || "Offline",
+      deviceId : deviceId || "Offline",
+      latitude: "",
+      longitude: "",
+      city: "",
+      state: "",
+      profileUrl: "",
+      role: role || "user",
+      gender: "",
+      favourites: [],
+      status: 0
+    };
+    let alreadyExist = await User.findUserByPhone(phoneNumber,0,false)
+    if(alreadyExist) return {status:false, message:"User Already Exist by this Number"}
+    const userObj = new User(user_data);
+    userObj.status = 0
+    let result = await userObj.save()
+    return {
+      status:true,
+      message:"User Successfully Registered(Offline)",
+      result
+    }
+  } catch (error) {
+    logger.error(error,"Error occure while offline registering user")
+  }
+}
 // -----------------------------------------------
 
 exports.TestloginUserOTP = async (req, res, next) => {
