@@ -1518,9 +1518,13 @@ exports.getUserNearyByLocations = async (req, res, next) => {
 
 exports.exportUserData = async (req, res) => {
   try {
-    const filter = pick(req.query, ['dateOfBirth', 'userType', 'role']); // {startDate: 2022-19-01}
+    const filter = pick(req.query, ['dateOfBirth', 'userType', 'role','status',"searchUser"]); // {startDate: 2022-19-01}
     const options = pick(req.query, ['sort', 'limit', 'gender', 'startDate', 'endDate', 'page', 'sortfield', 'sortvalue']); // {}
     const pipeline = []
+
+    // if (filter.status) filter.status = parseInt(filter.status);
+
+    
 
     if (Object.keys(filter).length) {
       pipeline.push(
@@ -1529,6 +1533,12 @@ exports.exportUserData = async (req, res) => {
         }
       )
     }
+
+    if (filter.searchUser){
+      pipeline.push({ $match: { $text: { $fullName: searchUser } } })
+    }
+
+    console.log(filter);
 
 
     logger.info("this is pipe======>",{pipeline});
@@ -1578,6 +1588,7 @@ exports.exportUserData = async (req, res) => {
     } else {
       allUser = await User.fetchAllUsers(0, 0);
     }
+    console.log("Active Users",allUser);
     // console.log(JSON.stringify(pipeline))
     const workbook = new excelJS.Workbook();
     const worksheet = workbook.addWorksheet("userData");
