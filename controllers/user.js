@@ -1534,8 +1534,15 @@ exports.exportUserData = async (req, res) => {
       )
     }
 
-    if (filter.searchUser){
-      pipeline.push({ $match: { $text: { $fullName: searchUser } } })
+    let {searchUser} = req.query
+    if (searchUser) {
+      pipeline.push({ "$match": {
+        $or: [
+          { fullName: { $regex: searchUser, $options: "i" } },
+          { email: { $regex: searchUser, $options: "i" } },
+          { phone: { $regex: searchUser, $options: "i" } },
+        ],
+      }},)
     }
 
     console.log(filter);
