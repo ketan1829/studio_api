@@ -460,63 +460,13 @@ static async updateStudioById(studioId,newStudioData) {// added by Uday
 
   try {            
        const updatedResult = await db.collection("studios").findOneAndUpdate({ _id: new ObjectId(studioId) },{$set: newStudioData},{new:true});                
-      //  console.log(updatedResult)
-      let result = await Studio.minPriceOfStudio(studioId)
-      if(!result.status){
-        return {
-          status: false,
-          message: "Error Updating minimum price of studio"
-        };
-      }
       return updatedResult
-
   } catch (error) {
       console.error("Error deleting service:", error);
       return{ status: false, message: "Internal Server Error" };
   }
 }
 
-static async minPriceOfStudio(o_id){
-  try {
-    const db = getDb();
-    const objectId = new ObjectId(o_id);
-    const studios = await db.collection("studios").find({ _id: objectId }).toArray();
-    console.log("studios", studios);
-
-    let minPriceOfRoom = []; 
-    studios.forEach((studio) => {
-      studio.roomsDetails.forEach((room) => {
-        if (typeof room.pricePerHour === 'number') {
-          minPriceOfRoom.push(room.pricePerHour);
-        } else {
-          const parsedPrice = parseFloat(room.pricePerHour);
-          if (!isNaN(parsedPrice)) {
-            minPriceOfRoom.push(parsedPrice);
-          }
-        }
-      });
-    });
-
-    if (minPriceOfRoom.length === 0) {
-      throw new Error("No valid room prices found");
-    }
-
-    let min = Math.min(...minPriceOfRoom);
-    let minPrice = {
-      price: min,
-      basePrice: min
-    };
-    const updatedStudios = await db.collection("studios").updateOne(
-      { _id: objectId }, 
-      { $set: { minPrice: minPrice } }
-    );
-    minPriceOfRoom = [];
-    return { status: true, message: "Minimum Studio price is Updated" };
-  } catch (error) {
-    logger.error(error, "Error in calculating minimum start price of studio");
-    return { status: false, message: "Error in calculating minimum start price of studio" };
-  }
-}
 
 }
 

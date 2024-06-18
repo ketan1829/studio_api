@@ -662,6 +662,7 @@ exports.createNewStudio = async (req, res, next) => {
   let minPrice = {}
 
   try {
+    minPrice = calculateMinPrice(roomsDetails);
     logger.info({address});
     address = address.replace("&", "and");
     axios
@@ -719,9 +720,6 @@ exports.createNewStudio = async (req, res, next) => {
           return studioObj
             .save()
             .then(async(resultData) => {
-              let {insertedId} = resultData
-               logger.info({insertedId},"insertedId");
-              await Studio.minPriceOfStudio(insertedId)
               return res.json({
                 status: true,
                 message: "Studio created successfully",
@@ -1310,6 +1308,7 @@ exports.editStudioDetails = async (req, res, next) => {
   const teamDetails = req.body.teamDetails;
   const country = req.body.country;
 
+
   let studio = await Studio.findStudioById(studioId);
   if (!studio) {
     return res
@@ -1352,6 +1351,8 @@ exports.editStudioDetails = async (req, res, next) => {
     return team;
   });
 
+  const minPrice = calculateMinPrice(roomsDetails);
+
   let studioObj = {
     fullName,
     address,
@@ -1370,7 +1371,8 @@ exports.editStudioDetails = async (req, res, next) => {
     studioPhotos,
     aboutUs,
     teamDetails: updatedTeamDetails,
-    country
+    country,
+    minPrice,
   };
 
   let newStudioData = await Studio.filterEmptyFields(studioObj);
@@ -1708,4 +1710,30 @@ exports.getUnassignedStudios = async (req, res, next) => {
     console.error(error);
     res.status(500).json({ status: false, message: "An error occurred while fetching unassigned studios" });
   }
+};
+
+
+const calculateMinPrice = (roomsDetails) => {
+  let minPriceOfRoom = [];
+
+  roomsDetails.forEach((room) => {
+    if (typeof room.pricePerHour === 'number') {
+      minPriceOfRoom.push(room.pricePerHour);
+    } else {
+      const parsedPrice = parseFloat(room.pricePerHour);
+      if (!isNaN(parsedPrice)) {
+        minPriceOfRoom.push(parsedPrice);
+      }
+    }
+  });
+
+  if (minPriceOfRoom.length === 0) {
+    throw new Error('No valid room prices found');
+  }
+
+  let min = Math.min(...minPriceOfRoom);
+  return {
+    price: min,
+    basePrice: min,
+  };
 };
