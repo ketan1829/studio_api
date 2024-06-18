@@ -4,10 +4,10 @@ const TempUser = require("../models/tempUsers");
 const Studio = require("../models/studio");
 const excelJS = require("exceljs");
 const mongodb = require("mongodb");
-const pick = require('../util/pick')
+const pick = require("../util/pick");
 const getDb = require("../util/database").getDB;
 const ObjectId = mongodb.ObjectId;
-const path = require('path');
+const path = require("path");
 var crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 
@@ -22,7 +22,6 @@ const { json } = require("express");
 const { logger } = require("../util/logger");
 
 const { send_mail } = require("../util/mail.js");
-
 
 // Sendinblue library\
 // const SibApiV3Sdk = require('sib-api-v3-sdk');
@@ -80,21 +79,17 @@ exports.signupUser = async (req, res, next) => {
 
   User.findUserByEmail(email).then((userData) => {
     if (userData) {
-      return res
-        .status(409)
-        .json({
-          status: false,
-          message: "User with this Email already exists",
-        });
+      return res.status(409).json({
+        status: false,
+        message: "User with this Email already exists",
+      });
     }
     User.findUserByPhone(phone).then((userPhoneData) => {
       if (userPhoneData) {
-        return res
-          .status(409)
-          .json({
-            status: false,
-            message: "User with this Phone already exists",
-          });
+        return res.status(409).json({
+          status: false,
+          message: "User with this Phone already exists",
+        });
       }
 
       const userObj = new User(
@@ -141,19 +136,29 @@ exports.loginUserOTP2 = (req, res, next) => {
 
 exports.signupUserV2 = async (req, res, next) => {
   try {
-    
-    const { fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role } = req.body;
-    logger.info({ fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role },"User details for sign-up",)
+    const {
+      fullName,
+      userType,
+      dateOfBirth,
+      email,
+      phoneNumber,
+      deviceId,
+      role,
+    } = req.body;
+    logger.info(
+      { fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role },
+      "User details for sign-up"
+    );
     console.log("Hit");
     // let phone = (phoneNumber.length > 10)? phoneNumber.slice(2) : `91${phoneNumber}`
-    let phone = (phoneNumber.length == 10) ? `91${phoneNumber}` : phoneNumber
+    let phone = phoneNumber.length == 10 ? `91${phoneNumber}` : phoneNumber;
 
     // logger.info({ fullName, dateOfBirth, email, phone, deviceId });
 
     let _userData = await User.findUserByPhone(phone, 0, false);
 
-    logger.info({_userData},"REGISTER USER DATA");
-    
+    logger.info({ _userData }, "REGISTER USER DATA");
+
     const user_data = {
       fullName: fullName.trim(),
       dateOfBirth,
@@ -170,7 +175,7 @@ exports.signupUserV2 = async (req, res, next) => {
       role: role || "user",
       gender: "",
       favourites: [],
-      status: 1
+      status: 1,
     };
 
     const userObj = new User(user_data);
@@ -184,19 +189,22 @@ exports.signupUserV2 = async (req, res, next) => {
         userType: userType || "NUMBER",
         deviceId,
         role: role || "user",
-        status: 1
-      }
+        status: 1,
+      };
       userObj._id = _userData._id;
-      const udata = await User.update(phone, updated_user_data)
-      let updatedData = udata ? `udata count:${udata?.matchedCount}` : "user not updated"
-      console.log("updatedData",updatedData);
-      logger.info({updatedData},"Updated user data for Sign-up if user already exist and status is 0")
+      const udata = await User.update(phone, updated_user_data);
+      let updatedData = udata
+        ? `udata count:${udata?.matchedCount}`
+        : "user not updated";
+      console.log("updatedData", updatedData);
+      logger.info(
+        { updatedData },
+        "Updated user data for Sign-up if user already exist and status is 0"
+      );
       // console.log(udata ? `udata count:${udata?.matchedCount}` : "user not updated");
     } else {
-
       let _userData_active = await User.findUserByPhone(phone, 1);
       if (_userData_active) {
-
         const updated_user_data = {
           fullName: fullName.trim(),
           dateOfBirth,
@@ -205,24 +213,29 @@ exports.signupUserV2 = async (req, res, next) => {
           userType: userType || "NUMBER",
           deviceId,
           role: role || "user",
-          status: 1
-        }
+          status: 1,
+        };
 
-        const udata = await User.update(phone, updated_user_data)
-        logger.info({udata},"Updated user data for Sign-up if user already exist and status is 1")
-        userObj._id = _userData_active._id
-        let updatedData = udata ? `udata count:${udata?.matchedCount}` : "user not updated"
-      logger.info({updatedData},"Updated user data for Sign-up if user already exist")
+        const udata = await User.update(phone, updated_user_data);
+        logger.info(
+          { udata },
+          "Updated user data for Sign-up if user already exist and status is 1"
+        );
+        userObj._id = _userData_active._id;
+        let updatedData = udata
+          ? `udata count:${udata?.matchedCount}`
+          : "user not updated";
+        logger.info(
+          { updatedData },
+          "Updated user data for Sign-up if user already exist"
+        );
         // console.log(udata ? `update count:${udata?.matchedCount}` : "update failed");
-
       } else {
-
         // If user does not exist, create a new user
         await userObj.save();
         const { _id, creationTimeStamp } = await User.findUserByPhone(phone);
-        userObj._id = _id
-        userObj.creationTimeStamp = creationTimeStamp
-
+        userObj._id = _id;
+        userObj.creationTimeStamp = creationTimeStamp;
 
         if (role === "user") {
           // Only add to Brevo if the role is 'user' and it's a new signup
@@ -230,38 +243,50 @@ exports.signupUserV2 = async (req, res, next) => {
           console.log("Added to Brevo");
         }
       }
-
     }
 
     const token = jwt.sign({ user: userObj }, "myAppSecretKey");
 
     // logger.info({userObj},"userObj:");
-    return res.json({ status: true, message: "Signup successful", user: userObj, token });
-
+    return res.json({
+      status: true,
+      message: "Signup successful",
+      user: userObj,
+      token,
+    });
   } catch (error) {
     console.error("Error in signupUserV2:", error);
-    logger.error(error,"Error in signupUserV2")
-    return res.status(500).json({ status: false, message: "Something went wrong, try again later" });
+    logger.error(error, "Error in signupUserV2");
+    return res
+      .status(500)
+      .json({
+        status: false,
+        message: "Something went wrong, try again later",
+      });
   }
 };
 
 exports.loginUserOTP = async (req, res, next) => {
   try {
     const { phoneNumber, deviceId, userType, role } = req.body;
-    logger.info({ phoneNumber, deviceId, userType, role },"User data for login:");
+    logger.info(
+      { phoneNumber, deviceId, userType, role },
+      "User data for login:"
+    );
 
     const userData = await User.findUserByPhone(phoneNumber, 1, false);
 
-    logger.info({userData},"userDATA in DB");
+    logger.info({ userData }, "userDATA in DB");
     // console.log("DATA::::", userData);
 
     let statusInfo = { status: false, message: "something went wrong" };
 
     if (userType === "NUMBER") {
-
       // Admin/ Tester -- not found
       if (!userData && (role === "admin" || role === "tester")) {
-        return res.status(500).json({ message: `${role} not found, Try again later` });
+        return res
+          .status(500)
+          .json({ message: `${role} not found, Try again later` });
       }
 
       // ADMIN login
@@ -286,7 +311,6 @@ exports.loginUserOTP = async (req, res, next) => {
 
       // Test User login
       if (userData && userData.role === "tester") {
-
         if (deviceId) {
           userData.deviceId = deviceId;
           await User.update(phoneNumber, { deviceId: deviceId });
@@ -297,62 +321,63 @@ exports.loginUserOTP = async (req, res, next) => {
         statusInfo.newUser = false;
         statusInfo.status = true;
         statusInfo.user = userData;
-        statusInfo.role = "tester"
+        statusInfo.role = "tester";
         statusInfo.message = "Welcome Tester, OTP has been send Succesfully.";
         return res.status(200).json(statusInfo);
       }
       // New User
       if (!userData || userData?.status == 0) {
         console.log("new user=======");
-        const status_otp = await sendMsg91OTP(`${phoneNumber}`)
+        const status_otp = await sendMsg91OTP(`${phoneNumber}`);
 
         statusInfo.user = {
-          "_id": "",
-          "fullName": "",
-          "dateOfBirth": "",
-          "email": "",
-          "phone": "",
-          "password": "",
-          "latitude": "",
-          "longitude": "",
-          "city": "",
-          "state": "",
-          "profileUrl": "",
-          "gender": "",
-          "userType": "NUMBER",
-          "favourites": [],
-          "deviceId": "",
-          "role": "user"
+          _id: "",
+          fullName: "",
+          dateOfBirth: "",
+          email: "",
+          phone: "",
+          password: "",
+          latitude: "",
+          longitude: "",
+          city: "",
+          state: "",
+          profileUrl: "",
+          gender: "",
+          userType: "NUMBER",
+          favourites: [],
+          deviceId: "",
+          role: "user",
         };
         statusInfo.role = "user";
         statusInfo.newUser = true;
 
         if (status_otp.status) {
-
           statusInfo.status = true;
           statusInfo.message = "OTP has been send Succesfully";
           return res.status(200).json(statusInfo);
-
         } else {
           statusInfo.status = false;
           statusInfo.message = "OTP sent failed !";
           return res.status(200).json(statusInfo);
         }
-
       }
       // Existing User Login
       else {
         console.log("ELESEEEE");
-        const status_otp = await sendMsg91OTP(`${phoneNumber}`)
+        const status_otp = await sendMsg91OTP(`${phoneNumber}`);
 
         if (deviceId) {
           userData.deviceId = deviceId;
-          let {matchedCount} = await User.update(phoneNumber, { deviceId: deviceId });
-          logger.info(matchedCount,"Device Id updated for Existing User Login");
+          let { matchedCount } = await User.update(phoneNumber, {
+            deviceId: deviceId,
+          });
+          logger.info(
+            matchedCount,
+            "Device Id updated for Existing User Login"
+          );
         }
 
         if (status_otp.status) {
-
           const token = jwt.sign({ user: userData }, secretKey);
           statusInfo.token = token;
           statusInfo.role = userData.role || "user";
@@ -361,9 +386,7 @@ exports.loginUserOTP = async (req, res, next) => {
           statusInfo.status = true;
           statusInfo.user = userData;
           return res.status(200).json(statusInfo);
-
         } else {
-
           const token = jwt.sign({ user: userData }, secretKey);
           statusInfo.token = token;
           statusInfo.role = userData.role || "user";
@@ -372,17 +395,10 @@ exports.loginUserOTP = async (req, res, next) => {
           statusInfo.status = false;
           statusInfo.user = userData;
           return res.status(200).json(statusInfo);
-
-
-
         }
-
-
-
       }
     }
     return res.status(200).json(statusInfo);
-
   } catch (error) {
     logger.error(error, "Error in loginUserOTP:");
     console.log(error);
@@ -390,17 +406,24 @@ exports.loginUserOTP = async (req, res, next) => {
   }
 };
 
-
-exports.registerOfflineUser = async({ fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role })=>{
+exports.registerOfflineUser = async ({
+  fullName,
+  userType,
+  dateOfBirth,
+  email,
+  phoneNumber,
+  deviceId,
+  role,
+}) => {
   try {
     const user_data = {
       fullName: fullName,
-      dateOfBirth : dateOfBirth || "Offline",
+      dateOfBirth: dateOfBirth || "Offline",
       email,
       phone: phoneNumber,
       password: "",
       userType: userType || "Offline",
-      deviceId : deviceId || "Offline",
+      deviceId: deviceId || "Offline",
       latitude: "",
       longitude: "",
       city: "",
@@ -409,22 +432,23 @@ exports.registerOfflineUser = async({ fullName, userType, dateOfBirth, email, ph
       role: role || "user",
       gender: "",
       favourites: [],
-      status: 0
+      status: 0,
     };
-    let alreadyExist = await User.findUserByPhone(phoneNumber,0,false)
-    if(alreadyExist) return {status:false, message:"User Already Exist by this Number"}
+    let alreadyExist = await User.findUserByPhone(phoneNumber, 0, false);
+    if (alreadyExist)
+      return { status: false, message: "User Already Exist by this Number" };
     const userObj = new User(user_data);
-    userObj.status = 0
-    let result = await userObj.save()
+    userObj.status = 0;
+    let result = await userObj.save();
     return {
-      status:true,
-      message:"User Successfully Registered(Offline)",
-      result
-    }
+      status: true,
+      message: "User Successfully Registered(Offline)",
+      result,
+    };
   } catch (error) {
-    logger.error(error,"Error occure while offline registering user")
+    logger.error(error, "Error occure while offline registering user");
   }
-}
+};
 // -----------------------------------------------
 
 exports.TestloginUserOTP = async (req, res, next) => {
@@ -449,11 +473,11 @@ exports.TestloginUserOTP = async (req, res, next) => {
 
     const userData = await User.findUserByPhone(phoneNumber);
 
-    logger.info("userdata ==========>",{userData});
+    logger.info("userdata ==========>", { userData });
 
     if (userType === "NUMBER") {
       const token = generateRandomCode(4);
-      logger.info("test mobile otp:",{token});
+      logger.info("test mobile otp:", { token });
       statusInfo.message = "Test OTP sent successfully";
       statusInfo.otp = token;
       statusInfo.status = true;
@@ -541,7 +565,7 @@ exports.loginUser = (req, res, next) => {
     db.collection("users")
       .updateOne({ email: email }, { $set: userData })
       .then((resultData) => {
-        jwt.sign({ user: userData }, 'myAppSecretKey', (err, token) => {
+        jwt.sign({ user: userData }, "myAppSecretKey", (err, token) => {
           res.json({
             status: true,
             message: "Successfully Logged In",
@@ -555,7 +579,6 @@ exports.loginUser = (req, res, next) => {
 };
 
 exports.sendSignUpOtp = (req, res, next) => {
-
   const email = req.body.email;
   const phone = req.body.phone;
 
@@ -567,26 +590,24 @@ exports.sendSignUpOtp = (req, res, next) => {
     }
     User.findUserByPhone(phone).then((userDataPhone) => {
       if (userDataPhone) {
-        return res
-          .status(409)
-          .json({
-            status: false,
-            message: "User already exist with this phone",
-          });
+        return res.status(409).json({
+          status: false,
+          message: "User already exist with this phone",
+        });
       }
       let token = generateRandomCode(4);
-      logger.info("phone token otp :",{token});
+      logger.info("phone token otp :", { token });
       // let token = "123456";
       //send OTP to both email and OTP
       //To Phone
       axios
         .get(
           "https://www.fast2sms.com/dev/bulkV2?authorization=" +
-          process.env.FAST2SMS_AUTH_KEY +
-          "&variables_values" +
-          token +
-          "&route=otp&numbers=" +
-          phone
+            process.env.FAST2SMS_AUTH_KEY +
+            "&variables_values" +
+            token +
+            "&route=otp&numbers=" +
+            phone
         )
         .then(function (response) {
           if (
@@ -630,28 +651,29 @@ exports.sendSignUpOtp = (req, res, next) => {
   });
 };
 
-
-
 exports.getAllUsers = async (req, res) => {
   try {
-
-    console.log("query")
-    console.log(req.query)
+    console.log("query");
+    console.log(req.query);
     const page = +req.query.page || 1;
     const limit = +req.query.limit || 10;
 
-    const source_web_site = req.headers?.referer.includes("sadmin.choira.io") ? true:false;
+    const source_web_site = req.headers?.referer?.includes("sadmin.choira.io")
+      ? true
+      : false;
     console.log("source_web_site");
     console.log(source_web_site);
 
     let { searchUser, startDate, endDate } = req.query;
-    
+
     let filter = pick(req.query, ["status"]);
 
-    let sortfield = req.query?.sortfield ? req.query.sortfield : "creationTimeStamp";
-    let sortDirection = -1
-    sortDirection = req.query.sortDirection === 'asc' ? 1 : -1;
-    
+    let sortfield = req.query?.sortfield
+      ? req.query.sortfield
+      : "creationTimeStamp";
+    let sortDirection = -1;
+    sortDirection = req.query.sortDirection === "asc" ? 1 : -1;
+
     if (filter.status) filter.status = parseInt(filter.status);
     let searching;
     if (searchUser) {
@@ -664,15 +686,15 @@ exports.getAllUsers = async (req, res) => {
       };
     }
 
-    let pipeline = [
-      { "$match": searching || {} },
-      { "$match": filter },
-    ];
+    let pipeline = [{ $match: searching || {} }, { $match: filter }];
 
     if (startDate && endDate) {
       pipeline.push({
         $match: {
-          creationTimeStamp: { $gte: new Date(startDate + "T00:00:00"), $lt: new Date(endDate + "T23:59:59") }
+          creationTimeStamp: {
+            $gte: new Date(startDate + "T00:00:00"),
+            $lt: new Date(endDate + "T23:59:59"),
+          },
         },
       });
     }
@@ -691,21 +713,30 @@ exports.getAllUsers = async (req, res) => {
       const limitStage = { $limit: parseInt(limit) };
       pipeline.push(limitStage);
     }
+    console.log("USER FILTER :::",JSON.stringify(pipeline));
     let users = await User.fetchAllUsersByAggregate(pipeline);
     const db = getDb();
     console.log("filter2");
     console.log(filter);
     const totalCountPipeline = [
-      { "$match": searching || {} },
-      { "$match": filter },
-      startDate?{
-        "$match": {
-          creationTimeStamp : {$gte:new Date(startDate+"T00:00:00"), $lt:new Date(endDate+"T23:59:59")}
-        },
-      }:{ "$match": {} },
-      { "$count": 'total' }
+      { $match: searching || {} },
+      { $match: filter },
+      startDate
+        ? {
+            $match: {
+              creationTimeStamp: {
+                $gte: new Date(startDate + "T00:00:00"),
+                $lt: new Date(endDate + "T23:59:59"),
+              },
+            },
+          }
+        : { $match: {} },
+      { $count: "total" },
     ];
-    const totalCountResult = await db.collection('users').aggregate(totalCountPipeline).toArray();
+    const totalCountResult = await db
+      .collection("users")
+      .aggregate(totalCountPipeline)
+      .toArray();
     const totalDocuments = totalCountResult[0]?.total || 0;
     const totalPages = Math.ceil(totalDocuments / limit);
 
@@ -717,19 +748,17 @@ exports.getAllUsers = async (req, res) => {
         page,
         limit,
         totalPages,
-        totalResults: totalDocuments
-      }
+        totalResults: totalDocuments,
+      },
     });
   } catch (error) {
     logger.error(error, "Error while getting all users");
     res.status(500).json({
       status: false,
-      message: "Error occurred while fetching users"
+      message: "Error occurred while fetching users",
     });
   }
 };
-
-
 
 exports.getParticularUserDetails = (req, res, next) => {
   const userId = req.params.userId;
@@ -832,12 +861,10 @@ exports.sendEmailOtpForEdit = (req, res, next) => {
 
   User.findUserByEmail(email).then((userData) => {
     if (userData) {
-      return res
-        .status(409)
-        .json({
-          status: false,
-          message: "User with this Email already exists",
-        });
+      return res.status(409).json({
+        status: false,
+        message: "User with this Email already exists",
+      });
     }
     // return res.json({status:true, message:"OTP sent successfully", otp:token});
     const mailOptions = {
@@ -925,7 +952,6 @@ exports.editUserEmail = (req, res, next) => {
 };
 
 exports.sendPhoneOtpForEdit = (req, res, next) => {
-
   const phone = req.body.phone;
 
   let token = generateRandomCode(6);
@@ -933,22 +959,20 @@ exports.sendPhoneOtpForEdit = (req, res, next) => {
 
   User.findUserByPhone(phone).then((userData) => {
     if (userData) {
-      return res
-        .status(409)
-        .json({
-          status: false,
-          message: "User with this Phone already exists",
-        });
+      return res.status(409).json({
+        status: false,
+        message: "User with this Phone already exists",
+      });
     }
     // return res.json({status:true, message:"OTP sent successfully", otp:token});
     axios
       .get(
         "https://www.fast2sms.com/dev/bulkV2?authorization=" +
-        process.env.FAST2SMS_AUTH_KEY +
-        "&variables_values" +
-        token +
-        "&route=otp&numbers=" +
-        phone
+          process.env.FAST2SMS_AUTH_KEY +
+          "&variables_values" +
+          token +
+          "&route=otp&numbers=" +
+          phone
       )
       .then(function (response) {
         if (
@@ -1050,21 +1074,17 @@ exports.editUserPasswordDetails = (req, res, next) => {
     }
 
     if (userData.password != currentPassword) {
-      return res
-        .status(400)
-        .json({
-          status: false,
-          message: "Please enter valid current password",
-        });
+      return res.status(400).json({
+        status: false,
+        message: "Please enter valid current password",
+      });
     }
 
     if (currentPassword == newPassword) {
-      return res
-        .status(400)
-        .json({
-          status: false,
-          message: "New password should not be same as old password",
-        });
+      return res.status(400).json({
+        status: false,
+        message: "New password should not be same as old password",
+      });
     }
 
     userData.password = newPassword;
@@ -1138,11 +1158,11 @@ exports.sendForgotPasswordOtp = (req, res, next) => {
       axios
         .get(
           "https://www.fast2sms.com/dev/bulkV2?authorization=" +
-          process.env.FAST2SMS_AUTH_KEY +
-          "&variables_values" +
-          token +
-          "&route=otp&numbers=" +
-          identity
+            process.env.FAST2SMS_AUTH_KEY +
+            "&variables_values" +
+            token +
+            "&route=otp&numbers=" +
+            identity
         )
         .then(function (response) {
           if (
@@ -1190,12 +1210,10 @@ exports.editUserPassword = (req, res, next) => {
       }
 
       if (userData.password == newPassword) {
-        return res
-          .status(409)
-          .json({
-            status: false,
-            message: "New password must not be same as old password",
-          });
+        return res.status(409).json({
+          status: false,
+          message: "New password must not be same as old password",
+        });
       }
 
       //Update password
@@ -1366,8 +1384,16 @@ exports.deleteParticularUser = (req, res, next) => {
     const db = getDb();
     var o_id = new ObjectId(userId);
 
-    await db.collection("userdeleterequests").insertOne({ phone: userData.phone, email: userData.email, creationTimeStamp: new Date(), userId: userData._id })
-    await db.collection("users")
+    await db
+      .collection("userdeleterequests")
+      .insertOne({
+        phone: userData.phone,
+        email: userData.email,
+        creationTimeStamp: new Date(),
+        userId: userData._id,
+      });
+    await db
+      .collection("users")
       .updateOne({ _id: o_id }, { $set: { status: 0 } })
       .then((resultData) => {
         return res.json({ status: true, message: "User deleted successfully" });
@@ -1425,7 +1451,7 @@ exports.getAllUsersGraphDetails = (req, res, next) => {
     });
     keyData = keyData + 1;
   }
-  logger.info({months});
+  logger.info({ months });
 
   User.fetchAllUsers(0, 0).then((usersData) => {
     usersData.forEach((user) => {
@@ -1512,67 +1538,69 @@ exports.getUserNearyByLocations = async (req, res, next) => {
   const longitude = 72.9050809;
   const range = 100;
   var point1 = new GeoPoint(+latitude, +longitude);
-  logger.info("point1",{point1});
+  logger.info("point1", { point1 });
   return res.json({ msg: "near by places" });
 };
 
 exports.exportUserData = async (req, res) => {
   try {
-    const filter = pick(req.query, ['dateOfBirth', 'userType', 'role','status',"searchUser"]); // {startDate: 2022-19-01}
-    const options = pick(req.query, ['sort', 'limit', 'gender', 'startDate', 'endDate', 'page', 'sortfield', 'sortvalue']); // {}
-    const pipeline = []
+    const filter = pick(req.query, ["dateOfBirth", "userType", "role","status"]); // {startDate: 2022-19-01}
+    const options = pick(req.query, [
+      "sort",
+      "limit",
+      "gender",
+      "startDate",
+      "endDate",
+      "page",
+      "sortfield",
+      "sortvalue",
+    ]); // {}
 
-    // if (filter.status) filter.status = parseInt(filter.status);
-
-    
+    console.log("=====================");
+    console.log(req.query);
+    const pipeline = [];
 
     if (Object.keys(filter).length) {
-      pipeline.push(
-        {
-          $match: filter,
-        }
-      )
+      pipeline.push({
+        $match: filter,
+      });
     }
 
-    let {searchUser} = req.query
+    let { searchUser } = req.query;
     if (searchUser) {
-      pipeline.push({ "$match": {
-        $or: [
-          { fullName: { $regex: searchUser, $options: "i" } },
-          { email: { $regex: searchUser, $options: "i" } },
-          { phone: { $regex: searchUser, $options: "i" } },
-        ],
-      }},)
+      pipeline.push({
+        $match: {
+          $or: [
+            { fullName: { $regex: searchUser, $options: "i" } },
+            { email: { $regex: searchUser, $options: "i" } },
+            { phone: { $regex: searchUser, $options: "i" } },
+          ],
+        },
+      });
     }
 
-    console.log(filter);
-
-
-    logger.info("this is pipe======>",{pipeline});
+    logger.info("this is pipe======>", { pipeline });
     if (options.startDate && options.endDate) {
-      let startDate = options.startDate
-      let endDate = options.endDate
+      let startDate = options.startDate;
+      let endDate = options.endDate;
       pipeline.push({
         $match: {
           creationTimeStamp: {
             $gte: new Date(startDate),
-            $lte: new Date(endDate)
+            $lte: new Date(endDate),
           },
         },
       });
     }
 
-
-
-    const sortobj = { [options.sortfield]: +options.sortvalue }
+    const sortobj = { [options.sortfield]: +options.sortvalue };
 
     if (options.sortfield) {
       const sortStage = {
-        $sort: sortobj
+        $sort: sortobj,
       };
       pipeline.push(sortStage);
     }
-
 
     if (options.limit) {
       const limitStage = {
@@ -1583,19 +1611,20 @@ exports.exportUserData = async (req, res) => {
 
     if (options.page) {
       const skipStage = {
-        $skip: (parseInt(options.page) - 1
-        ) * parseInt(options.limit),
+        $skip: (parseInt(options.page) - 1) * parseInt(options.limit),
       };
       pipeline.push(skipStage);
     }
-    console.log(JSON.stringify(pipeline))
+    console.log("pipeline:::");
+    console.log(JSON.stringify(pipeline));
+    console.log(options);
     let allUser;
     if (filter || options) {
-      allUser = await User.fetchAllUsersByAggregate(pipeline)
+      allUser = await User.fetchAllUsersByAggregate(pipeline);
     } else {
       allUser = await User.fetchAllUsers(0, 0);
     }
-    console.log("Active Users",allUser);
+    console.log("Active Users", allUser);
     // console.log(JSON.stringify(pipeline))
     const workbook = new excelJS.Workbook();
     const worksheet = workbook.addWorksheet("userData");
@@ -1632,98 +1661,117 @@ exports.exportUserData = async (req, res) => {
     });
 
     // return res.status(200).json({status:true,"no_of_users":allUser.length,message:"All Users", All_User:allUser})
-    let name = new Date().getTime()
-    let file_name = `Users${name}.xlsx`
+    let name = new Date().getTime();
+    let file_name = `Users${name}.xlsx`;
     console.log("this is running");
     const data = await workbook.xlsx
       .writeFile(`files/${file_name}`)
       .then(() => {
-        res.header({ "Content-disposition": `attachment; filename=${file_name}`, "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }).sendFile(`${file_name}`, { root: `files/` }, function (err) {
-          if (err) {
-            logger.error(err, 'Error sending file');
-          } else {
-            logger.info({
-              status: "success",
-              message: "file successfully downloaded",
-              path: `${path}/${file_name}`
-            });
-          }
-        })
+        res
+          .header({
+            "Content-disposition": `attachment; filename=${file_name}`,
+            "Content-Type":
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          })
+          .sendFile(`${file_name}`, { root: `files/` }, function (err) {
+            if (err) {
+              logger.error(err, "Error sending file");
+            } else {
+              logger.info({
+                status: "success",
+                message: "file successfully downloaded",
+                path: `${path}/${file_name}`,
+              });
+            }
+          });
       });
   } catch (error) {
-    logger.error(error)
+    logger.error(error);
     res.send({
       status: "error",
       message: "Something went wrong",
-      error: error.message
+      error: error.message,
     });
   }
 };
 
-
-
 exports.sendOTP2 = async (req, res) => {
   try {
     const db = getDb();
-    var phoneNumber = req.body.phoneNumber
+    var phoneNumber = req.body.phoneNumber;
     // let otp = req.query.otp
-    let userData = await db.collection("users").findOne({ phone: phoneNumber })
+    let userData = await db.collection("users").findOne({ phone: phoneNumber });
     if (!userData) {
-      return res.status(200).json({ status: false, message: "User not found" })
+      return res.status(200).json({ status: false, message: "User not found" });
     }
     if (userData.status === 0) {
-      return res.status(200).json({ status: false, message: "User is already deleted" })
+      return res
+        .status(200)
+        .json({ status: false, message: "User is already deleted" });
     }
-    console.log('phoneNumber=>', phoneNumber);
+    console.log("phoneNumber=>", phoneNumber);
     var options = {
-      method: 'POST',
-      url: 'https://control.msg91.com/api/v5/otp',
+      method: "POST",
+      url: "https://control.msg91.com/api/v5/otp",
       params: {
         template_id: process.env.MSG91_TEMP_ID, // '6603b39dd6fc051f716ee0a3',
         mobile: phoneNumber,
         authkey: process.env.MSG91_AUT_KEY,
         // otp: otp,
-        otp_length: '4',
-        otp_expiry: '10'
+        otp_length: "4",
+        otp_expiry: "10",
       },
-      headers: { 'Content-Type': 'application/JSON' }
+      headers: { "Content-Type": "application/JSON" },
     };
-    axios.request(options).then(function (response) {
-      const res_data = response.data
-      logger.info("DATA--->",{res_data});
-      if (response.data.type === 'success') {
-        res.status(200).json({ status: true, message: "otp successfully sent", userId: userData._id })
-      } else {
-        logger.error(error,"Error sending OTP:",)
-        res.status(404).json({ status: false, message: "otp sending failed" })
-      }
-    }).catch(function (error) {
-      logger.error(error,"Error sending OTP:",);
-      res.status(404).json({ status: false, message: "otp sending failed" })
-    });
+    axios
+      .request(options)
+      .then(function (response) {
+        const res_data = response.data;
+        logger.info("DATA--->", { res_data });
+        if (response.data.type === "success") {
+          res
+            .status(200)
+            .json({
+              status: true,
+              message: "otp successfully sent",
+              userId: userData._id,
+            });
+        } else {
+          logger.error(error, "Error sending OTP:");
+          res
+            .status(404)
+            .json({ status: false, message: "otp sending failed" });
+        }
+      })
+      .catch(function (error) {
+        logger.error(error, "Error sending OTP:");
+        res.status(404).json({ status: false, message: "otp sending failed" });
+      });
   } catch (error) {
-    logger.error(error, `Error sending OTP for ${phoneNumber}`,);
-    res.status(404).json({ status: false, message: "otp sending failed" })
+    logger.error(error, `Error sending OTP for ${phoneNumber}`);
+    res.status(404).json({ status: false, message: "otp sending failed" });
   }
-}
+};
 
 exports.verifyOTP = async (req, res) => {
   try {
-    let phoneNumber = req.query.phoneNumber
-    let otp = req.query.otp
-    const response = await axios.get(`https://control.msg91.com/api/v5/otp/verify`, {
-      params: { otp: otp, mobile: phoneNumber },
-      headers: { authkey: process.env.MSG91_AUT_KEY }
-    });
+    let phoneNumber = req.query.phoneNumber;
+    let otp = req.query.otp;
+    const response = await axios.get(
+      `https://control.msg91.com/api/v5/otp/verify`,
+      {
+        params: { otp: otp, mobile: phoneNumber },
+        headers: { authkey: process.env.MSG91_AUT_KEY },
+      }
+    );
     console.log("response.data-->", response.data.message, response.data.type);
     if (response.status == 200 && response.data.type == "success") {
-      res.status(200).json({ status: true, message: response.data.message })
+      res.status(200).json({ status: true, message: response.data.message });
     } else {
-      res.status(200).json({ status: false, message: response.data.message })
+      res.status(200).json({ status: false, message: response.data.message });
     }
   } catch (error) {
     logger.info(error, "Error verifiying OTP");
-    res.status(404).json({ status: false, message: "otp verification failed" })
+    res.status(404).json({ status: false, message: "otp verification failed" });
   }
-}
-
+};
