@@ -544,8 +544,6 @@ router.post('/near-studios',auth.isUser,controller.getAllNearStudios);
 router.post('/studios/date-filter',auth.isAdminOrOwner,controller.getStudiosByDate);
 
 
-//added by me:
-
 /**
  * @swagger
  * /studios/filter/data:
