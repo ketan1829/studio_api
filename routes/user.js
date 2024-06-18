@@ -4,7 +4,7 @@ const controller = require('../controllers/user');
 const {verifyOTP} = require('../util/mail');
 
 
-const serverName = `${process.env.SERVER_NAME}`;
+const serverName = `${process.env.SERVER_NAME}/download/`;
 
 console.log(serverName);
 

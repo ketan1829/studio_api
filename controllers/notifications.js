@@ -27,64 +27,65 @@ exports.sendNotificationsToAllUsers = (req,res,next)=>{
     let notiCounter = 0;
     let isSuccess = true;
 
-    User.fetchAllUsers(0,0)
-    .then(userData=>{
-        userData.forEach(uData=>{
-            var myJSONObject = {
-                "app_id": process.env.ONE_SIGNAL_APP_ID,
-                "include_player_ids": [uData.deviceId],
-                "data": {},
-                "contents": {"en": title+"\n"+message}
-            };
+    // User.fetchAllUsers(0,0)
+    // .then(userData=>{
+    //     userData.forEach(uData=>{
+    //         var myJSONObject = {
+    //             "app_id": process.env.ONE_SIGNAL_APP_ID,
+    //             "include_player_ids": [uData.deviceId],
+    //             "data": {},
+    //             "contents": {"en": title+"\n"+message}
+    //         };
 
-            axios({
-                method: 'post',
-                url: "https://onesignal.com/api/v1/notifications",
-                data: myJSONObject,
-                headers:{
-                    'Content-Type': 'application/json',
-                    'Authorization': process.env.ONE_SIGNAL_AUTH
-                }
-            })
-            .then( async result=>{
-                notiCounter = notiCounter+1;
-                // console.log("Success : ",result.data);
-                if(result.data.recipients != 1)
-                {
-                    isSuccess = false;
-                }
+    //         axios({
+    //             method: 'post',
+    //             url: "https://onesignal.com/api/v1/notifications",
+    //             data: myJSONObject,
+    //             headers:{
+    //                 'Content-Type': 'application/json',
+    //                 'Authorization': process.env.ONE_SIGNAL_AUTH
+    //             }
+    //         })
+    //         .then( async result=>{
+    //             notiCounter = notiCounter+1;
+    //             // console.log("Success : ",result.data);
+    //             if(result.data.recipients != 1)
+    //             {
+    //                 isSuccess = false;
+    //             }
         
-                const db = getDb();
+    //             const db = getDb();
     
-                const notification = new Notification(uData._id.toString(),title,message);
+    //             const notification = new Notification(uData._id.toString(),title,message);
 
-                //saving in database
-                return notification.save()
-                .then(resultData=>{                    
-                    if(userData.length == notiCounter)
-                    {
-                        if(isSuccess)
-                        {
-                            return res.json({status:true,message:"Notification Sent to all Users"});
-                        }
-                        else{
-                            return res.json({status:false,message:"Notification not sent to all Users"});
-                        }
-                    }
-                })
-            })
-            .catch(err=>{
-                // console.log(err);
-                notiCounter = notiCounter+1;
-                isSuccess = false;
-                // console.log(userData.length,notiCounter);
-                if(userData.length == notiCounter)
-                {
-                    return res.json({status:false,message:"Notification not sent to all Users"});
-                }
-            })
-        })
-    })
+    //             //saving in database
+    //             return notification.save()
+    //             .then(resultData=>{                    
+    //                 if(userData.length == notiCounter)
+    //                 {
+    //                     if(isSuccess)
+    //                     {
+    //                         return res.json({status:true,message:"Notification Sent to all Users"});
+    //                     }
+    //                     else{
+    //                         return res.json({status:false,message:"Notification not sent to all Users"});
+    //                     }
+    //                 }
+    //             })
+    //         })
+    //         .catch(err=>{
+    //             // console.log(err);
+    //             notiCounter = notiCounter+1;
+    //             isSuccess = false;
+    //             // console.log(userData.length,notiCounter);
+    //             if(userData.length == notiCounter)
+    //             {
+    //                 return res.json({status:false,message:"Notification not sent to all Users"});
+    //             }
+    //         })
+    //     })
+    // })
+    return res.json({status:true,message:"Notification stoped!"});
 }
 
 
