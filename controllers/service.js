@@ -130,7 +130,8 @@ exports.createNewService = async (req, res, next) => {
     // }
     // If validation passes, proceed to the next middleware or controller function
     // next();
-
+    pricing = await minStartPrice(packages)
+    
     const serviceObj = new Service(
       service_id,
       fullName,
@@ -161,7 +162,6 @@ exports.createNewService = async (req, res, next) => {
             message: resultData.message,
           });
         }
-        await Service.minStartPrice(resultData._id) // this caluculate minimum price and update the pricing field
         return res.json({
           status: true,
           message: "Service added successfully",
@@ -177,6 +177,9 @@ exports.createNewService = async (req, res, next) => {
       });
   }
 };
+
+
+
 
 exports.getServices = (req, res, next) => {
 
@@ -393,6 +396,7 @@ exports.updateService = async (req, res) => {
   const featuredReviews = req.body.starredReviews;
   const type = req.body.type || "c2";
   const isActive = +req.body.isActive;
+  let pricing = {}
   const serviceData = await Service.findServiceById(sId);
   logger.info({sId});
 
@@ -414,6 +418,7 @@ exports.updateService = async (req, res) => {
   // });
   // console.log(updatedPackages);
 
+  pricing = await minStartPrice(packages)
   let service_obj = {
     service_id,
     fullName,
@@ -430,10 +435,11 @@ exports.updateService = async (req, res) => {
     featuredReviews,
     type,
     isActive,
+    pricing
   };
 
   let newData = Service.filterEmptyFields(service_obj);
-  // logger.info("newData===================",{newData});
+  // logger.info({newData},"newData===================");
   const updated_result = await Service.updateServiceById(sId, newData);
   // logger.info("updated_result===",updated_result)
   res.send(updated_result);
@@ -596,3 +602,45 @@ exports.exportServicesData = async (req, res) => {
   }
   // return res.status(200).json({status:true,"no_of_services":allService.length,message:"All Services", All_User:allService})
 };
+
+
+//functions:-
+async function  minStartPrice(packages) {
+  try {
+  //   const db = getDB();
+  // const objectId = new ObjectId(o_id);
+  // const services = await db.collection("services").find({ _id: objectId }).toArray();
+  let minUsa = [];
+  let minIn = [];
+  let minJp = [];
+
+packages.forEach(packageObj => {
+          Object.entries(packageObj.pricing).forEach(([country, prices]) => {
+              if (country === 'USA') minUsa.push(prices.basePrice);
+              if (country === 'IN') minIn.push(prices.basePrice);
+              if (country === 'JP') minJp.push(prices.basePrice);
+          });
+});
+
+
+  return {
+    "USA": {
+        "price":0,
+        "basePrice": Math.min(...minUsa),
+        "discountPercentage": 10
+    },"IN": {
+        "price":0,
+        "basePrice": Math.min(...minIn),
+        "discountPercentage": 10
+    },"JP": {
+        "price": 0,
+        "basePrice": Math.min(...minJp),
+        "discountPercentage": 10
+    },
+}
+
+  } catch (error) {
+    logger.error(error,"Error in calculating minimum start price");
+    console.log(error);
+  }
+}

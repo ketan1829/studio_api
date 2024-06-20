@@ -30,6 +30,7 @@ const notificationsRoutes = require('./routes/notifications');
 const ownerRoutes = require('./routes/owner');
 const adminNotificationsRoutes = require('./routes/adminNotifications');
 const mailtestRoutes = require('./routes/mailtest');
+const dashboard = require('./routes/dashboard');
 
 // TEST ROUTES
 
@@ -143,6 +144,7 @@ app.use(`${first_route}`,ownerRoutes);
 app.use(`${first_route}`,adminNotificationsRoutes);
 app.use(`${first_route}`,mailtestRoutes);
 app.use(`${first_route}`,testRoutes);
+app.use(`${first_route}`,dashboard);
 
 // serve static folder (admin-panel)
 app.use(express.static("dist-payment/bms-webpayment"));

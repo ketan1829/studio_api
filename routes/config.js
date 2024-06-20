@@ -6,10 +6,10 @@ const auth = require("../util/authCheck");
 
 router.post('/configs/add', auth.isBoth,configController.updateAllDoc);
 
-router.get('/configs/indexForStudioName', configController.createIndexForStudioName);
+router.get('/configs/indexForStudioNameAndAddress',auth.isAdminV2,configController.createIndexForStudioNameAndAddress);
 
 
-router.post('/updateAllUser',configController.updateAllUser)
+router.post('/configs/updateAllUser',auth.isAdminV2,configController.updateAllUser)
 
 
 module.exports = router;

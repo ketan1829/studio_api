@@ -107,14 +107,7 @@ class Service {
           { $set: newData },
           { new: true }
         );
-        let result = await Service.minStartPrice(sId._id) // this caluculate minimum price and update the pricing field
-      //  console.log(updatedResult)
-      if(!result.status){
-        return {
-          status: false,
-          message: "Error Updating minimum price"
-        };
-      }
+
       return {
         status: true,
         message: "Service updated successfully",
@@ -204,57 +197,7 @@ class Service {
     }
   }
 
-  static async minStartPrice(o_id) {
-    try {
-      const db = getDB();
-    const objectId = new ObjectId(o_id);
-    const services = await db.collection("services").find({ _id: objectId }).toArray();
-    let minUsa = [];
-    let minIn = [];
-    let minJp = [];
 
-    services.forEach(service => {
-        service.packages.forEach(packageObj => {
-            Object.entries(packageObj.pricing).forEach(([country, prices]) => {
-                if (country === 'USA') minUsa.push(prices.basePrice);
-                if (country === 'IN') minIn.push(prices.basePrice);
-                if (country === 'JP') minJp.push(prices.basePrice);
-            });
-        });
-    });
-
-
-    const minobj = {
-      "USA": {
-          "price":0,
-          "basePrice": Math.min(...minUsa),
-          "discountPercentage": 10
-      },"IN": {
-          "price":0,
-          "basePrice": Math.min(...minIn),
-          "discountPercentage": 10
-      },"JP": {
-          "price": 0,
-          "basePrice": Math.min(...minJp),
-          "discountPercentage": 10
-      },
-  }
-    
-        await db.collection("services").updateOne(
-        { _id: new ObjectId(o_id) },
-        { $set: { pricing: minobj } }
-    );
-    
-    minIn = [];
-    minJp = [];
-    minUsa = [];
-
-    return{status:true, message: "Minimum start price updated successfully" };
-    } catch (error) {
-      logger.error(error,"Error in calculating minimum start price");
-      console.log(error);
-    }
-  }
 
   static async updateOneRecord(filter,update_data){
 

@@ -32,9 +32,13 @@ exports.AddKeyDoc = async(req,res,next)=>{
      }
  }
 
- exports.createIndexForStudioName= async(req,res)=>{
+ exports.createIndexForStudioNameAndAddress= async(req,res)=>{
     const db = getDb(); 
-    return await db.collection("studios").createIndex({ fullName: "text" });
+    await db.collection("studios").createIndex({ fullName: "text" , location:"text" });
+    res.json({
+      status:true,
+      message:"Studio Index successfully created for Name and Address"
+    })
  }
 
 
