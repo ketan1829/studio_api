@@ -20,11 +20,11 @@ router.get('/settings/banner',auth.isBoth,controller.getBanner);
 
 router.get('/settings/category',auth.isBoth,controller.getCategory);
 
-router.post('/settings/booking/AddCountryCode',controller.addCountryCodeInBookings)
+router.post('/settings/booking/AddCountryCode',auth.isAdminV2,controller.addCountryCodeInBookings)
 
-router.post('/settings/studios/country',controller.addCountryFieldInStudios)
+router.post('/settings/studios/country',auth.isAdminV2,controller.addCountryFieldInStudios)
 
-router.patch('/setting/users/append', controller.countryCodeBeforPhoneNo)
+router.patch('/setting/users/append',auth.isAdminV2,controller.countryCodeBeforPhoneNo)
 
 
 
