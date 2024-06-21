@@ -1,41 +1,81 @@
-const { getDB } = require("../util/database")
+const { getDB } = require("../util/database");
 
 
-//This is just a dummy code, It is not giving the results as Expected
-exports.dashboardAnalytics = async (req, res) => {
-    try {
-        let db = getDB(); 
+//Dummy code
+const bookingTypes = ['c1', 'c2', 'c3'];
+const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
-        const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
-
-        let data = months.map(month => ({
-            name: month,
-            studio: 0,
-            production: 0,
-            mixmaster: 0
-        }));
-
-        // Define queries for each type
-        const queries = [
-            { type: "c1", key: "studio" },
-            { type: "c2", key: "production" },
-            { type: "c3", key: "mixmaster" }
-        ];
-
-       
-        for (const query of queries) {
-            let bookings = await db.collection("bookings").find({ type: query.type, bookingStatus: 1 }).toArray();
-            bookings.forEach(booking => {
-                let bookingMonth = new Date(booking.bookingDate).getUTCMonth(); // Get zero-based month index
-                data[bookingMonth][query.key] += booking.totalPrice; // Accumulate totalPrice for the specific month and type
-            });
-        }
-
-        res.json(data);
-    } catch (error) {
-        console.log(error);
-        res.status(500).send("Internal Server Error");
+const aggregationPipeline = [
+  {
+    $match: {
+      bookingStatus: 1,
+      type: { $in: bookingTypes },
+      bookingDate: {
+        $gte: new Date(new Date().getFullYear() - 1, new Date().getMonth() + 1, 1),
+        $lt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)
+      }
     }
-};
+  },
+//   {
+//     $group: {
+//       _id: {
+//         year: { $year: "$bookingDate" },
+//         month: { $month: "$bookingDate" },
+//         type: "$type"
+//       },
+//       totalPriceSum: { $sum: "$totalPrice" }
+//     }
+//   },
+//   {
+//     $sort: {
+//       "_id.year": 1,
+//       "_id.month": 1,
+//       "_id.type": 1
+//     }
+//   }
+];
 
+exports.dashboardAnalytics = async (req, res) => {
+  try {
+    const db = getDB();
+    const bookingsCollection = db.collection('bookings');
+    const aggregationResult = await bookingsCollection.aggregate(aggregationPipeline).toArray();
+    const data = transformData(aggregationResult);
+    res.json(data);
+  } catch (err) {
+    console.error('Error while fetching booking data:', err);
+    res.status(500).send('Internal Server Error');
+  }
+}
 
+function transformData(aggregationResult) {
+  const data = [];
+  const initialData = {};
+
+  aggregationResult.forEach(item => {
+    const monthIndex = item._id.month - 1;
+    const monthName = months[monthIndex];
+    
+    if (!initialData[monthName]) {
+      initialData[monthName] = { name: monthName, studio: 0, production: 0, mixmaster: 0 };
+    }
+
+    if (item._id.type === 'c1') {
+      initialData[monthName].studio += item.totalPriceSum;
+    } else if (item._id.type === 'c2') {
+      initialData[monthName].production += item.totalPriceSum;
+    } else if (item._id.type === 'c3') {
+      initialData[monthName].mixmaster += item.totalPriceSum;
+    }
+  });
+
+  months.forEach(month => {
+    if (initialData[month]) {
+      data.push(initialData[month]);
+    } else {
+      data.push({ name: month, studio: 0, production: 0, mixmaster: 0 });
+    }
+  });
+
+  return data;
+}

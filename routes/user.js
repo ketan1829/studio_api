@@ -30,9 +30,14 @@ var upload1 = multer({storage:store}).single('newImage');
 var upload2 = multer({storage:store}).array('newImages',10);
 
 router.get('/download/:filename', function(req,res,next){
-    
-    filepath = path.join(__dirname,'../newFileUploads') +'/'+ req.params.filename;
-    res.download(filepath, req.params.filename);
+    const { view_type } = req.query
+    console.log("view_type",view_type);
+    filepath = path.join(__dirname, '../newFileUploads') + '/' + req.params.filename;
+    if (view_type === "view") {
+        return res.sendFile(filepath, req.params.filename)
+    }else{
+        return res.download(filepath, req.params.filename)
+    }
 });
 
 /**
