@@ -13,7 +13,10 @@ const User = require('../models/user');
 const { validateService, validateFilterSchema } = require('../util/validations');
 const getDb = require('../util/database').getDB; 
 const pick = require('../util/pick')
-const {paginate} = require('../util/plugins/paginate.plugin')
+const {paginate} = require('../util/plugins/paginate.plugin');
+const { logger } = require('../util/logger');
+// const calculateMinPrice = require("./studio.js")
+
 
 
 const ObjectId = mongodb.ObjectId;
@@ -58,6 +61,25 @@ exports.addPricingInServicePackage = async(req, res)=>{
     console.error("Error updating pricing details:", err);
 }
 res.send({status:true, message:"Pricing details updated successfully"})
+}
+
+
+exports.calAndSaveMinPriceOfStduio = async(req,res)=>{
+try {
+    let db = getDb()
+    let studios = await db.collection("studios").find().toArray()
+
+    studios.forEach(async(studio)=>{
+        // console.log("roomsDetails",studio.roomsDetails)
+        minStudioPrice = calculateMinPrice(studio.roomsDetails);
+        await db.collection("studios").updateOne({ _id: studio._id }, { $set: {minPrice:minStudioPrice} });
+        // console.log(minPrice);
+    })
+    res.json({status:true,message:"All Studio Udated Successfully"})
+} catch (error) {
+    logger.error("Error while calculating and storing price of each studio")
+    console.log(error);
+}
 }
 
 // exports.addPricingInService = async(req, res)=>{
@@ -239,8 +261,43 @@ exports.countryCodeBeforPhoneNo = async (req, res) => {
     } catch (error) {
         console.log(error);
         res.status(500).json({ error: 'Internal server error' });
-    }
+    }    
 };
 
 
+exports.onBoarding = async(req,res) =>{
+    try {
+        let db = getDb()
+        let data = await db.collection("settings").find({type:"onboarding"}).toArray()
+        res.status(200).json(data)
+    } catch (error) {
+        logger.error(error,"Error occured while Onboarding")
+        console.log(error);
+    }
+}
 
+
+const calculateMinPrice = (roomsDetails) => {
+    let minPriceOfRoom = [];
+  
+    roomsDetails.forEach((room) => {
+      if (typeof room.pricePerHour === 'number') {
+        minPriceOfRoom.push(room.pricePerHour);
+      } else {
+        const parsedPrice = parseFloat(room.pricePerHour);
+        if (!isNaN(parsedPrice)) {
+          minPriceOfRoom.push(parsedPrice);
+        }
+      }
+    });
+  
+    if (minPriceOfRoom.length === 0) {
+      throw new Error('No valid room prices found');
+    }
+  
+    let min = Math.min(...minPriceOfRoom);
+    return {
+      price: min,
+      basePrice: min,
+    };
+  };

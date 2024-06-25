@@ -8,10 +8,7 @@ const getMonthName = (monthNumber) => {
   return monthNames[monthNumber - 1];
 };
 
-const getDayName = (day) => {
-  const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-  return days[day];
-};
+
 
 
 const initializeCombinedResultsForYear = () => {
@@ -149,6 +146,10 @@ const initializeCombinedResultsForYear = () => {
 };
 
 const performWeekOperations = async (db) => {
+  const getDayName = (day) => {
+    const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+    return days[day];
+  };
   const today = new Date();
   const oneWeekAgo = new Date(today);
   oneWeekAgo.setDate(today.getDate() - 7);
