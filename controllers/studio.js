@@ -1737,3 +1737,6 @@ const calculateMinPrice = (roomsDetails) => {
     basePrice: min,
   };
 };
+
+// exports = {calculateMinPrice}
+// // module.exports = calculateMinPrice;

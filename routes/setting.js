@@ -24,7 +24,12 @@ router.post('/settings/booking/AddCountryCode',auth.isAdminV2,controller.addCoun
 
 router.post('/settings/studios/country',auth.isAdminV2,controller.addCountryFieldInStudios)
 
+router.post('/settings/minpricestudio',controller.calAndSaveMinPriceOfStduio)
+
 router.patch('/setting/users/append',auth.isAdminV2,controller.countryCodeBeforPhoneNo)
+
+router.get('/settings/onboarding',controller.onBoarding);
+
 
 
 
