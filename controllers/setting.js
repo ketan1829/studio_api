@@ -268,7 +268,7 @@ exports.countryCodeBeforPhoneNo = async (req, res) => {
 exports.onBoarding = async(req,res) =>{
     try {
         let db = getDb()
-        let data = await db.collection("settings").find({type:"onboarding"}).toArray()
+        let data = await db.collection("settings").findOne({ type: "onboarding" }, { projection: { _id: 0, type: 0 } })
         res.status(200).json(data)
     } catch (error) {
         logger.error(error,"Error occured while Onboarding")

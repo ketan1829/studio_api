@@ -34,8 +34,7 @@ exports.send_mail = function (bookingDetails) {
     to: [
       "nitin.goswami@choira.io",
       "ketan.salvi@choira.io",
-      // "support@choira.io",
-      "uday.singh@choira.io"
+      process.env.SUPPORT_MAIL
     ],
     subject: "New Booking Arrived!",
     html: BOOKING_SUCCESS_ADMIN(bookingDetails),
