@@ -41,11 +41,14 @@ class Setting {
     static getBanner(state)
     {
         const db = getDb();
-        return db.collection(collectionName).distinct('banner', { 'banner.active': state })
-        .then(Data=>{
-            return Data;
-        })
-        .catch(err=>console.log(err));
+    if(state===undefined){
+        return db.collection(collectionName).distinct('banner')
+    }
+    return db.collection(collectionName).aggregate([
+        { $unwind: "$banner" },
+        { $match: { "banner.active": state } },
+        { $replaceRoot: { newRoot: "$banner" } }
+    ]).toArray();
     }
 
     static async minStartPrice(o_id) {

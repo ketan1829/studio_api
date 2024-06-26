@@ -109,7 +109,7 @@ try {
 exports.getBanner = (req,res,next)=>{
 
     // console.log("body---", req.body);
-    const { settingId, startingPrice, offerings, TotalServices, avgReview, serviceId, active } = req.body;
+    let { settingId, startingPrice, offerings, TotalServices, avgReview, serviceId, active } = req.body;
     const filter = pick(req.query, ['name', 'role']) || { active: 1 }
     const options = pick(req.query, ['sortBy', 'limit', 'page']);
     
@@ -129,8 +129,8 @@ exports.getBanner = (req,res,next)=>{
     //     return res.status(400).json({ status: false, message: error.details[0].message });
     // }
 
-    Setting.getBanner(active).then((BannerData)=>{
-        return res.json({status:true, message:`banner returned`,banners:BannerData});
+    Setting.getBanner(active).then((banners)=>{
+        return res.json({status:true, message:`banner returned`,banners});
     })
     
 }

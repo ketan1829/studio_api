@@ -28,7 +28,7 @@ router.post('/settings/minpricestudio',controller.calAndSaveMinPriceOfStduio)
 
 router.patch('/setting/users/append',auth.isAdminV2,controller.countryCodeBeforPhoneNo)
 
-router.get('/settings/onboarding',auth.isUser,controller.onBoarding);
+router.get('/settings/onboarding',controller.onBoarding);
 
 
 
