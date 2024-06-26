@@ -71,8 +71,7 @@ exports.sendRegisterMail = async function (userdata) {
     to: [
       "nitin.goswami@choira.io",
       "ketan.salvi@choira.io",
-      // "support@choira.io",
-      "uday.singh@choira.io"
+      process.env.SUPPORT_MAIL
     ],
     subject: "New User Registered !",
     html: WELCOME_TEMPLATE(userdata),
