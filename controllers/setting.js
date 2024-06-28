@@ -301,3 +301,113 @@ const calculateMinPrice = (roomsDetails) => {
       basePrice: min,
     };
   };
+
+
+exports.createBanner = async(req,res)=>{
+    try {
+        let db= getDb()
+        // mandatory => id,stage,banner_redirect,active,photoURL
+        const {stage,name,photoURL,active,type,banner_redirect,entity_id, forr,redirect_url} = req.body;
+        const id = new ObjectId().toString()
+        let obj = {
+            id,
+            stage,
+            name,
+            photoURL,
+            active,
+            type,
+            banner_redirect,
+            entity_id,
+            for:forr,
+            redirect_url
+        }
+        obj = checks(obj, banner_redirect, redirect_url, forr, entity_id)
+        let {_id} = await db.collection("settings").findOne({type:"home_screen"})
+        console.log("idinfo",_id);
+        let result = await db.collection("settings").updateOne(
+            { _id },
+            {
+                $push: {
+                    banner: obj
+                }
+            }
+        );
+        if (result.modifiedCount === 1) {
+            res.status(200).json({ message: "Banner created successfully"});
+        } else {
+            res.status(400).json({ message: "Failed to create banner" });
+        }
+    } catch (error) {
+        logger.error(error,"Error while creating banner")
+        console.log(error);
+    }
+}
+
+exports.editBanner = async (req, res) => {
+    try {
+        let db = getDb();
+        const { id, stage, name, photoURL, active, type, banner_redirect, entity_id, forr, redirect_url } = req.body;
+
+        if (!id) {
+            return res.status(400).json({ message: "Missing banner id" });
+        }
+
+        let objectOfBanner = {
+            id,
+            stage,
+            name,
+            photoURL,
+            active,
+            type,
+            banner_redirect,
+            entity_id,
+            for: forr,
+            redirect_url
+        };
+        console.log("objectOfBanner",objectOfBanner);
+        objectOfBanner = checks(objectOfBanner, banner_redirect, redirect_url, forr, entity_id);
+        console.log("objectOfBanner2",objectOfBanner);
+        let result = await db.collection("settings").updateOne(
+            { "banner.id": id },
+            {
+                $set: {
+                    "banner.$.stage": objectOfBanner.stage || "",
+                    "banner.$.name": objectOfBanner.name || "",
+                    "banner.$.photoURL": objectOfBanner.photoURL || "",
+                    "banner.$.active": objectOfBanner.active || "",
+                    "banner.$.type": objectOfBanner.type || "",
+                    "banner.$.banner_redirect": objectOfBanner.banner_redirect || "",
+                    "banner.$.entity_id": objectOfBanner.entity_id || "",
+                    "banner.$.for": objectOfBanner.for || "",
+                    "banner.$.redirect_url": objectOfBanner.redirect_url || ""
+                }
+            }
+        );
+
+        if (result.modifiedCount === 1) {
+            return res.status(200).json({ message: "Banner updated successfully", result });
+        } else {
+            return res.status(400).json({ message: "Failed to update banner" });
+        }
+    } catch (error) {
+        logger.error(error, "Error while updating banner");
+        console.log(error);
+    }
+};
+
+let checks = (obj, banner_redirect, redirect_url, forr, entity_id) => {
+    if (banner_redirect === "external") {
+        if (redirect_url) {
+            obj.entity_id = "";
+            obj.for = "";
+        }
+    } else {
+        if (forr === "page") {
+            if (entity_id) {
+                obj.redirect_url = "";
+            }
+        }
+    }
+    return obj;
+};
+
