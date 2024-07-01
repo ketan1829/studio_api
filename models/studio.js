@@ -151,13 +151,14 @@ class Studio {
       if (filter.fullName) {
         // db.collection("studios").createIndex({ fullName: 'text', address: 'text' });
         const regex = { $regex: filter.fullName, $options: 'i' };
-    
+        delete filter.fullName;
         // Modify the countDocuments query to use $or
         countPromise = db.collection("studios").countDocuments({
             $or: [
                 { fullName: regex },
                 { address: regex }
-            ]
+            ],
+            ...filter
         });
     
         // Modify the find query to use $or
@@ -166,7 +167,8 @@ class Studio {
                 $or: [
                     { fullName: regex },
                     { address: regex }
-                ]
+                ],
+                ...filter
             })
             .sort(sort)
             .skip(skip)
