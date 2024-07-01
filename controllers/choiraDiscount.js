@@ -5,7 +5,7 @@ const Transaction = require('../models/transaction');
 const mongodb = require('mongodb');
 const getDb = require('../util/database').getDB;
 const ObjectId = mongodb.ObjectId;
-
+const cron = require("node-cron");
 const jwt = require('jsonwebtoken');
 
 
@@ -19,15 +19,17 @@ exports.createNewDiscount = (req, res, next) => {
     const discountDate = req.body.discountDate;
     const usersList = req.body.usersList;
     const couponCode = req.body.couponCode;
+    const startDate = req.body.startDate;
+    const endDate = req.body.endDate;
 
     ChoiraDiscount.findChoiraDiscountByType(discountType)
     .then(discountData=>{
         if(discountData)
         {
-            return res.status(409).json({ status: false, message: "Discount for this type already exists" });
+            return res.status(200).json({ status: false, message: "Discount for this type already exists" });
         }
         const discountObj = new ChoiraDiscount(discountName,description,discountType,discountPercentage,maxCapAmount,discountDate,usersList,
-                                            couponCode);
+                                            couponCode,startDate,endDate);
 
         //saving in database
         return discountObj.save()
@@ -211,3 +213,5 @@ exports.editDiscountDetails = (req,res,next)=>{
     })
 
 }
+
+

@@ -4545,8 +4545,37 @@ cron.schedule("*/10 * * * * *", function () {
   });
 });
 
+// // Update the discount date everyday at midnight
+// cron.schedule("0 0 0 * * *", function () {
+
+//   let currentTimeIST = moment.tz("Asia/Kolkata");
+//   // Format it to the required format
+//   let formattedTime = currentTimeIST.toISOString();
+
+//   console.log("formattedTime====>",formattedTime)
+
+//   const mongodb = require('mongodb');
+//   const getDb = require('../util/database').getDB;
+//   const ObjectId = mongodb.ObjectId;
+
+
+//   const db = getDb();
+//   var o_id = new ObjectId("6306d6e6842604c7ac3540d9");
+//   const discountData = { discountDate:formattedTime}
+//   db.collection('choiraDiscounts').updateOne({ _id: o_id }, { $set: discountData })
+//     .then(resultData => {
+//       console.log("============= Discount Date Updated : RESULT DATA =================>",resultData.modifiedCount)
+//   });
+
+
+// }, {
+//   scheduled: true,
+//   timezone: "Asia/Kolkata" // Timezone for India
+// })
+
+//modified:-
 // Update the discount date everyday at midnight
-cron.schedule("0 0 0 * * *", function () {
+cron.schedule("0 0 0 * * *", async function () {
 
   let currentTimeIST = moment.tz("Asia/Kolkata");
   // Format it to the required format
@@ -4561,12 +4590,18 @@ cron.schedule("0 0 0 * * *", function () {
 
   const db = getDb();
   var o_id = new ObjectId("6306d6e6842604c7ac3540d9");
-  const discountData = { discountDate:formattedTime}
-  db.collection('choiraDiscounts').updateOne({ _id: o_id }, { $set: discountData })
-    .then(resultData => {
-      console.log("============= Discount Date Updated : RESULT DATA =================>",resultData.modifiedCount)
-  });
 
+  let {startDate,endDate} = await db.collection('choiraDiscounts').findOne({ _id: o_id })
+  let discountData;
+  if(startDate<=formattedTime<=endDate){
+    discountData = { discountDate:formattedTime}
+  }else{
+    discountData = { discountDate:"1999-01-01T00:00:00.000Z"}
+  }
+  db.collection('choiraDiscounts').updateOne({ _id: o_id }, { $set: discountData })
+      .then(resultData => {
+        console.log("============= Discount Date Updated : RESULT DATA =================>",resultData.modifiedCount)
+    });
 
 }, {
   scheduled: true,

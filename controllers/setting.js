@@ -96,8 +96,9 @@ const calculateMinPrice = (roomsDetails) => {
     });
   
     return {
-      price: minRoom.pricePerHour,
-      basePrice: minRoom.basePrice,
+        price: minRoom.pricePerHour,
+        basePrice: minRoom.basePrice,
+        discountPercentage:minRoom.discountPercentage
     };
   };
 
@@ -304,7 +305,7 @@ exports.onBoarding = async(req,res) =>{
     try {
         let db = getDb();
         // mandatory => id, stage, banner_redirect, active, photoURL
-        const { stage, name, photoURL, active, type, banner_redirect, entity_id, forr, redirect_url } = req.body;
+        const { stage, name, photoURL, active, type, banner_redirect, entity_id, forr, redirectURL } = req.body;
         const id = new ObjectId().toString();
         let obj = {
             id,
@@ -316,16 +317,16 @@ exports.onBoarding = async(req,res) =>{
             banner_redirect,
             entity_id,
             for: forr,
-            redirect_url
+            redirectURL
         };
-        obj = checks(obj, banner_redirect, redirect_url, forr, entity_id);
+        obj = checks(obj, banner_redirect, redirectURL, forr, entity_id);
 
         let {_id, banner} = await db.collection("settings").findOne({ type: "home_screen" });
         console.log("banner.length", banner.length);
 
-        if(banner.length >4){
+        if(banner.length <5){
             return res.status(200).json({
-                status:true,
+                status:false,
                 message:"You can not add more than 4 Banners"
             })
         }
@@ -351,9 +352,9 @@ exports.onBoarding = async(req,res) =>{
         );
 
         if (result.modifiedCount === 1) {
-            res.status(200).json({ message: "Banner created successfully" });
+            res.status(200).json({ status:true, message: "Banner created successfully" });
         } else {
-            res.status(400).json({ message: "Failed to create banner" });
+            res.status(400).json({ status:false, message: "Failed to create banner" });
         }
     } catch (error) {
         logger.error(error, "Error while creating banner");
@@ -363,9 +364,10 @@ exports.onBoarding = async(req,res) =>{
 };
 
 exports.editBanner = async (req, res) => {
+
     try {
         let db = getDb();
-        const { id, stage, name, photoURL, active, type, banner_redirect, entity_id, forr, redirect_url } = req.body;
+        const { id, stage, name, photoURL, active, type, banner_redirect, entity_id, forr, redirectURL } = req.body;
 
         if (!id) {
             return res.status(400).json({ message: "Missing banner id" });
@@ -381,12 +383,15 @@ exports.editBanner = async (req, res) => {
             banner_redirect,
             entity_id,
             for: forr,
-            redirect_url
+            redirectURL
         };
 
-        objectOfBanner = checks(objectOfBanner, banner_redirect, redirect_url, forr, entity_id);
+        objectOfBanner = checks(objectOfBanner, banner_redirect, redirectURL, forr, entity_id);
 
         let { _id, banner } = await db.collection("settings").findOne({ type: "home_screen" });
+        if(!_id){
+            return res.status(200).json({ status:false, message: "Missing banner id" });
+        }
 
 
         let existingBanner = banner.find(b => b.stage === stage);
@@ -416,7 +421,7 @@ exports.editBanner = async (req, res) => {
                             "banner.$.banner_redirect": objectOfBanner.banner_redirect,
                             "banner.$.entity_id": objectOfBanner.entity_id,
                             "banner.$.for": objectOfBanner.for,
-                            "banner.$.redirect_url": objectOfBanner.redirect_url
+                            "banner.$.redirectURL": objectOfBanner.redirectURL
                         }
                     }
                 );
@@ -436,7 +441,7 @@ exports.editBanner = async (req, res) => {
                         "banner.$.banner_redirect": objectOfBanner.banner_redirect,
                         "banner.$.entity_id": objectOfBanner.entity_id,
                         "banner.$.for": objectOfBanner.for,
-                        "banner.$.redirect_url": objectOfBanner.redirect_url
+                        "banner.$.redirectURL": objectOfBanner.redirectURL
                     }
                 }
             );
@@ -453,16 +458,16 @@ exports.editBanner = async (req, res) => {
 
 
 
-let checks = (obj, banner_redirect, redirect_url, forr, entity_id) => {
+let checks = (obj, banner_redirect, redirectURL, forr, entity_id) => {
     if (banner_redirect === "external") {
-        if (redirect_url) {
+        if (redirectURL) {
             obj.entity_id = "";
             obj.for = "";
         }
     } else {
         if (forr === "page") {
             if (entity_id) {
-                obj.redirect_url = "";
+                obj.redirectURL = "";
             }
         }
     }

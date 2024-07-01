@@ -1729,6 +1729,7 @@ const calculateMinPrice = (roomsDetails) => {
   return {
     price: minRoom.pricePerHour,
     basePrice: minRoom.basePrice,
+    discountPercentage:minRoom.discountPercentage
   };
 };
 
