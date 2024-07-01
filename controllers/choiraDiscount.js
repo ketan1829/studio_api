@@ -46,6 +46,7 @@ exports.getAllUserDiscounts = (req,res,next)=>{
     console.log(req.params)
     //get Current Date from timestamp
     let currDate = new Date();
+    let currDate2 = new Date().getTime();
     var yr = currDate.getUTCFullYear();
     var mth = currDate.getUTCMonth() + 1;
     if(mth.toString().length==1)
@@ -106,6 +107,8 @@ exports.getAllUserDiscounts = (req,res,next)=>{
 
                         // console.log(eventDiscountData);
                         let eventDate = new Date(eventDiscountData[0].discountDate);
+                        let eventStartDate = new Date(eventDiscountData[0].startDate).getTime();
+                        let eventEndDate = new Date(eventDiscountData[0].endDate).getTime();
                         var yr = eventDate.getUTCFullYear();
                         var mth = eventDate.getUTCMonth() + 1;
                         if(mth.toString().length==1)
@@ -119,7 +122,8 @@ exports.getAllUserDiscounts = (req,res,next)=>{
                         }
                         eventDate = yr+"-"+mth+"-"+dt;
                         console.log("Event Date : ",eventDate);
-                        if(currDate!=eventDate)
+                        // if(currDate!=eventDate)
+                        if(!(eventStartDate <= currDate2 <= eventEndDate))
                         {
                             //remove this discount from list
                             discountsData = discountsData.filter(i=>i.discountType!=2);
