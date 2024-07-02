@@ -4545,7 +4545,7 @@ cron.schedule("*/10 * * * * *", function () {
   });
 });
 
-// Update the discount date everyday at midnight
+//Update the discount date everyday at midnight
 cron.schedule("0 0 0 * * *", function () {
 
   let currentTimeIST = moment.tz("Asia/Kolkata");
