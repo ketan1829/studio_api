@@ -17,7 +17,7 @@ const httpStatus = require("http-status");
 
 //For Email
 var nodemailer = require("nodemailer");
-const { sendOTP, addContactBrevo, sendMsg91OTP } = require("../util/mail");
+const { sendOTP, addContactBrevo, sendMsg91OTP} = require("../util/mail");
 const { json } = require("express");
 const { logger } = require("../util/logger");
 
@@ -290,7 +290,15 @@ exports.loginUserOTP = async (req, res, next) => {
       }
 
       // ADMIN login
-      if (userData && userData.role === "admin") {
+      if (userData && userData.role === "admin" && userData.phone=="919892023861") {
+        console.log("this runned");
+        const status_otp = await sendMsg91OTP(`${userData.phone}`);
+        if(!(status_otp.status)){
+          return res.status(400).json({
+            status:false,
+            message:"Error while sending OTP to admin"
+          })
+        }
         const AdminData = {
           id: userData.adminId,
           fullName: userData.fullName,

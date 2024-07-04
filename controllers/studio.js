@@ -827,7 +827,7 @@ exports.getParticularStudioDetails = (req, res, next) => {
 };
 
 exports.toggleStudioActiveStatus = (req, res, next) => {
-  const studioId = req.params.studioId;
+  const studioId = req.body.studioId;
 
   Studio.findStudioById(studioId).then((studioData) => {
     if (!studioData) {
