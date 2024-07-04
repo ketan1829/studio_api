@@ -5,7 +5,7 @@ const Transaction = require('../models/transaction');
 const mongodb = require('mongodb');
 const getDb = require('../util/database').getDB;
 const ObjectId = mongodb.ObjectId;
-
+const moment = require("moment-timezone");
 const jwt = require('jsonwebtoken');
 
 
@@ -46,7 +46,10 @@ exports.getAllUserDiscounts = (req,res,next)=>{
     console.log(req.params)
     //get Current Date from timestamp
     let currDate = new Date();
-    let currDate2 = new Date().getTime();
+    let moment_current_date = moment.tz("Asia/kolkata")
+    const dt_str = `${moment_current_date.month()+1}-${moment_current_date.date()}-${moment_current_date.year()}`
+    const currDate2 = new Date(dt_str).getTime()
+    // let currDate2 = new Date().getTime();
     var yr = currDate.getUTCFullYear();
     var mth = currDate.getUTCMonth() + 1;
     if(mth.toString().length==1)
@@ -119,11 +122,12 @@ exports.getAllUserDiscounts = (req,res,next)=>{
                         if(dt.toString().length==1)
                         {
                             dt = "0"+dt.toString();
-                        }
+                        }   
                         eventDate = yr+"-"+mth+"-"+dt;
                         console.log("Event Date : ",eventDate);
                         // if(currDate!=eventDate)
-                        if(!(eventStartDate <= currDate2 <= eventEndDate))
+
+                        if(!((eventStartDate<=currDate2) && (currDate2<=eventEndDate)))
                         {
                             //remove this discount from list
                             discountsData = discountsData.filter(i=>i.discountType!=2);
