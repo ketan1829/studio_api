@@ -114,7 +114,7 @@ class Service {
       return {
         status: true,
         message: "Service updated successfully",
-        updatedService: updatedResult,
+        updatedService: updatedResult.value,
       };
     } catch (error) {
       console.error("Error deleting service:", error);

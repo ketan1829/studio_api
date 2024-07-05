@@ -195,7 +195,7 @@ exports.getServices = (req, res, next) => {
 
 
   if (filter.serviceType) mappedFilter.type = filter.serviceType //: filter.catId = 1;
-  filter.active ? mappedFilter.isActive = parseInt(filter.active) : mappedFilter.isActive = 1;
+  if(filter.active) mappedFilter.isActive = parseInt(filter.active)// : mappedFilter.isActive = 1;
 
   if (filter.planId) {
     // var o_id = new ObjectId(filter.planId);
@@ -394,12 +394,12 @@ exports.updateService = async (req, res) => {
   const clientPhotos = req.body.userPhotos;
   const reviews = req.body.userReviews;
   const featuredReviews = req.body.starredReviews;
-  const type = req.body.type || "c2";
+  const type = req.body.type;
   const isActive = +req.body.isActive;
   let pricing = {}
   const serviceData = await Service.findServiceById(sId);
   logger.info({sId});
-
+console.log("req.body",req.body);
   if (!serviceData) {
     return res.status(400).json({
       status: false,
@@ -614,7 +614,7 @@ async function  minStartPrice(packages) {
   let minIn = [];
   let minJp = [];
 
-packages.forEach(packageObj => {
+packages?.forEach(packageObj => {
           Object.entries(packageObj.pricing).forEach(([country, prices]) => {
               if (country === 'USA') minUsa.push(prices.basePrice);
               if (country === 'IN') minIn.push(prices.basePrice);
