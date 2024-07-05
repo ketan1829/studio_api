@@ -105,8 +105,11 @@ class Service {
         .findOneAndUpdate(
           { _id: new ObjectId(sId) },
           { $set: newData },
-          { new: true }
+          { returnOriginal:false }
         );
+
+      console.log("updatedResult");
+      console.log(updatedResult);
 
       return {
         status: true,
@@ -154,7 +157,7 @@ class Service {
     return filteredObject;
   }
 
-  static async updateServiceByPackageId(pId, newData) {}
+  static async updateServiceByPackageId(pId, newData) { }
 
   static async findServiceById(sId) {
     const db = getDB();
@@ -199,12 +202,12 @@ class Service {
 
 
 
-  static async updateOneRecord(filter,update_data){
+  static async updateOneRecord(filter, update_data) {
 
     const db = getDB();
     try {
-      const result = await db.collection("bookings").updateOne(filter,{$set:update_data});
-      return result?.matchedCount?1:0;
+      const result = await db.collection("bookings").updateOne(filter, { $set: update_data });
+      return result?.matchedCount ? 1 : 0;
     } catch (error) {
       console.error("Error saving service:", error);
       throw error;
