@@ -17,7 +17,7 @@ const httpStatus = require("http-status");
 
 //For Email
 var nodemailer = require("nodemailer");
-const { sendOTP, addContactBrevo, sendMsg91OTP } = require("../util/mail");
+const { sendOTP, addContactBrevo, sendMsg91OTP} = require("../util/mail");
 const { json } = require("express");
 const { logger } = require("../util/logger");
 
@@ -290,7 +290,15 @@ exports.loginUserOTP = async (req, res, next) => {
       }
 
       // ADMIN login
-      if (userData && userData.role === "admin") {
+      if (userData && userData.role === "admin" && userData.phone=="919892023861") {
+        console.log("this runned");
+        const status_otp = await sendMsg91OTP(`${userData.phone}`);
+        if(!(status_otp.status)){
+          return res.status(400).json({
+            status:false,
+            message:"Error while sending OTP to admin"
+          })
+        }
         const AdminData = {
           id: userData.adminId,
           fullName: userData.fullName,
@@ -1757,6 +1765,8 @@ exports.verifyOTP = async (req, res) => {
   try {
     let phoneNumber = req.query.phoneNumber;
     let otp = req.query.otp;
+    let role = req.query.role;
+
     const response = await axios.get(
       `https://control.msg91.com/api/v5/otp/verify`,
       {
@@ -1765,7 +1775,13 @@ exports.verifyOTP = async (req, res) => {
       }
     );
     console.log("response.data-->", response.data.message, response.data.type);
+
     if (response.status == 200 && response.data.type == "success") {
+      if(role==="admin"){
+        let adminData = await Admin.findAdminByNumber(phoneNumber)
+        const token = jwt.sign({ admin: adminData }, 'myAppSecretKey');
+        return res.status(200).json({ status: true, message: response.data.message,token });
+      }
       res.status(200).json({ status: true, message: response.data.message });
     } else {
       res.status(200).json({ status: false, message: response.data.message });

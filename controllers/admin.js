@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 
 //For Email 
 var nodemailer = require('nodemailer');
+const { sendMsg91OTP } = require('../util/mail');
 
 var transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -69,11 +70,41 @@ exports.adminRegister = (req,res,next)=>{
 }
 
 
-exports.adminLogin=(req,res,next)=>{
+exports.adminLogin= async(req,res,next)=>{
 
     const email = req.body.email;
     const password = req.body.password;
+    const userType = req.body.userType;
+    const phoneNumber = req.body.phoneNumber;
     
+    if(userType==="NUMBER"){
+        let adminData = await Admin.findAdminByNumber(phoneNumber)
+    if(!adminData){
+                return res.json({status:false,message:'Admin does not exist'});
+    }
+    const status_otp = await sendMsg91OTP(`${adminData.phone}`);
+        if(!(status_otp.status)){
+          return res.status(400).json({
+            status:false,
+            message:"Error while sending OTP to admin"
+        })
+    }
+    const AdminData = {
+        id: adminData.adminId,
+        fullName: adminData.fullName,
+        emailId: adminData.email,
+        Image: adminData.adminImage,
+        phoneNumber: adminData.phone,
+        role: adminData.role,
+      };
+      // console.log(">------",AdminData.phoneNumber);
+    //   const token = await jwt.sign({ admin: AdminData }, 'myAppSecretKey');
+      return res.json({
+        status: true,
+        message: "Hello Admin, OTP has been send Succesfully",
+        user: AdminData,
+      });
+    }else{
     Admin.findAdminByEmail(email)
     .then(user=>{
         if(!user)
@@ -90,6 +121,8 @@ exports.adminLogin=(req,res,next)=>{
             res.json({ message:'Password is incorrect',status:false});
         }
     })
+    }
+
 }
 
 

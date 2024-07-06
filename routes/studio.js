@@ -110,6 +110,43 @@ router.get('/studios/graph',auth.isAdmin,controller.getAllStudiosGraphDetails);
 router.get('/studios/unassignedstudios',auth.isAdminV2,controller.getUnassignedStudios)
 
 /**
+* @swagger
+* /studios/{studioId}/active:
+*   get:
+*     summary: Toggle studio active status
+*     tags: [Studios]
+*     parameters:
+*       - in : path
+*         name: studioId
+*         description: _id of Studio
+*         required: true
+*     requestBody:
+*       description: | 
+*          #
+*          TOKEN is Required
+*     responses:
+*       200:
+*         description: Studio updated successfully
+*         content:
+*           application/json:
+*               example : 
+*                 status : true
+*                 message : "Studio updated successfully"
+*                 studio : {}
+*       400:
+*         description: Bad Request, enter valid ID
+*       401:
+*         description: Unauthorized, token required
+*       404:
+*         description: No Studio exists, enter valid ID
+*       500:
+*         description: Some server error, enter valid mongo object ID
+*/
+router.patch('/studios/studioId/active',controller.toggleStudioActiveStatus);
+
+
+
+/**
  * @swagger
  * /studios/{studioId}:
  *   get:
@@ -147,40 +184,7 @@ router.get('/studios/unassignedstudios',auth.isAdminV2,controller.getUnassignedS
 
 router.get('/studios/:studioId',auth.isBoth,controller.getParticularStudioDetails);
 
-/**
-* @swagger
-* /studios/{studioId}/active:
-*   get:
-*     summary: Toggle studio active status
-*     tags: [Studios]
-*     parameters:
-*       - in : path
-*         name: studioId
-*         description: _id of Studio
-*         required: true
-*     requestBody:
-*       description: | 
-*          #
-*          TOKEN is Required
-*     responses:
-*       200:
-*         description: Studio updated successfully
-*         content:
-*           application/json:
-*               example : 
-*                 status : true
-*                 message : "Studio updated successfully"
-*                 studio : {}
-*       400:
-*         description: Bad Request, enter valid ID
-*       401:
-*         description: Unauthorized, token required
-*       404:
-*         description: No Studio exists, enter valid ID
-*       500:
-*         description: Some server error, enter valid mongo object ID
-*/
-router.get('/studios/:studioId/active',auth.isAdminOrOwner,controller.toggleStudioActiveStatus);
+
 
 /**
  * @swagger
