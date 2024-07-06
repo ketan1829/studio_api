@@ -1765,6 +1765,8 @@ exports.verifyOTP = async (req, res) => {
   try {
     let phoneNumber = req.query.phoneNumber;
     let otp = req.query.otp;
+    let role = req.query.role;
+
     const response = await axios.get(
       `https://control.msg91.com/api/v5/otp/verify`,
       {
@@ -1773,7 +1775,13 @@ exports.verifyOTP = async (req, res) => {
       }
     );
     console.log("response.data-->", response.data.message, response.data.type);
+
     if (response.status == 200 && response.data.type == "success") {
+      if(role==="admin"){
+        let adminData = await Admin.findAdminByNumber(phoneNumber)
+        const token = jwt.sign({ admin: adminData }, 'myAppSecretKey');
+        return res.status(200).json({ status: true, message: response.data.message,token });
+      }
       res.status(200).json({ status: true, message: response.data.message });
     } else {
       res.status(200).json({ status: false, message: response.data.message });

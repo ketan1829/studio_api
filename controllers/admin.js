@@ -98,12 +98,11 @@ exports.adminLogin= async(req,res,next)=>{
         role: adminData.role,
       };
       // console.log(">------",AdminData.phoneNumber);
-      const token = await jwt.sign({ admin: AdminData }, 'myAppSecretKey');
+    //   const token = await jwt.sign({ admin: AdminData }, 'myAppSecretKey');
       return res.json({
         status: true,
         message: "Hello Admin, OTP has been send Succesfully",
         user: AdminData,
-        token,
       });
     }else{
     Admin.findAdminByEmail(email)
