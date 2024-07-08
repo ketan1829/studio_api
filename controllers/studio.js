@@ -1714,27 +1714,22 @@ exports.getUnassignedStudios = async (req, res, next) => {
 
 
 const calculateMinPrice = (roomsDetails) => {
-  let minPriceOfRoom = [];
+  if (!roomsDetails.length) {
+    throw new Error('No rooms details provided');
+  }
+
+  let minRoom = roomsDetails[0];
 
   roomsDetails.forEach((room) => {
-    if (typeof room.pricePerHour === 'number') {
-      minPriceOfRoom.push(room.pricePerHour);
-    } else {
-      const parsedPrice = parseFloat(room.pricePerHour);
-      if (!isNaN(parsedPrice)) {
-        minPriceOfRoom.push(parsedPrice);
-      }
+    if (room.pricePerHour < minRoom.pricePerHour) {
+      minRoom = room;
     }
   });
 
-  if (minPriceOfRoom.length === 0) {
-    throw new Error('No valid room prices found');
-  }
-
-  let min = Math.min(...minPriceOfRoom);
   return {
-    price: min,
-    basePrice: min,
+    price: minRoom.pricePerHour,
+    basePrice: minRoom.basePrice,
+    discountPercentage:minRoom.discountPercentage
   };
 };
 
