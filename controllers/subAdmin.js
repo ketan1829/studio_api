@@ -7,6 +7,7 @@ const getDb = require('../util/database').getDB;
 const ObjectId = mongodb.ObjectId;
 
 const jwt = require('jsonwebtoken');
+const { sendMsg91OTP } = require('../util/mail');
 
 
 exports.createNewSubAdmin = async(req,res,next)=>{
@@ -16,6 +17,7 @@ exports.createNewSubAdmin = async(req,res,next)=>{
     const email = req.body.email;
     const password = req.body.password;
     const permissions = req.body.permissions;
+    const phone = req.body.phone;
 
     SubAdmin.findSubAdminByEmail(email)
     .then(subAdminData=>{
@@ -23,7 +25,7 @@ exports.createNewSubAdmin = async(req,res,next)=>{
         {
             return res.json({status:false, message:"Sub-Admin with this Email already exists"});
         }
-        const subAdminObj = new SubAdmin(firstName,lastName,email,password,permissions);
+        const subAdminObj = new SubAdmin(firstName,lastName,email,password,permissions,phone);
         
         // saving in database
         return subAdminObj.save()
@@ -36,11 +38,36 @@ exports.createNewSubAdmin = async(req,res,next)=>{
 }
 
 
-exports.subAdminLogin = (req,res,next)=>{
+exports.subAdminLogin = async(req,res,next)=>{
 
     const email = req.body.email;
     const password = req.body.password;
+    const phoneNumber = req.body.phoneNumber;
+    const userType = req.body.userType;
 
+    if(userType==="Number"){
+        let db = getDb()
+        let subadmin = await SubAdmin.findSubAdminByNumber(phoneNumber)
+        console.log("subadmin",subadmin);
+        if(!subadmin){
+            return res.status(200).json({
+                status:false,
+                message:"SubAdmin not found in DB"
+            })
+        }
+        const status_otp = await sendMsg91OTP(`${subadmin.phone}`);
+        if(!(status_otp.status)){
+          return res.status(400).json({
+            status:false,
+            message:"Error while sending OTP to SubAdmin"
+        })
+    }
+        res.status(200).json({
+            status: true,
+            message: "Hello Admin, OTP has been send Succesfully",
+        })
+    }
+    else{
     SubAdmin.findSubAdminByEmail(email)
     .then(subAdminData=>{
         if(!subAdminData)
@@ -67,6 +94,7 @@ exports.subAdminLogin = (req,res,next)=>{
         })
         .catch(err=>console.log(err));
     })
+}
 
 }
 
