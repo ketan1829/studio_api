@@ -24,7 +24,7 @@ exports.createNewDiscount = (req, res, next) => {
     .then(discountData=>{
         if(discountData)
         {
-            return res.status(409).json({ status: false, message: "Discount for this type already exists" });
+            return res.status(200).json({ status: false, message: "Discount for this type already exists" });
         }
         const discountObj = new ChoiraDiscount(discountName,description,discountType,discountPercentage,maxCapAmount,discountDate,usersList,
                                             couponCode);

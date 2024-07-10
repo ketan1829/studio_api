@@ -639,6 +639,128 @@ exports.getAllNearStudios = async (req, res, next) => {
   // })
 };
 
+// exports.createNewStudio = async (req, res, next) => {
+//   const fullName = req.body.fullName; //.trim();
+//   let address = req.body.address;
+//   const mapLink = req.body.mapLink;
+//   const city = req.body.city;
+//   const state = req.body.state;
+//   const area = parseFloat(req.body.area);
+//   const pincode = req.body.pincode;
+//   const pricePerHour = parseFloat(req.body.pricePerHour) || 0;
+//   const availabilities = req.body.availabilities;
+//   const amenities = req.body.amenities;
+//   const totalRooms = +req.body.totalRooms;
+//   const roomsDetails = req.body.roomsDetails;
+//   const maxGuests = req.body.maxGuests;
+//   const studioPhotos = req.body.studioPhotos;
+//   const aboutUs = req.body.aboutUs;
+//   const teamDetails = req.body.teamDetails;
+//   const clientPhotos = req.body.clientPhotos;
+//   const country = req.body.country || "IN";
+//   const reviews = {};
+//   const featuredReviews = [];
+//   let minPrice = {}
+//   let latitude = "";
+//   let longitude = "";
+//   try {
+//     minPrice = calculateMinPrice(roomsDetails);
+//     logger.info({ address });
+//     address = address.replace("&", "and");
+
+//     console.log("hello 1");
+//     axios
+//       .get(
+//         "https://maps.googleapis.com/maps/api/geocode/json?address=" +
+//         address +
+//         "&key=" +
+//         GOOGLE_MAP_KEY
+//       )
+//       .then(async function (response) {
+//         const res_data = response.data?.results[0]?.geometry?.location;
+//         console.log("res_data",res_data);
+//         if (!res_data) {
+//     console.log("hello 2");
+
+//           const latlong = await getLatLong(mapLink);
+//           console.log("latlong",latlong);
+//           if (latlong.length < 0) {
+//             return res.json({
+//               status: false,
+//               message: "Enter valid address for studio",
+//             });
+//           }
+//           latitude = latlong[0].toString()
+//           longitude = latlong[1].toString()
+//           console.log("latitude",latitude);
+//           console.log("longitude",longitude);
+//           res.send("hello")
+//         } else {
+//     console.log("hello 3");
+
+//           latitude = res_data.lat.toString();
+//           longitude = res_data.lng.toString();
+
+//           logger.info(latitude, longitude);
+//           const location = {
+//             type: "Point",
+//             coordinates: [+longitude, +latitude],
+//           };
+//           const studioObj = new Studio(
+//             fullName,
+//             address,
+//             latitude,
+//             longitude,
+//             mapLink,
+//             city,
+//             state,
+//             area,
+//             pincode,
+//             pricePerHour,
+//             availabilities,
+//             amenities,
+//             totalRooms,
+//             roomsDetails,
+//             maxGuests,
+//             studioPhotos,
+//             aboutUs,
+//             teamDetails,
+//             clientPhotos,
+//             reviews,
+//             featuredReviews,
+//             1,
+//             location,
+//             country,
+//             minPrice
+//           );
+//     console.log("hello 3");
+
+//           // console.log(studioObj);
+
+//           // saving in database
+//           return studioObj
+//             .save()
+//             .then(async (resultData) => {
+//               console.log(resultData);
+//               return res.json({
+//                 status: true,
+//                 message: "Studio created successfully",
+//                 studio: resultData["ops"][0],
+//               });
+//             })
+//             .catch((err) => logger.error(err));
+//         }
+//       });
+//   } catch (error) {
+//     logger.error(error);
+//     return res.json({
+//       status: false,
+//       message: "Address Lat Long failed! :( contact Dev. NR",
+//     });
+//   }
+// };
+
+
 exports.createNewStudio = async (req, res, next) => {
   const fullName = req.body.fullName; //.trim();
   let address = req.body.address;
@@ -660,7 +782,9 @@ exports.createNewStudio = async (req, res, next) => {
   const country = req.body.country || "IN";
   const reviews = {};
   const featuredReviews = [];
-  let minPrice = {}
+  let minPrice = {};
+  let latitude = "";
+  let longitude = "";
 
   try {
     minPrice = calculateMinPrice(roomsDetails);
@@ -668,82 +792,69 @@ exports.createNewStudio = async (req, res, next) => {
     address = address.replace("&", "and");
     let latitude = "";
     let longitude = "";
-    axios
-      .get(
-        "https://maps.googleapis.com/maps/api/geocode/json?address=" +
-        address +
-        "&key=" +
-        GOOGLE_MAP_KEY
-      )
-      .then(async function (response) {
-        const res_data = response.data?.results[0]?.geometry?.location;
-        if (!res_data) {
+    const response = await axios.get(
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=${GOOGLE_MAP_KEY}`
+    );
+    const res_data = response.data?.results[0]?.geometry?.location;
 
-          const latlong = await getLatLong(mapLink);
+    if (!res_data) {
+      const latlong = await getLatLong(mapLink);
+      if (latlong.length === 0) {
+        return res.json({
+          status: false,
+          message: "Enter valid address for studio",
+        });
+      }
+      latitude = latlong[0].toString();
+      longitude = latlong[1].toString();
+    } else {
+      latitude = res_data.lat.toString();
+      longitude = res_data.lng.toString();
+    }
 
-          if (latlong.length === 0) {
-            return res.json({
-              status: false,
-              message: "Enter valid address for studio",
-            });
+    logger.info(latitude, longitude);
+    const location = {
+      type: "Point",
+      coordinates: [+longitude, +latitude],
+    };
 
-          }
-          latitude = latlong[0].toString()
-          longitude = latlong[1].toString()
+    const studioObj = new Studio(
+      fullName,
+      address,
+      latitude,
+      longitude,
+      mapLink,
+      city,
+      state,
+      area,
+      pincode,
+      pricePerHour,
+      availabilities,
+      amenities,
+      totalRooms,
+      roomsDetails,
+      maxGuests,
+      studioPhotos,
+      aboutUs,
+      teamDetails,
+      clientPhotos,
+      reviews,
+      featuredReviews,
+      1,
+      location,
+      country,
+      minPrice
+    );
 
-        } else {
-          latitude = res_data.lat.toString();
-          longitude = res_data.lng.toString();
-        }
-        logger.info(latitude, longitude);
-        const location = {
-          type: "Point",
-          coordinates: [+longitude, +latitude],
-        };
-        const studioObj = new Studio(
-          fullName,
-          address,
-          latitude,
-          longitude,
-          mapLink,
-          city,
-          state,
-          area,
-          pincode,
-          pricePerHour,
-          availabilities,
-          amenities,
-          totalRooms,
-          roomsDetails,
-          maxGuests,
-          studioPhotos,
-          aboutUs,
-          teamDetails,
-          clientPhotos,
-          reviews,
-          featuredReviews,
-          1,
-          location,
-          country,
-          minPrice
-        );
+    const resultData = await studioObj.save();
 
-        console.log(studioObj);
+    return res.json({
+      status: true,
+      message: "Studio created successfully",
+      studio: resultData["ops"][0],
+    });
 
-        // saving in database
-        return studioObj
-          .save()
-          .then(async (resultData) => {
-            console.log(resultData);
-            return res.json({
-              status: true,
-              message: "Studio created successfully",
-              studio: resultData["ops"][0],
-            });
-          })
-          .catch((err) => logger.error(err));
 
-      });
   } catch (error) {
     logger.error(error);
     return res.json({
@@ -752,6 +863,7 @@ exports.createNewStudio = async (req, res, next) => {
     });
   }
 };
+
 
 exports.getParticularStudioDetails = (req, res, next) => {
   const studioId = req.params.studioId;
@@ -1305,9 +1417,7 @@ exports.getAllStudios = (req, res, next) => {
 exports.editStudioDetails = async (req, res, next) => {
   const studioId = req.params.studioId;
   const fullName = req.body.fullName;
-  const address = req.body.address;
-  const latitude = req.body.latitude?.toString();
-  const longitude = req.body.longitude?.toString();
+  let address = req.body.address;
   const mapLink = req.body.mapLink;
   const city = req.body.city;
   const state = req.body.state;
@@ -1322,6 +1432,8 @@ exports.editStudioDetails = async (req, res, next) => {
   const aboutUs = req.body.aboutUs;
   const teamDetails = req.body.teamDetails;
   const country = req.body.country;
+  let latitude = "";
+  let longitude = "";
 
 
   let studio = await Studio.findStudioById(studioId);
@@ -1367,6 +1479,34 @@ exports.editStudioDetails = async (req, res, next) => {
   });
 
   const minPrice = calculateMinPrice(roomsDetails);
+  address = address?.replace("&", "and");
+
+    const response = await axios.get(
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=${GOOGLE_MAP_KEY}`
+    );
+
+    const res_data = response.data?.results[0]?.geometry?.location;
+
+    if (!res_data) {
+      const latlong = await getLatLong(mapLink);
+      if (latlong.length === 0) {
+        return res.json({
+          status: false,
+          message: "Enter valid address for studio",
+        });
+      }
+      latitude = latlong[0].toString();
+      longitude = latlong[1].toString();
+    } else {
+      latitude = res_data.lat.toString();
+      longitude = res_data.lng.toString();
+    }
+
+    logger.info(latitude, longitude);
+    const location = {
+      type: "Point",
+      coordinates: [+longitude, +latitude],
+    };
 
   let studioObj = {
     fullName,
@@ -1388,6 +1528,7 @@ exports.editStudioDetails = async (req, res, next) => {
     teamDetails: updatedTeamDetails,
     country,
     minPrice,
+    location
   };
 
   let newStudioData = await Studio.filterEmptyFields(studioObj);

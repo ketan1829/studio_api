@@ -22,6 +22,8 @@ const { json } = require("express");
 const { logger } = require("../util/logger");
 
 const { send_mail } = require("../util/mail.js");
+const SubAdmin = require("../models/subAdmin.js");
+const Owner = require("../models/owner.js");
 
 // Sendinblue library\
 // const SibApiV3Sdk = require('sib-api-v3-sdk');
@@ -1780,6 +1782,17 @@ exports.verifyOTP = async (req, res) => {
       if(role==="admin"){
         let adminData = await Admin.findAdminByNumber(phoneNumber)
         const token = jwt.sign({ admin: adminData }, 'myAppSecretKey');
+        return res.status(200).json({ status: true, message: response.data.message,token });
+      }
+      if(role==="subAdmin"){
+        let subAdmin = await SubAdmin.findSubAdminByNumber(phoneNumber)
+        const token = jwt.sign({ subAdmin }, 'myAppSecretKey');
+        console.log("HIEE");
+        return res.status(200).json({ status: true, message: response.data.message,token });
+      }
+      if(role==="owner"){
+        let ownearData = await Owner.findOwnerByNumber(phoneNumber)
+        const token = jwt.sign({ ownearData }, 'myAppSecretKey');
         return res.status(200).json({ status: true, message: response.data.message,token });
       }
       res.status(200).json({ status: true, message: response.data.message });

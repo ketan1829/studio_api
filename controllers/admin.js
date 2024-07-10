@@ -27,6 +27,8 @@ exports.adminRegister = (req,res,next)=>{
     const lastName = req.body.lastName;
     const email = req.body.email;  
     const password = req.body.password;
+    const phone = req.body.phone;
+    
     const adminImage = null;
     const token = null;
 
@@ -50,7 +52,7 @@ exports.adminRegister = (req,res,next)=>{
             db.collection('adminCounter').insertOne({count:newVal})
             .then(result=>{
 
-                const admin = new Admin(adminID,firstName,lastName,email,password,adminImage,token);
+                const admin = new Admin(adminID,firstName,lastName,email,password,phone,adminImage,token);
 
                 //saving in database
                 return admin.save()

@@ -5,13 +5,14 @@ const ObjectId = mongodb.ObjectId;
 
 class SubAdmin
 {
-    constructor(firstName,lastName,email,password,permissions)
+    constructor(firstName,lastName,email,password,permissions,phone)
     {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
         this.password = password;
         this.permissions = permissions;    //Array of strings(permissions)
+        this.phone = phone;
         this.creationTimeStamp = new Date();
     }
 
@@ -52,6 +53,16 @@ class SubAdmin
             .catch(err=>console.log(err));
     }
 
+    static findSubAdminByNumber(phone)
+    {
+        const db = getDb();
+                            
+        return db.collection('subAdmins').findOne({ phone:phone })
+                .then(adminData=>{
+                    return adminData;
+                })
+                .catch(err=>console.log(err));
+    }
 }
 
 
