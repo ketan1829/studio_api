@@ -790,11 +790,11 @@ exports.createNewStudio = async (req, res, next) => {
     minPrice = calculateMinPrice(roomsDetails);
     logger.info({ address });
     address = address.replace("&", "and");
-
+    let latitude = "";
+    let longitude = "";
     const response = await axios.get(
       `https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=${GOOGLE_MAP_KEY}`
     );
-
     const res_data = response.data?.results[0]?.geometry?.location;
 
     if (!res_data) {
@@ -853,6 +853,7 @@ exports.createNewStudio = async (req, res, next) => {
       message: "Studio created successfully",
       studio: resultData["ops"][0],
     });
+
 
   } catch (error) {
     logger.error(error);
