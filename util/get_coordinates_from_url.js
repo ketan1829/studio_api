@@ -12,9 +12,9 @@ const getLatLong = async (googleMapsUrl) => {
       const long = redirectUrl[1]
       latlong = [lat, long]
     } else {
-      const latlong = redirectUrl.split("/").splice(-1)[0].split("?")[0].split(",")
-      const lat = latlong[0].replace("+", "").replace("-", "");
-      const long = latlong[1].replace("+", "").replace("-", "");
+      const ll = redirectUrl.split("/").splice(-1)[0].split("?")[0].split(",")
+      const lat = ll[0].replace("+", "").replace("-", "");
+      const long = ll[1].replace("+", "").replace("-", "");
       latlong = [lat, long]
 
     }
