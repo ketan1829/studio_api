@@ -1,7 +1,5 @@
 const axios = require('axios');
 
-
-const axios = require("axios");
 const getLatLong = async (googleMapsUrl) => {
   try {
     // Fetch the URL content
