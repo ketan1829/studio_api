@@ -14,6 +14,26 @@ const verifyToken = (token) => {
   });
 };
 
+const isGuest = async (req, res, next) => {
+  console.log("authCheck2");
+  try {
+    let token =  req.body || req.params || req.headers.authorization.split("")[1];
+
+    if (!token) throw new ErrorHandler(401, "unauthorized");
+
+    const decoded = await verifyToken(token);
+
+    if (!decoded.deviceId ) {
+      throw new ErrorHandler(401, "unauthorized");
+    }
+
+    next();
+  } catch (error) {
+    console.log("user error:=",error)
+    next(error);
+  }
+};
+
 const isUser = async (req, res, next) => {
   console.log("authCheck1");
 
@@ -208,4 +228,4 @@ const isAdminOrOwnerOrUser = async (req, res, next) => {
   }
 };
 
-module.exports = { isUser, isAdmin, isBoth, isAdminOrOwner, isAdminOrOwnerOrUser, isAdminV2 };
+module.exports = { isGuest, isUser, isAdmin, isBoth, isAdminOrOwner, isAdminOrOwnerOrUser, isAdminV2 };
