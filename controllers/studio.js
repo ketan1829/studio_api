@@ -681,7 +681,7 @@ exports.createNewStudio = async (req, res, next) => {
 
           const latlong = await getLatLong(mapLink);
 
-          if (latlong.length < 0) {
+          if (latlong.length === 0) {
             return res.json({
               status: false,
               message: "Enter valid address for studio",
@@ -694,55 +694,55 @@ exports.createNewStudio = async (req, res, next) => {
         } else {
           latitude = res_data.lat.toString();
           longitude = res_data.lng.toString();
-
-          logger.info(latitude, longitude);
-          const location = {
-            type: "Point",
-            coordinates: [+longitude, +latitude],
-          };
-          const studioObj = new Studio(
-            fullName,
-            address,
-            latitude,
-            longitude,
-            mapLink,
-            city,
-            state,
-            area,
-            pincode,
-            pricePerHour,
-            availabilities,
-            amenities,
-            totalRooms,
-            roomsDetails,
-            maxGuests,
-            studioPhotos,
-            aboutUs,
-            teamDetails,
-            clientPhotos,
-            reviews,
-            featuredReviews,
-            1,
-            location,
-            country,
-            minPrice
-          );
-
-          console.log(studioObj);
-
-          // saving in database
-          return studioObj
-            .save()
-            .then(async (resultData) => {
-              console.log(resultData);
-              return res.json({
-                status: true,
-                message: "Studio created successfully",
-                studio: resultData["ops"][0],
-              });
-            })
-            .catch((err) => logger.error(err));
         }
+        logger.info(latitude, longitude);
+        const location = {
+          type: "Point",
+          coordinates: [+longitude, +latitude],
+        };
+        const studioObj = new Studio(
+          fullName,
+          address,
+          latitude,
+          longitude,
+          mapLink,
+          city,
+          state,
+          area,
+          pincode,
+          pricePerHour,
+          availabilities,
+          amenities,
+          totalRooms,
+          roomsDetails,
+          maxGuests,
+          studioPhotos,
+          aboutUs,
+          teamDetails,
+          clientPhotos,
+          reviews,
+          featuredReviews,
+          1,
+          location,
+          country,
+          minPrice
+        );
+
+        console.log(studioObj);
+
+        // saving in database
+        return studioObj
+          .save()
+          .then(async (resultData) => {
+            console.log(resultData);
+            return res.json({
+              status: true,
+              message: "Studio created successfully",
+              studio: resultData["ops"][0],
+            });
+          })
+          .catch((err) => logger.error(err));
+
       });
   } catch (error) {
     logger.error(error);
