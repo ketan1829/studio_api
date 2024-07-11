@@ -16,7 +16,11 @@ const auth = require("../util/authCheck");
 
 // router.post('/settings/create',controller.createNewSetting);
 
+// banner =>
 router.get('/settings/banner',auth.isBoth,controller.getBanner);
+router.post('/settings/createBanner',auth.isAdminV2,controller.createBanner);
+router.patch('/settings/editBanner',auth.isAdminV2,controller.editBanner);
+// banner <=
 
 router.get('/settings/category',auth.isBoth,controller.getCategory);
 

@@ -5,7 +5,7 @@ const ObjectId = mongodb.ObjectId;
 
 class ChoiraDiscount
 {
-    constructor(discountName,description,discountType,discountPercentage,maxCapAmount,discountDate,usersList,couponCode)
+    constructor(discountName,description,discountType,discountPercentage,maxCapAmount,discountDate,usersList,couponCode,startDate,endDate)
     {
         this.discountName = discountName;
         this.description = description;
@@ -15,6 +15,8 @@ class ChoiraDiscount
         this.discountDate = discountDate;    // Useful only when discountType=2
         this.usersList = usersList;          // Useful only when discountType=3, Array of UserIDs
         this.couponCode = couponCode;
+        this.startDate = startDate || "";
+        this.endDate = endDate || "";
         this.creationTimeStamp = new Date();
     }
 
