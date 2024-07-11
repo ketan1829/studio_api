@@ -428,12 +428,12 @@ exports.registerOfflineUser = async ({
   try {
     const user_data = {
       fullName: fullName,
-      dateOfBirth: dateOfBirth || "Offline",
+      dateOfBirth: dateOfBirth || "",
       email,
       phone: phoneNumber,
-      password: "",
-      userType: userType || "Offline",
-      deviceId: deviceId || "Offline",
+      password: "offline",
+      userType: userType || "NUMBER",
+      deviceId: deviceId || "0",
       latitude: "",
       longitude: "",
       city: "",
