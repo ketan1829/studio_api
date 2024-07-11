@@ -62,7 +62,7 @@ exports.guestLogin = async(req, res, next)=>{
     return res.status(400).json({ message: 'Device ID is required' });
   }
 
-  const token = jwt.sign({ deviceId }, secretKey);
+  const token = jwt.sign( deviceId , secretKey);
 
   return res.status(200).json({ status: true, token: token });
 }

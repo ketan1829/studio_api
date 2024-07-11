@@ -6,7 +6,6 @@ const verifyToken = (token) => {
   // console.log("token", token);
 
   return new Promise((resolve, reject) => {
-   
     jwt.verify(token,'myAppSecretKey', (err, decoded) => {
       if (err) reject(new ErrorHandler(401, "unauthorized"));
       else resolve(decoded);
@@ -15,15 +14,14 @@ const verifyToken = (token) => {
 };
 
 const isGuest = async (req, res, next) => {
-  console.log("authCheck2");
+  // console.log("authCheck2");
   try {
     let token =  req.body || req.params || req.headers.authorization.split("")[1];
+    if (!token) throw new ErrorHandler(401, "unauthorized Token");
 
-    if (!token) throw new ErrorHandler(401, "unauthorized");
+    const decoded = await verifyToken(token.deviceId);
 
-    const decoded = await verifyToken(token);
-
-    if (!decoded.deviceId ) {
+    if (!decoded.deviceId && !decoded.user) {
       throw new ErrorHandler(401, "unauthorized");
     }
 
