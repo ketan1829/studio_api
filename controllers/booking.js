@@ -4442,12 +4442,12 @@ try {
     if(bookingType==="offline"){
       let createdUser = await registerOfflineUser({ fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role })
     if(!createdUser.status){
-      res.status(400).json({status:true,message:createdUser.message})
+      res.status(200).json({status:false,message:createdUser.message})
     }
      userId = String(createdUser.result.insertedId)
      let createdBookingg = await createBooking({ userId,studioId, roomId, bookingDate, bookingTime, totalPrice })
     if(!createdBookingg.status){
-      return res.status(400).json({status:true,message:"Error occured While Booking"})
+      return res.status(200).json({status:false,message:"Error occured While Booking"})
     }
     res.status(200).json({
       status:true,
@@ -4456,7 +4456,7 @@ try {
     } else if(bookingType==="registered"){
       let createdBooking = await createBooking({ userId,studioId, roomId, bookingDate, bookingTime, totalPrice })
       if(!createdBooking.status){
-        res.status(400).json({status:true,message:"Error occured While Booking"})
+        res.status(200).json({status:false,message:"Error occured While Booking"})
       }else{
         res.status(200).json({status:true,message:"Booking successfully created for Registered User"})
       }

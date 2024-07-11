@@ -73,6 +73,53 @@ const ServicefilterSchema = Joi.object({
   creationTimeStamp: Joi.string(),
 });
 
+//dummy code for studio validation
+// const studioCreateSchema = Joi.object({
+//   fullName:Joi.string(),
+//   address:Joi.string(),
+//   mapLink:Joi.string(),
+//   city:Joi.string(),
+//   state:Joi.string(),
+//   area:Joi.number(),
+//   pincode:Joi.string(),
+//   pricePerHour:Joi.number(),
+//   availabilities:Joi.array().items(Joi.object({
+//     endTime:Joi.string(),
+//     startTime:Joi.string()
+//   })),
+//   amenities:Joi.array().items(
+//     Joi.object({id:Joi.string(),name:Joi.string()}),
+//     Joi.object({id:Joi.string(),name:Joi.string()}),
+//     Joi.object({id:Joi.string(),name:Joi.string()}),
+//     Joi.object({id:Joi.string(),name:Joi.string()}),
+// ),
+//   totalRooms:Joi.number(),
+//   roomsDetails:Joi.array(),
+//   maxGuests:Joi.string(),
+//   studioPhotos:Joi.array(),
+//   aboutUs:Joi.object({
+//     aboutUs:Joi.string(),
+//     services:Joi.string(),
+//     infrastructure:Joi.string()
+//   }),
+//   teamDetails:Joi.array().items(Joi.object({
+//     imgUrl:Joi.string(),
+//     name:Joi.string(),
+//     designation:Joi.string(),
+//     id:Joi.number()
+//   })),
+//   clientPhotos:Joi.array(),
+//   reviews:Joi.object({
+//     avgService:Joi.any(),
+//     avgStudio:Joi.any(),
+//     avgAmenity:Joi.any(),
+//     avgLocation:Joi.any(),
+
+//   }),
+//   featuredReviews:Joi.array(),
+//   country:Joi.string()
+// })
+
 module.exports = {
   validateService: (data) => serviceSchema.validate(data),
   validateFilterSchema: (data) => filterSchema.validate(data),
