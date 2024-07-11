@@ -16,9 +16,9 @@ const auth = require("../util/authCheck");
 
 // router.post('/settings/create',controller.createNewSetting);
 
-router.get('/settings/banner',auth.isBoth,controller.getBanner);
+router.get('/settings/banner',auth.isGuest,controller.getBanner);
 
-router.get('/settings/category',auth.isBoth,controller.getCategory);
+router.get('/settings/category',auth.isGuest,controller.getCategory);
 
 router.post('/settings/booking/AddCountryCode',auth.isAdminV2,controller.addCountryCodeInBookings)
 
