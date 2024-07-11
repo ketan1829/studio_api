@@ -605,42 +605,49 @@ exports.exportServicesData = async (req, res) => {
 
 
 //functions:-
-async function  minStartPrice(packages) {
+async function minStartPrice(packages) {
   try {
-  //   const db = getDB();
-  // const objectId = new ObjectId(o_id);
-  // const services = await db.collection("services").find({ _id: objectId }).toArray();
-  let minUsa = [];
-  let minIn = [];
-  let minJp = [];
+    let minPrices = {
+      "USA": { price: Infinity, basePrice: 0, discountPercentage: 0 },
+      "IN": { price: Infinity, basePrice: 0, discountPercentage: 0 },
+      "JP": { price: Infinity, basePrice: 0, discountPercentage: 0 }
+    };
 
-packages?.forEach(packageObj => {
-          Object.entries(packageObj.pricing).forEach(([country, prices]) => {
-              if (country === 'USA') minUsa.push(prices.basePrice);
-              if (country === 'IN') minIn.push(prices.basePrice);
-              if (country === 'JP') minJp.push(prices.basePrice);
-          });
-});
+    packages.forEach(packageObj => {
+      Object.entries(packageObj.pricing).forEach(([country, prices]) => {
+        if (prices.price < minPrices[country].price) {
+          minPrices[country].price = prices.price;
+          minPrices[country].basePrice = prices.basePrice;
+          minPrices[country].discountPercentage = prices.discountPercentage;
+        }
+      });
+    });
 
-
-  return {
-    "USA": {
-        "price":0,
-        "basePrice": Math.min(...minUsa),
-        "discountPercentage": 10
-    },"IN": {
-        "price":0,
-        "basePrice": Math.min(...minIn),
-        "discountPercentage": 10
-    },"JP": {
-        "price": 0,
-        "basePrice": Math.min(...minJp),
-        "discountPercentage": 10
-    },
-}
+    return {
+      "USA": {
+        "price": minPrices.USA.price,
+        "basePrice": minPrices.USA.basePrice,
+        "discountPercentage": minPrices.USA.discountPercentage
+      },
+      "IN": {
+        "price": minPrices.IN.price,
+        "basePrice": minPrices.IN.basePrice,
+        "discountPercentage": minPrices.IN.discountPercentage
+      },
+      "JP": {
+        "price": minPrices.JP.price,
+        "basePrice": minPrices.JP.basePrice,
+        "discountPercentage": minPrices.JP.discountPercentage
+      }
+    };
 
   } catch (error) {
-    logger.error(error,"Error in calculating minimum start price");
-    console.log(error);
+    logger.error(error,"Error in calculating nin price")
+    console.error("Error in calculating minimum start price", error);
+    // return {
+    //   "USA": { price: 0, basePrice: 0, discountPercentage: 0 },
+    //   "IN": { price: 0, basePrice: 0, discountPercentage: 0 },
+    //   "JP": { price: 0, basePrice: 0, discountPercentage: 0 }
+    // };
   }
 }
