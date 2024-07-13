@@ -37,7 +37,7 @@ const auth = require("../util/authCheck");
  *       500:
  *         description: Internal server error
  */
-// router.post('/transactions/razorpay',controller.createRazorPayOrder);
+router.post('/transactions/razorpay',controller.createRazorPayOrder);
 
 /**
  * @swagger
@@ -73,7 +73,7 @@ const auth = require("../util/authCheck");
  *       500:
  *         description: Internal server error
  */
-// router.post('/transactions/razorpay/verify-payment-status',auth.isBoth,controller.razorPayVerifyPaymentStatus);
+router.post('/transactions/razorpay/verify-payment-status',auth.isBoth,controller.razorPayVerifyPaymentStatus);
 
 /**
  * @swagger
