@@ -16,10 +16,11 @@ const verifyToken = (token) => {
 const isGuest = async (req, res, next) => {
   // console.log("authCheck2");
   try {
-    let token =  req.body || req.params || req.headers.authorization.split("")[1];
+    let token =  req.body.guestId || req.params.guestId || req.headers.authorization.split(" ")[1];
+    console.log("token-->", token);
     if (!token) throw new ErrorHandler(401, "unauthorized Token");
 
-    const decoded = await verifyToken(token.deviceId);
+    const decoded = await verifyToken(token);
 
     if (!decoded.deviceId && !decoded.user) {
       throw new ErrorHandler(401, "unauthorized");
