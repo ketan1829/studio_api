@@ -3,6 +3,7 @@ const router = express.Router();
 const controller = require('../controllers/studio');
 
 const auth = require("../util/authCheck");
+const validSchema = require("../validations/studio")
 
 /**
  * @swagger
@@ -75,7 +76,7 @@ const auth = require("../util/authCheck");
  *         description: Internal server error
  */
 
-router.post('/studios/create',controller.createNewStudio);
+router.post('/studios/create',validSchema.studio,controller.createNewStudio);
 
 /**
 * @swagger
@@ -473,7 +474,7 @@ router.get('/studios',auth.isBoth,controller.getAllStudios);
  *       500:
  *         description: Internal server error, something went wrong
  */
-router.patch('/studios/:studioId',auth.isAdminOrOwner,controller.editStudioDetails);
+router.patch('/studios/:studioId',auth.isAdminOrOwner,validSchema.studio,controller.editStudioDetails);
 
 /**
  * @swagger
