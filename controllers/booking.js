@@ -4593,29 +4593,29 @@ cron.schedule("*/10 * * * * *", function () {
 });
 
 // Update the discount date everyday at midnight
-cron.schedule("0 0 0 * * *", function () {
+// cron.schedule("0 0 0 * * *", function () {
 
-  let currentTimeIST = moment.tz("Asia/Kolkata");
-  // Format it to the required format
-  let formattedTime = currentTimeIST.toISOString();
+//   let currentTimeIST = moment.tz("Asia/Kolkata");
+//   // Format it to the required format
+//   let formattedTime = currentTimeIST.toISOString();
 
-  console.log("formattedTime====>",formattedTime)
+//   console.log("formattedTime====>",formattedTime)
 
-  const mongodb = require('mongodb');
-  const getDb = require('../util/database').getDB;
-  const ObjectId = mongodb.ObjectId;
-
-
-  const db = getDb();
-  var o_id = new ObjectId("6306d6e6842604c7ac3540d9");
-  const discountData = { discountDate:formattedTime}
-  db.collection('choiraDiscounts').updateOne({ _id: o_id }, { $set: discountData })
-    .then(resultData => {
-      console.log("============= Discount Date Updated : RESULT DATA =================>",resultData.modifiedCount)
-  });
+//   const mongodb = require('mongodb');
+//   const getDb = require('../util/database').getDB;
+//   const ObjectId = mongodb.ObjectId;
 
 
-}, {
-  scheduled: true,
-  timezone: "Asia/Kolkata" // Timezone for India
-})
+//   const db = getDb();
+//   var o_id = new ObjectId("6306d6e6842604c7ac3540d9");
+//   const discountData = { discountDate:formattedTime}
+//   db.collection('choiraDiscounts').updateOne({ _id: o_id }, { $set: discountData })
+//     .then(resultData => {
+//       console.log("============= Discount Date Updated : RESULT DATA =================>",resultData.modifiedCount)
+//   });
+
+
+// }, {
+//   scheduled: true,
+//   timezone: "Asia/Kolkata" // Timezone for India
+// })
