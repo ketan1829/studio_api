@@ -9,6 +9,7 @@ const pick = require('../util/pick')
 const ObjectId = mongodb.ObjectId;
 
 const jwt = require('jsonwebtoken');
+const { sendMsg91OTP } = require('../util/mail');
 
 
 exports.createNewOwner = async(req,res,next)=>{
@@ -19,6 +20,7 @@ exports.createNewOwner = async(req,res,next)=>{
     const password = req.body.password;
     const studioId = req.body.studioId;
     const ownerImage = "";
+    const phone = req.body.phone;
 
     Owner.findOwnerByEmail(email)
     .then(ownerData=>{
@@ -38,7 +40,7 @@ exports.createNewOwner = async(req,res,next)=>{
                 {
                     return res.json({status:false, message:"Studio already linked to another owner"});
                 }
-                const ownerObj = new Owner(firstName,lastName,email,password,studioId,ownerImage);
+                const ownerObj = new Owner(firstName,lastName,email,password,studioId,ownerImage,phone);
                 
                 // saving in database
                 return ownerObj.save()
@@ -53,11 +55,30 @@ exports.createNewOwner = async(req,res,next)=>{
 }
 
 
-exports.ownerLogin = (req,res,next)=>{
+exports.ownerLogin = async(req,res,next)=>{
 
     const email = req.body.email;
     const password = req.body.password;
+    const userType = req.body.userType;
+    const phoneNumber = req.body.phoneNumber;
 
+    if(userType==="Number"){
+        let ownerData = await Owner.findOwnerByNumber(phoneNumber)
+    if(!ownerData){
+        return res.json({status:false,message:'Owner does not exist'});
+    }
+    const status_otp = await sendMsg91OTP(`${ownerData.phone}`);
+        if(!(status_otp.status)){
+          return res.status(400).json({
+            status:false,
+            message:"Error while sending OTP to owner"
+        })
+    }
+      return res.json({
+        status: true,
+        message: "Hello Owner, OTP has been send Succesfully"
+      });
+    }else{
     Owner.findOwnerByEmail(email)
     .then(ownerData=>{
         if(!ownerData)
@@ -84,7 +105,7 @@ exports.ownerLogin = (req,res,next)=>{
         })
         .catch(err=>console.log(err));
     })
-
+    }
 }
 
 

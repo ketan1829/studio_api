@@ -3046,6 +3046,8 @@ exports.getAllBookings = async (req, res, next) => {
     let bookingType = [0, 1, 2].includes(+req.query.bookingType)
       ? +req.query.bookingType
       : -1;
+
+    console.log(bookingType);
     let booking_category = req.query.category || "c1";
     logger.info("bookingType", { bookingType });
     logger.info({ booking_category, bookingType });
@@ -3058,6 +3060,12 @@ exports.getAllBookings = async (req, res, next) => {
     const pipeline_lane = [];
 
     if (bookingType === -1) {
+      pipeline_lane.push({
+        $match: {
+          $or: [{ type: "c1" }, { type: { $nin: ["c2", "c3"] } }],
+        },
+      });
+      pipeline_lane.push({ $sort: { _id: -1 } });
       pipeline_lane.push({
         $lookup: {
           from: "studios",
@@ -3086,15 +3094,54 @@ exports.getAllBookings = async (req, res, next) => {
           as: "userInfo",
         },
       });
-      pipeline_lane.push({
-        $addFields: {
-          studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
-          userName: { $arrayElemAt: ["$userInfo.fullName", 0] },
-          userEmail: { $arrayElemAt: ["$userInfo.email", 0] },
-          userPhone: { $arrayElemAt: ["$userInfo.phone", 0] },
-          userType: { $cond: [{ $eq: ["$userInfo", []] }, "", "USER"] },
+
+      // pipeline_lane.push({
+      //   $addFields: {
+      //     studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
+      //     userName: { $arrayElemAt: ["$userInfo.fullName", 0] },
+      //     userEmail: { $arrayElemAt: ["$userInfo.email", 0] },
+      //     userPhone: { $arrayElemAt: ["$userInfo.phone", 0] },
+      //     userType: { $cond: [{ $eq: ["$userInfo", []] }, "", "USER"] },
+      //   },
+      // });
+      pipeline_lane.push(
+        {
+          $project: {
+            studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
+            userName: {
+              $ifNull: [{ $arrayElemAt: ["$userInfo.fullName", 0] }, "Admin"],
+            },
+            userEmail: {
+              $ifNull: [{ $arrayElemAt: ["$userInfo.email", 0] }, "Admin"],
+            },
+            userPhone: {
+              $ifNull: [{ $arrayElemAt: ["$userInfo.phone", 0] }, "Admin"],
+            },
+            userType: {
+              $ifNull: [{ $arrayElemAt: ["$userInfo.userType", 0] }, "Admin"],
+            },
+
+            otherFields: "$$ROOT",
+          },
         },
-      });
+        {
+          $replaceRoot: {
+            newRoot: {
+              $mergeObjects: [
+                "$otherFields",
+                {
+                  studioName: "$studioName",
+                  userName: "$userName",
+                  userEmail: "$userEmail",
+                  userPhone: "$userPhone",
+                  userType: "$userType",
+                  // Add more specific fields as needed
+                },
+              ],
+            },
+          },
+        }
+      );
       pipeline_lane.push({ $skip: skip });
       pipeline_lane.push({ $limit: limit });
       pipeline_lane.push({
@@ -3191,20 +3238,20 @@ exports.getAllBookings = async (req, res, next) => {
     logger.info(bookingsData.length);
     logger.info(bookingsData[0]);
 
-    const activeBookings = bookingsData.filter(
-      (booking) => booking.bookingStatus === 0
-    );
-    const completedBookings = bookingsData.filter(
-      (booking) => booking.bookingStatus === 1
-    );
-    const cancelledBookings = bookingsData.filter(
-      (booking) => booking.bookingStatus === 2
-    );
+    // const activeBookings = bookingsData.filter(
+    //   (booking) => booking.bookingStatus === 0
+    // );
+    // const completedBookings = bookingsData.filter(
+    //   (booking) => booking.bookingStatus === 1
+    // );
+    // const cancelledBookings = bookingsData.filter(
+    //   (booking) => booking.bookingStatus === 2
+    // );
 
-    let bookingsstatus_wise = [];
-    bookingsstatus_wise = bookingsData.filter(
-      (booking) => booking.bookingStatus === bookingType
-    );
+    let bookingsstatus_wise = bookingsData;
+    // bookingsstatus_wise = bookingsData.filter(
+    //   (booking) => booking.bookingStatus === bookingType
+    // );
 
     // return res.json({ status: true, message: "All booking(s) returned", data: bookingsstatus_wise, bookings: { activeBookings, completedBookings, cancelledBookings } });
     return res.json({
@@ -4442,12 +4489,12 @@ try {
     if(bookingType==="offline"){
       let createdUser = await registerOfflineUser({ fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role })
     if(!createdUser.status){
-      res.status(400).json({status:true,message:createdUser.message})
+      res.status(200).json({status:false,message:createdUser.message})
     }
      userId = String(createdUser.result.insertedId)
      let createdBookingg = await createBooking({ userId,studioId, roomId, bookingDate, bookingTime, totalPrice })
     if(!createdBookingg.status){
-      return res.status(400).json({status:true,message:"Error occured While Booking"})
+      return res.status(200).json({status:false,message:"Error occured While Booking"})
     }
     res.status(200).json({
       status:true,
@@ -4456,7 +4503,7 @@ try {
     } else if(bookingType==="registered"){
       let createdBooking = await createBooking({ userId,studioId, roomId, bookingDate, bookingTime, totalPrice })
       if(!createdBooking.status){
-        res.status(400).json({status:true,message:"Error occured While Booking"})
+        res.status(200).json({status:false,message:"Error occured While Booking"})
       }else{
         res.status(200).json({status:true,message:"Booking successfully created for Registered User"})
       }
@@ -4546,29 +4593,29 @@ cron.schedule("*/10 * * * * *", function () {
 });
 
 // Update the discount date everyday at midnight
-cron.schedule("0 0 0 * * *", function () {
+// cron.schedule("0 0 0 * * *", function () {
 
-  let currentTimeIST = moment.tz("Asia/Kolkata");
-  // Format it to the required format
-  let formattedTime = currentTimeIST.toISOString();
+//   let currentTimeIST = moment.tz("Asia/Kolkata");
+//   // Format it to the required format
+//   let formattedTime = currentTimeIST.toISOString();
 
-  console.log("formattedTime====>",formattedTime)
+//   console.log("formattedTime====>",formattedTime)
 
-  const mongodb = require('mongodb');
-  const getDb = require('../util/database').getDB;
-  const ObjectId = mongodb.ObjectId;
-
-
-  const db = getDb();
-  var o_id = new ObjectId("6306d6e6842604c7ac3540d9");
-  const discountData = { discountDate:formattedTime}
-  db.collection('choiraDiscounts').updateOne({ _id: o_id }, { $set: discountData })
-    .then(resultData => {
-      console.log("============= Discount Date Updated : RESULT DATA =================>",resultData.modifiedCount)
-  });
+//   const mongodb = require('mongodb');
+//   const getDb = require('../util/database').getDB;
+//   const ObjectId = mongodb.ObjectId;
 
 
-}, {
-  scheduled: true,
-  timezone: "Asia/Kolkata" // Timezone for India
-})
+//   const db = getDb();
+//   var o_id = new ObjectId("6306d6e6842604c7ac3540d9");
+//   const discountData = { discountDate:formattedTime}
+//   db.collection('choiraDiscounts').updateOne({ _id: o_id }, { $set: discountData })
+//     .then(resultData => {
+//       console.log("============= Discount Date Updated : RESULT DATA =================>",resultData.modifiedCount)
+//   });
+
+
+// }, {
+//   scheduled: true,
+//   timezone: "Asia/Kolkata" // Timezone for India
+// })

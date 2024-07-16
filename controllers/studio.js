@@ -17,6 +17,7 @@ const jwt = require("jsonwebtoken");
 
 var GeoPoint = require("geopoint");
 const { logger } = require("../util/logger");
+const { getLatLong } = require("../util/get_coordinates_from_url");
 const mapQuestKey = process.env.MAP_QUEST_KEY;
 const GOOGLE_MAP_KEY = process.env.GOOGLE_MAP_KEY;
 
@@ -113,7 +114,7 @@ function filterNearbySudios(
       // }
     };
   } catch (exception) {
-    logger.error(exception,"Exception Occurred");
+    logger.error(exception, "Exception Occurred");
     return { status: false, message: "Invalid Latitude" };
   }
 }
@@ -125,7 +126,7 @@ exports.getStudios = async (req, res, next) => {
   console.log("body---studios-all");
 
 
-  logger.info({"body---": req.query});
+  logger.info({ "body---": req.query });
 
   var {
     city,
@@ -147,7 +148,7 @@ exports.getStudios = async (req, res, next) => {
     limit
   } = req.query;
 
-  const filter = pick(req.query, ["name", "role", "city","state"]);
+  const filter = pick(req.query, ["name", "role", "city", "state"]);
   const options = pick(req.query, ["sortBy", "limit", "page"]);
 
   // const filter = { isActive: 1 };
@@ -170,7 +171,7 @@ exports.getStudios = async (req, res, next) => {
   if (active) filter.isActive = +active;
   if (totalRooms) filter.totalRooms = +totalRooms;
   // active ? filter.isActive = active : filter.isActive = 1
-  
+
   if (minPricePerHour && maxPricePerHour) {
     filter["roomsDetails.basePrice"] = {
       $gte: +minPricePerHour,
@@ -181,16 +182,16 @@ exports.getStudios = async (req, res, next) => {
   } else if (maxPricePerHour) {
     filter["roomsDetails.basePrice"] = { $lte: parseInt(maxPricePerHour) };
   }
-  
 
-  if(creationTimeStamp){
-    filter.creationTimeStamp = {$gte:new Date(creationTimeStamp+"T00:00:00"), $lt:new Date(creationTimeStamp+"T23:59:59")}
+
+  if (creationTimeStamp) {
+    filter.creationTimeStamp = { $gte: new Date(creationTimeStamp + "T00:00:00"), $lt: new Date(creationTimeStamp + "T23:59:59") }
   }
 
   if (options.page) options.page = +page;
   if (options.limit) options.limit = +limit;
 
-  logger.info("filter",{filter});
+  logger.info("filter", { filter });
 
   console.log("filter =>", filter);
 
@@ -218,7 +219,7 @@ exports.getStudios = async (req, res, next) => {
     db.collection("studios")
       .createIndex({ location: "2dsphere" })
       .then((data) => {
-        logger.info("2dSphrere created",{data});
+        logger.info("2dSphrere created", { data });
         return res.json({ status: true, message: "2dSphrere created" });
       });
   }
@@ -260,7 +261,7 @@ exports.getStudios = async (req, res, next) => {
       sortStage[req.query.sortBy] = 1;
     } else {
       // sortStage.fullName = 1;
-          sortStage._id = -1;
+      sortStage._id = -1;
     }
 
     aggregationPipeline.push({ $sort: sortStage });
@@ -289,7 +290,7 @@ exports.getStudios = async (req, res, next) => {
   }
 
   if (latitude?.length && longitude?.length) {
-    
+
     const availableStudios = await Studio.getNearByStudios(
       +parseFloat(longitude),
       +parseFloat(latitude),
@@ -340,7 +341,7 @@ exports.getStudios_aggreation = async (req, res, next) => {
   try {
     let req_body = req.body;
     let req_body_longitude = parseFloat(req.body.longitude)
-    logger.info("body---",{req_body, req_body_longitude});
+    logger.info("body---", { req_body, req_body_longitude });
     const db = getDb();
     const {
       city,
@@ -423,7 +424,7 @@ exports.getStudios_aggreation = async (req, res, next) => {
         .collection("studios")
         .countDocuments(filter);
       const totalPages = Math.ceil(totalNearbyStudios / options.limit);
-      logger.info("nearbyStudios---",{nearbyStudios});
+      logger.info("nearbyStudios---", { nearbyStudios });
       return res.json({
         status: true,
         message: `Page ${options.page} of ${totalPages} - ${nearbyStudios.length} studios returned`,
@@ -444,7 +445,7 @@ exports.getStudios_aggreation = async (req, res, next) => {
       });
     }
   } catch (error) {
-    logger.error(error,"Error occurred:");
+    logger.error(error, "Error occurred:");
     return res
       .status(500)
       .json({ status: false, message: "Internal server error" });
@@ -453,7 +454,7 @@ exports.getStudios_aggreation = async (req, res, next) => {
 
 exports.getStudiosOptimized = (req, res, next) => {
   let req_body = req.body
-  logger.info("body---",{req_body});
+  logger.info("body---", { req_body });
   const {
     city,
     state,
@@ -567,7 +568,7 @@ exports.getAllNearStudios = async (req, res, next) => {
       forYou: [],
     });
   } catch (exception) {
-    logger.error(exception,"Exception Occured");
+    logger.error(exception, "Exception Occured");
     return res.json({
       status: false,
       message: "Geopoint Exception Occured....Invalid Latitude",
@@ -638,6 +639,128 @@ exports.getAllNearStudios = async (req, res, next) => {
   // })
 };
 
+// exports.createNewStudio = async (req, res, next) => {
+//   const fullName = req.body.fullName; //.trim();
+//   let address = req.body.address;
+//   const mapLink = req.body.mapLink;
+//   const city = req.body.city;
+//   const state = req.body.state;
+//   const area = parseFloat(req.body.area);
+//   const pincode = req.body.pincode;
+//   const pricePerHour = parseFloat(req.body.pricePerHour) || 0;
+//   const availabilities = req.body.availabilities;
+//   const amenities = req.body.amenities;
+//   const totalRooms = +req.body.totalRooms;
+//   const roomsDetails = req.body.roomsDetails;
+//   const maxGuests = req.body.maxGuests;
+//   const studioPhotos = req.body.studioPhotos;
+//   const aboutUs = req.body.aboutUs;
+//   const teamDetails = req.body.teamDetails;
+//   const clientPhotos = req.body.clientPhotos;
+//   const country = req.body.country || "IN";
+//   const reviews = {};
+//   const featuredReviews = [];
+//   let minPrice = {}
+//   let latitude = "";
+//   let longitude = "";
+//   try {
+//     minPrice = calculateMinPrice(roomsDetails);
+//     logger.info({ address });
+//     address = address.replace("&", "and");
+
+//     console.log("hello 1");
+//     axios
+//       .get(
+//         "https://maps.googleapis.com/maps/api/geocode/json?address=" +
+//         address +
+//         "&key=" +
+//         GOOGLE_MAP_KEY
+//       )
+//       .then(async function (response) {
+//         const res_data = response.data?.results[0]?.geometry?.location;
+//         console.log("res_data",res_data);
+//         if (!res_data) {
+//     console.log("hello 2");
+
+//           const latlong = await getLatLong(mapLink);
+//           console.log("latlong",latlong);
+//           if (latlong.length < 0) {
+//             return res.json({
+//               status: false,
+//               message: "Enter valid address for studio",
+//             });
+//           }
+//           latitude = latlong[0].toString()
+//           longitude = latlong[1].toString()
+//           console.log("latitude",latitude);
+//           console.log("longitude",longitude);
+//           res.send("hello")
+//         } else {
+//     console.log("hello 3");
+
+//           latitude = res_data.lat.toString();
+//           longitude = res_data.lng.toString();
+
+//           logger.info(latitude, longitude);
+//           const location = {
+//             type: "Point",
+//             coordinates: [+longitude, +latitude],
+//           };
+//           const studioObj = new Studio(
+//             fullName,
+//             address,
+//             latitude,
+//             longitude,
+//             mapLink,
+//             city,
+//             state,
+//             area,
+//             pincode,
+//             pricePerHour,
+//             availabilities,
+//             amenities,
+//             totalRooms,
+//             roomsDetails,
+//             maxGuests,
+//             studioPhotos,
+//             aboutUs,
+//             teamDetails,
+//             clientPhotos,
+//             reviews,
+//             featuredReviews,
+//             1,
+//             location,
+//             country,
+//             minPrice
+//           );
+//     console.log("hello 3");
+
+//           // console.log(studioObj);
+
+//           // saving in database
+//           return studioObj
+//             .save()
+//             .then(async (resultData) => {
+//               console.log(resultData);
+//               return res.json({
+//                 status: true,
+//                 message: "Studio created successfully",
+//                 studio: resultData["ops"][0],
+//               });
+//             })
+//             .catch((err) => logger.error(err));
+//         }
+//       });
+//   } catch (error) {
+//     logger.error(error);
+//     return res.json({
+//       status: false,
+//       message: "Address Lat Long failed! :( contact Dev. NR",
+//     });
+//   }
+// };
+
+
 exports.createNewStudio = async (req, res, next) => {
   const fullName = req.body.fullName; //.trim();
   let address = req.body.address;
@@ -659,76 +782,79 @@ exports.createNewStudio = async (req, res, next) => {
   const country = req.body.country || "IN";
   const reviews = {};
   const featuredReviews = [];
-  let minPrice = {}
+  let minPrice = {};
+  let latitude = "";
+  let longitude = "";
 
   try {
     minPrice = calculateMinPrice(roomsDetails);
-    logger.info({address});
+    logger.info({ address });
     address = address.replace("&", "and");
-    axios
-      .get(
-        "https://maps.googleapis.com/maps/api/geocode/json?address=" +
-          address +
-          "&key=" +
-          GOOGLE_MAP_KEY
-      )
-      .then(function (response) {
-        const res_data = response.data?.results[0].geometry.location;
-        if (!res_data) {
-          return res.json({
-            status: false,
-            message: "Enter valid address for studio",
-          });
-        } else {
-          let latitude = res_data.lat.toString();
-          let longitude = res_data.lng.toString();
+    let latitude = "";
+    let longitude = "";
+    const response = await axios.get(
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=${GOOGLE_MAP_KEY}`
+    );
+    const res_data = response.data?.results[0]?.geometry?.location;
 
-          logger.info(latitude, longitude);
-          const location = {
-            type: "Point",
-            coordinates: [+longitude, +latitude],
-          };
-          const studioObj = new Studio(
-            fullName,
-            address,
-            latitude,
-            longitude,
-            mapLink,
-            city,
-            state,
-            area,
-            pincode,
-            pricePerHour,
-            availabilities,
-            amenities,
-            totalRooms,
-            roomsDetails,
-            maxGuests,
-            studioPhotos,
-            aboutUs,
-            teamDetails,
-            clientPhotos,
-            reviews,
-            featuredReviews,
-            1,
-            location,
-            country,
-            minPrice
-          );
+    if (!res_data) {
+      const latlong = await getLatLong(mapLink);
+      if (latlong.length === 0) {
+        return res.json({
+          status: false,
+          message: "Enter valid address for studio",
+        });
+      }
+      latitude = latlong[0].toString();
+      longitude = latlong[1].toString();
+    } else {
+      latitude = res_data.lat.toString();
+      longitude = res_data.lng.toString();
+    }
 
-          // saving in database
-          return studioObj
-            .save()
-            .then(async(resultData) => {
-              return res.json({
-                status: true,
-                message: "Studio created successfully",
-                studio: resultData["ops"][0],
-              });
-            })
-            .catch((err) => logger.error(err));
-        }
-      });
+    logger.info(latitude, longitude);
+    const location = {
+      type: "Point",
+      coordinates: [+longitude, +latitude],
+    };
+
+    const studioObj = new Studio(
+      fullName,
+      address,
+      latitude,
+      longitude,
+      mapLink,
+      city,
+      state,
+      area,
+      pincode,
+      pricePerHour,
+      availabilities,
+      amenities,
+      totalRooms,
+      roomsDetails,
+      maxGuests,
+      studioPhotos,
+      aboutUs,
+      teamDetails,
+      clientPhotos,
+      reviews,
+      featuredReviews,
+      1,
+      location,
+      country,
+      minPrice
+    );
+
+    const resultData = await studioObj.save();
+
+    return res.json({
+      status: true,
+      message: "Studio created successfully",
+      studio: resultData["ops"][0],
+    });
+
+
   } catch (error) {
     logger.error(error);
     return res.json({
@@ -737,6 +863,7 @@ exports.createNewStudio = async (req, res, next) => {
     });
   }
 };
+
 
 exports.getParticularStudioDetails = (req, res, next) => {
   const studioId = req.params.studioId;
@@ -805,7 +932,7 @@ exports.getParticularStudioDetails = (req, res, next) => {
             parseFloat(studioData.reviews.avgStudio) +
             parseFloat(studioData.reviews.avgAmenity) +
             parseFloat(studioData.reviews.avgLocation);
-            logger.info({overallAvgRating});
+          logger.info({ overallAvgRating });
           studioData.reviews.overallAvgRating = parseFloat(
             (overallAvgRating / 4).toFixed(1)
           );
@@ -898,7 +1025,7 @@ exports.getDashboardStudios = (req, res, next) => {
               //this means localities not selected for filter and we need to skip it
               index = 1;
             }
-            logger.info("Index : ",{index});
+            logger.info("Index : ", { index });
 
             //Checking for amenities
             let matchedAmenities = [];
@@ -922,10 +1049,10 @@ exports.getDashboardStudios = (req, res, next) => {
               //this means amenties not selected for filter and we need to skip it
               matchCount = 1;
             }
-            logger.info("Match amenities : ",{matchCount});
+            logger.info("Match amenities : ", { matchCount });
 
             let budget1 = budget;
-            logger.info("Budget : ",{budget});
+            logger.info("Budget : ", { budget });
             if (isNaN(budget)) {
               //this means budget not selected for filter and we need to skip it
               // budget = parseFloat(studiosData[i].pricePerHour);
@@ -939,14 +1066,14 @@ exports.getDashboardStudios = (req, res, next) => {
             }
 
             let person1 = person;
-            logger.info("Person : ",{person});
+            logger.info("Person : ", { person });
             if (isNaN(person)) {
               //this means person not selected for filter and we need to skip it
               person = parseFloat(studiosData[i].maxGuests);
             }
 
             let rooms1 = rooms;
-            logger.info("Rooms : ",{rooms});
+            logger.info("Rooms : ", { rooms });
             if (isNaN(rooms)) {
               //this means person not selected for filter and we need to skip it
               rooms = parseFloat(studiosData[i].totalRooms);
@@ -1039,8 +1166,8 @@ exports.getDashboardStudios = (req, res, next) => {
               );
               var distance = point1.distanceTo(point2, true); //output in kilometers
               studiosData[i].distance = distance.toFixed(2);
-              let distance_toFixed =distance.toFixed(2)
-              logger.info("Distance:",{distance_toFixed});
+              let distance_toFixed = distance.toFixed(2)
+              logger.info("Distance:", { distance_toFixed });
 
               //Checking for localities
               let index = 1;
@@ -1055,7 +1182,7 @@ exports.getDashboardStudios = (req, res, next) => {
                 //this means localities not selected for filter and we need to skip it
                 index = 1;
               }
-              logger.info("Index : ",{index});
+              logger.info("Index : ", { index });
 
               //Checking for amenities
               let matchedAmenities = [];
@@ -1080,10 +1207,10 @@ exports.getDashboardStudios = (req, res, next) => {
                 //this means amenties not selected for filter and we need to skip it
                 matchCount = 1;
               }
-              logger.info("Match amenities : ",{matchCount});
+              logger.info("Match amenities : ", { matchCount });
 
               let budget1 = budget;
-              logger.info("Budget : ",{budget});
+              logger.info("Budget : ", { budget });
               // if(isNaN(budget))  //this means budget not selected for filter and we need to skip it
               // {
               // budget = parseFloat(studiosData[i].pricePerHour);
@@ -1256,7 +1383,7 @@ exports.getDashboardStudios = (req, res, next) => {
             }
           } catch (exception) {
             // return;  //Return statement is used for BREAKING the for loop
-            logger.error(exception,"Exception Occured : ");
+            logger.error(exception, "Exception Occured : ");
             return res.json({
               status: false,
               message: "Geopoint Exception Occured....Invalid Latitude",
@@ -1290,9 +1417,7 @@ exports.getAllStudios = (req, res, next) => {
 exports.editStudioDetails = async (req, res, next) => {
   const studioId = req.params.studioId;
   const fullName = req.body.fullName;
-  const address = req.body.address;
-  const latitude = req.body.latitude?.toString();
-  const longitude = req.body.longitude?.toString();
+  let address = req.body.address;
   const mapLink = req.body.mapLink;
   const city = req.body.city;
   const state = req.body.state;
@@ -1307,6 +1432,8 @@ exports.editStudioDetails = async (req, res, next) => {
   const aboutUs = req.body.aboutUs;
   const teamDetails = req.body.teamDetails;
   const country = req.body.country;
+  let latitude = "";
+  let longitude = "";
 
 
   let studio = await Studio.findStudioById(studioId);
@@ -1352,6 +1479,34 @@ exports.editStudioDetails = async (req, res, next) => {
   });
 
   const minPrice = calculateMinPrice(roomsDetails);
+  address = address?.replace("&", "and");
+
+    const response = await axios.get(
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=${GOOGLE_MAP_KEY}`
+    );
+
+    const res_data = response.data?.results[0]?.geometry?.location;
+
+    if (!res_data) {
+      const latlong = await getLatLong(mapLink);
+      if (latlong.length === 0) {
+        return res.json({
+          status: false,
+          message: "Enter valid address for studio",
+        });
+      }
+      latitude = latlong[0].toString();
+      longitude = latlong[1].toString();
+    } else {
+      latitude = res_data.lat.toString();
+      longitude = res_data.lng.toString();
+    }
+
+    logger.info(latitude, longitude);
+    const location = {
+      type: "Point",
+      coordinates: [+longitude, +latitude],
+    };
 
   let studioObj = {
     fullName,
@@ -1373,6 +1528,7 @@ exports.editStudioDetails = async (req, res, next) => {
     teamDetails: updatedTeamDetails,
     country,
     minPrice,
+    location
   };
 
   let newStudioData = await Studio.filterEmptyFields(studioObj);
@@ -1402,7 +1558,7 @@ exports.getStudiosByDate = (req, res, next) => {
   }
   creationDate = yr + "-" + mth + "-" + dt;
   var sTimeStamp = new Date(creationDate).getTime();
-  logger.info("Creation Date : ",{creationDate});
+  logger.info("Creation Date : ", { creationDate });
 
   Studio.fetchStudiosByDate(creationDate).then((studioData) => {
     return res.json({
@@ -1473,7 +1629,7 @@ exports.getAllStudiosGraphDetails = (req, res, next) => {
     });
     keyData = keyData + 1;
   }
-  logger.info({months});
+  logger.info({ months });
 
   Studio.fetchAllStudios(0, 0).then((studiosData) => {
     studiosData.forEach((singleStudio) => {
@@ -1573,7 +1729,7 @@ exports.exportStudioData = async (req, res) => {
       });
     }
 
-    logger.info("this is pipe======>",{pipeline});
+    logger.info("this is pipe======>", { pipeline });
     if (options.startDate && options.endDate) {
       let startDate = options.startDate;
       let endDate = options.endDate;
@@ -1663,7 +1819,7 @@ exports.exportStudioData = async (req, res) => {
     const data = await workbook.xlsx
       .writeFile(`files/${file_name}`)
       .then(() => {
-        logger.info({__dirname});
+        logger.info({ __dirname });
         res
           .header({
             "Content-disposition": `attachment; filename=${file_name}`,
@@ -1673,7 +1829,7 @@ exports.exportStudioData = async (req, res) => {
           .sendFile(`${file_name}`, { root: `files/` },
             function (err) {
               if (err) {
-                logger.error(err,"Error sending file:");
+                logger.error(err, "Error sending file:");
               } else {
                 logger.info({
                   status: "success",
@@ -1684,7 +1840,7 @@ exports.exportStudioData = async (req, res) => {
             }
           );
       });
-    logger.info({data});
+    logger.info({ data });
   } catch (error) {
     res.send({
       status: "error",
@@ -1699,12 +1855,12 @@ exports.exportStudioData = async (req, res) => {
 
 exports.getUnassignedStudios = async (req, res, next) => {
   try {
-      const db = getDb();
-      const owners = await db.collection('owners').find({}).toArray();
-      const assignedStudioIds = owners.map(owner => owner.studioId);
-      const studios = await db.collection('studios').find({}).toArray();
-      const unassignedStudios = studios.filter(studio => !assignedStudioIds.includes(studio._id.toString()));
-      console.log("unassignedStudios",unassignedStudios);
+    const db = getDb();
+    const owners = await db.collection('owners').find({}).toArray();
+    const assignedStudioIds = owners.map(owner => owner.studioId);
+    const studios = await db.collection('studios').find({}).toArray();
+    const unassignedStudios = studios.filter(studio => !assignedStudioIds.includes(studio._id.toString()));
+    console.log("unassignedStudios", unassignedStudios);
     res.status(200).json({ status: true, message: "Unassigned studios fetched successfully", studios: unassignedStudios });
   } catch (error) {
     console.error(error);
@@ -1714,27 +1870,22 @@ exports.getUnassignedStudios = async (req, res, next) => {
 
 
 const calculateMinPrice = (roomsDetails) => {
-  let minPriceOfRoom = [];
+  if (!roomsDetails.length) {
+    throw new Error('No rooms details provided');
+  }
+
+  let minRoom = roomsDetails[0];
 
   roomsDetails.forEach((room) => {
-    if (typeof room.pricePerHour === 'number') {
-      minPriceOfRoom.push(room.pricePerHour);
-    } else {
-      const parsedPrice = parseFloat(room.pricePerHour);
-      if (!isNaN(parsedPrice)) {
-        minPriceOfRoom.push(parsedPrice);
-      }
+    if (room.pricePerHour < minRoom.pricePerHour) {
+      minRoom = room;
     }
   });
 
-  if (minPriceOfRoom.length === 0) {
-    throw new Error('No valid room prices found');
-  }
-
-  let min = Math.min(...minPriceOfRoom);
   return {
-    price: min,
-    basePrice: min,
+    price: minRoom.pricePerHour,
+    basePrice: minRoom.basePrice,
+    discountPercentage:minRoom.discountPercentage
   };
 };
 

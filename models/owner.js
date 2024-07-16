@@ -5,7 +5,7 @@ const ObjectId = mongodb.ObjectId;
 
 class Owner
 {
-    constructor(firstName,lastName,email,password,studioId,ownerImage)
+    constructor(firstName,lastName,email,password,studioId,ownerImage,phone)
     {
         this.firstName = firstName;
         this.lastName = lastName;
@@ -13,6 +13,7 @@ class Owner
         this.password = password;
         this.studioId = studioId;
         this.ownerImage = ownerImage;
+        this.phone = phone;
         this.creationTimeStamp = new Date();
     }
 
@@ -68,6 +69,17 @@ class Owner
         const db = getDb();
         let result = await db.collection('owners').aggregate(pipeline).toArray()
         return result;
+    }
+
+    static findOwnerByNumber(phone)
+    {
+        const db = getDb();
+                            
+        return db.collection('owners').findOne({ phone:phone })
+                .then(adminData=>{
+                    return adminData;
+                })
+                .catch(err=>console.log(err));
     }
 
 }
