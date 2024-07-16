@@ -2988,7 +2988,7 @@ exports.getAllBookings3 = async (req, res, next) => {
           booking.type = studioInfo?.type || "NA";
 
           return booking;
-        } catch (error) {
+        } catch (error) { 
           logger.error(error, "Error while processing booking:");
           throw error; // Rethrow the error to be caught by the outer try-catch
         }
@@ -3041,49 +3041,57 @@ exports.getAllBookings = async (req, res, next) => {
   logger.info("HITTTT");
   logger.info("data:", { req_query });
   try {
-    let skip = +req.query.skip || 0;
     let limit = +req.query.limit || 10;
+    let page = +req.query.page || 1;
+    let searchField = req.query.searchField;
+    let startDate = req.query.startDate;
+    let endDate = req.query.endDate;
+    let skip = (page - 1) * limit;
+
     let bookingType = [0, 1, 2].includes(+req.query.bookingType)
       ? +req.query.bookingType
       : -1;
 
-    console.log(bookingType);
     let booking_category = req.query.category || "c1";
     logger.info("bookingType", { bookingType });
     logger.info({ booking_category, bookingType });
     logger.info("hello");
-    if (isNaN(skip)) {
-      skip = 0;
-      // limit = 0;
-    }
 
     const pipeline_lane = [];
 
-    if (bookingType === -1) {
-      pipeline_lane.push({
-        $match: {
-          $or: [{ type: "c1" }, { type: { $nin: ["c2", "c3"] } }],
-        },
-      });
-      pipeline_lane.push({ $sort: { _id: -1 } });
-      pipeline_lane.push({
+    const commonPipeline = [
+      {
         $lookup: {
           from: "studios",
-          let: { studioIdStr: "$studioId" }, // define a variable to hold the string serviceId
+          let: { studioIdStr: "$studioId", roomId: "$roomId" },
           pipeline: [
             {
               $match: {
                 $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] },
               },
             },
+            {
+              $unwind: "$roomsDetails",  // Unwind roomsDetails array
+            },
+            {
+              $match: {
+                $expr: { $eq: ["$roomsDetails.roomId", "$$roomId"] },
+              },
+            },
+            {
+              $project: {
+                studioFullName: "$fullName",
+                roomName: "$roomsDetails.roomName"  // Project the roomName
+              }
+            }
           ],
           as: "studioInfo",
         },
-      });
-      pipeline_lane.push({
+      },
+      {
         $lookup: {
           from: "users",
-          let: { userIdStr: "$userId" }, // define a variable to hold the string userId
+          let: { userIdStr: "$userId" },
           pipeline: [
             {
               $match: {
@@ -3093,171 +3101,127 @@ exports.getAllBookings = async (req, res, next) => {
           ],
           as: "userInfo",
         },
-      });
-
-      // pipeline_lane.push({
-      //   $addFields: {
-      //     studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
-      //     userName: { $arrayElemAt: ["$userInfo.fullName", 0] },
-      //     userEmail: { $arrayElemAt: ["$userInfo.email", 0] },
-      //     userPhone: { $arrayElemAt: ["$userInfo.phone", 0] },
-      //     userType: { $cond: [{ $eq: ["$userInfo", []] }, "", "USER"] },
-      //   },
-      // });
-      pipeline_lane.push(
-        {
-          $project: {
-            studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
-            userName: {
-              $ifNull: [{ $arrayElemAt: ["$userInfo.fullName", 0] }, "Admin"],
-            },
-            userEmail: {
-              $ifNull: [{ $arrayElemAt: ["$userInfo.email", 0] }, "Admin"],
-            },
-            userPhone: {
-              $ifNull: [{ $arrayElemAt: ["$userInfo.phone", 0] }, "Admin"],
-            },
-            userType: {
-              $ifNull: [{ $arrayElemAt: ["$userInfo.userType", 0] }, "Admin"],
-            },
-
-            otherFields: "$$ROOT",
-          },
-        },
-        {
-          $replaceRoot: {
-            newRoot: {
-              $mergeObjects: [
-                "$otherFields",
-                {
-                  studioName: "$studioName",
-                  userName: "$userName",
-                  userEmail: "$userEmail",
-                  userPhone: "$userPhone",
-                  userType: "$userType",
-                  // Add more specific fields as needed
-                },
-              ],
-            },
-          },
-        }
-      );
-      pipeline_lane.push({ $skip: skip });
-      pipeline_lane.push({ $limit: limit });
-      pipeline_lane.push({
+      },
+      {
         $project: {
-          studioInfo: 0,
-          userInfo: 0,
+          studioName: { $arrayElemAt: ["$studioInfo.studioFullName", 0] },
+          roomName: { $arrayElemAt: ["$studioInfo.roomName", 0] },  // Add roomName to project
+          userName: {
+            $ifNull: [{ $arrayElemAt: ["$userInfo.fullName", 0] }, "Admin"],
+          },
+          userEmail: {
+            $ifNull: [{ $arrayElemAt: ["$userInfo.email", 0] }, "Admin"],
+          },
+          userPhone: {
+            $ifNull: [{ $arrayElemAt: ["$userInfo.phone", 0] }, "Admin"],
+          },
+          userType: {
+            $ifNull: [{ $arrayElemAt: ["$userInfo.userType", 0] }, "Admin"],
+          },
+          otherFields: "$$ROOT",
         },
-      });
-    } else {
-      pipeline_lane.push({
+      },
+      {
+        $replaceRoot: {
+          newRoot: {
+            $mergeObjects: [
+              "$otherFields",
+              {
+                studioName: "$studioName",
+                roomName: "$roomName",  // Add roomName to the final output
+                userName: "$userName",
+                userEmail: "$userEmail",
+                userPhone: "$userPhone",
+                userType: "$userType",
+              },
+            ],
+          },
+        },
+      },
+    ];
+    
+    
+    if (searchField) {
+      commonPipeline.push({
         $match: {
-          bookingStatus: bookingType,
-          $or: [{ type: "c1" }, { type: { $nin: ["c2", "c3"] } }],
-        },
-      });
-      pipeline_lane.push({ $sort: { _id: -1 } });
-      pipeline_lane.push({
-        $lookup: {
-          from: "studios",
-          let: { studioIdStr: "$studioId" }, // define a variable to hold the string serviceId
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] },
-              },
-            },
+          $or: [
+            { userName: { $regex: searchField, $options: "i" } },
+            { studioName: { $regex: searchField, $options: "i" } },
+            { userPhone: { $regex: searchField, $options: "i" } },
           ],
-          as: "studioInfo",
-        },
-      });
-      pipeline_lane.push({
-        $lookup: {
-          from: "users",
-          let: { userIdStr: "$userId" }, // define a variable to hold the string userId
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] },
-              },
-            },
-          ],
-          as: "userInfo",
-        },
-      });
-      pipeline_lane.push(
-        {
-          $project: {
-            studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
-            userName: {
-              $ifNull: [{ $arrayElemAt: ["$userInfo.fullName", 0] }, "Admin"],
-            },
-            userEmail: {
-              $ifNull: [{ $arrayElemAt: ["$userInfo.email", 0] }, "Admin"],
-            },
-            userPhone: {
-              $ifNull: [{ $arrayElemAt: ["$userInfo.phone", 0] }, "Admin"],
-            },
-            userType: {
-              $ifNull: [{ $arrayElemAt: ["$userInfo.userType", 0] }, "Admin"],
-            },
-
-            otherFields: "$$ROOT",
-          },
-        },
-        {
-          $replaceRoot: {
-            newRoot: {
-              $mergeObjects: [
-                "$otherFields",
-                {
-                  studioName: "$studioName",
-                  userName: "$userName",
-                  userEmail: "$userEmail",
-                  userPhone: "$userPhone",
-                  userType: "$userType",
-                  // Add more specific fields as needed
-                },
-              ],
-            },
-          },
-        }
-      );
-      pipeline_lane.push({ $limit: limit });
-      pipeline_lane.push({ $skip: skip });
-      pipeline_lane.push({
-        $project: {
-          studioInfo: 0,
-          userInfo: 0,
         },
       });
     }
-    const bookingsData = await Booking.aggregate(pipeline_lane);
-    logger.info("bookingsData");
-    logger.info(bookingsData.length);
-    logger.info(bookingsData[0]);
 
-    // const activeBookings = bookingsData.filter(
-    //   (booking) => booking.bookingStatus === 0
-    // );
-    // const completedBookings = bookingsData.filter(
-    //   (booking) => booking.bookingStatus === 1
-    // );
-    // const cancelledBookings = bookingsData.filter(
-    //   (booking) => booking.bookingStatus === 2
-    // );
+    if (startDate && endDate) {
+      commonPipeline.push({
+        $match: {
+          creationTimeStamp: {
+            $gte: new Date(startDate + "T00:00:00"),
+            $lt: new Date(endDate + "T23:59:59"),
+          },
+        },
+      });
+    }
+    commonPipeline.push({ $skip: skip })
+    commonPipeline.push({ $limit: limit })
+    commonPipeline.push({
+      $project: {
+        studioInfo: 0,
+        userInfo: 0,
+      },
+    })
 
-    let bookingsstatus_wise = bookingsData;
-    // bookingsstatus_wise = bookingsData.filter(
-    //   (booking) => booking.bookingStatus === bookingType
-    // );
+    if (bookingType === -1) {
+      pipeline_lane.push(
+        {
+          $match: {
+            $or: [{ type: "c1" }, { type: { $nin: ["c2", "c3"] } }],
+          },
+        },
+        { $sort: { _id: -1 } },
+        ...commonPipeline
+      );
+    } else {
+      pipeline_lane.push(
+        {
+          $match: {
+            bookingStatus: bookingType,
+            $or: [{ type: "c1" }, { type: { $nin: ["c2", "c3"] } }],
+          },
+        },
+        { $sort: { _id: -1 } },
+        ...commonPipeline
+      );
+    }
 
-    // return res.json({ status: true, message: "All booking(s) returned", data: bookingsstatus_wise, bookings: { activeBookings, completedBookings, cancelledBookings } });
+    const db = getDb();
+    console.log("pipeline_lane",pipeline_lane);
+    const bookingsData = await Booking.aggregate(pipeline_lane)
+
+    // Create a pipeline to count the total number of bookings
+    const totalCountPipeline = [
+      ...pipeline_lane.slice(0, -3), // Exclude $skip, $limit, and last $project
+      { $count: 'total' }
+    ];
+    
+
+    const totalCountResult = await db.collection('bookings').aggregate(totalCountPipeline).toArray();
+    console.log("totalCountResult",totalCountResult);
+    const totalBookings = totalCountResult.length > 0 ? totalCountResult[0].total : 0;
+
+    const totalPages = Math.ceil(totalBookings / limit);
+
     return res.json({
       status: true,
       message: "All booking(s) returned",
-      data: bookingsstatus_wise,
+      data: bookingsData,
+      paginate: {
+        page,
+        limit,
+        totalResults: totalBookings,
+        totalPages: totalPages,
+      },
     });
   } catch (error) {
     logger.error(error, "Internal server error:");

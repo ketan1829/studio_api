@@ -76,7 +76,7 @@ const validSchema = require("../validations/studio")
  *         description: Internal server error
  */
 
-router.post('/studios/create',validSchema.studio,controller.createNewStudio);
+router.post('/studios/create',controller.createNewStudio);
 
 /**
 * @swagger
@@ -474,7 +474,7 @@ router.get('/studios',auth.isBoth,controller.getAllStudios);
  *       500:
  *         description: Internal server error, something went wrong
  */
-router.patch('/studios/:studioId',auth.isAdminOrOwner,validSchema.studio,controller.editStudioDetails);
+router.patch('/studios/:studioId',auth.isAdminOrOwner,controller.editStudioDetails);
 
 /**
  * @swagger

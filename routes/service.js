@@ -46,7 +46,7 @@ const auth = require("../util/authCheck");
  *       500:
  *         description: Internal server error
  */
-router.post('/services/create',auth.isBoth,validSchema.service,controller.createNewService);
+router.post('/services/create',auth.isBoth,controller.createNewService);
 
 
 
@@ -373,7 +373,7 @@ router.get('/services/bookings/detail',auth.isBoth,controller.getServiceBookings
  *       500:
  *         description: Internal server error, failed to update service
  */
-router.put('/services/update/:serviceId',auth.isAdminV2,validSchema.service,controller.updateService);
+router.put('/services/update/:serviceId',auth.isAdminV2,controller.updateService);
 
 
 /**
