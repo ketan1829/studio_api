@@ -371,6 +371,7 @@ router.post('/users/send-signup-v2',controller.signupUserV2);
  */
 
 router.post('/users/login',controller.loginUser);
+router.post('/users/guestLogin',controller.guestLogin);
 
 /**
  * @swagger

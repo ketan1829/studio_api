@@ -16,13 +16,13 @@ const auth = require("../util/authCheck");
 
 // router.post('/settings/create',controller.createNewSetting);
 
-// banner =>
-router.get('/settings/banner',auth.isBoth,controller.getBanner);
+router.get('/settings/banner',auth.isGuest,controller.getBanner);
+
 router.post('/settings/createBanner',auth.isAdminV2,controller.createBanner);
 router.patch('/settings/editBanner',auth.isAdminV2,controller.editBanner);
-// banner <=
 
-router.get('/settings/category',auth.isBoth,controller.getCategory);
+
+router.get('/settings/category',auth.isGuest,controller.getCategory);
 
 router.post('/settings/booking/AddCountryCode',auth.isAdminV2,controller.addCountryCodeInBookings)
 
