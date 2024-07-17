@@ -204,7 +204,7 @@ exports.editBanner = async (req, res) => {
         const { id, stage, name, photoURL, active, type, banner_redirect, entity_id, forr, redirectURL } = req.body;
 
         if (!id) {
-            return res.status(400).json({ message: "Missing banner id" });
+            return res.status(200).json({status:false, message: "Missing banner id" });
         }
 
         let objectOfBanner = {

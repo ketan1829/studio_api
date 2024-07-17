@@ -3207,10 +3207,21 @@ exports.getAllBookings = async (req, res, next) => {
     
 
     const totalCountResult = await db.collection('bookings').aggregate(totalCountPipeline).toArray();
-    console.log("totalCountResult",totalCountResult);
+
     const totalBookings = totalCountResult.length > 0 ? totalCountResult[0].total : 0;
 
     const totalPages = Math.ceil(totalBookings / limit);
+
+    //to append noOfHours in booking data no
+    bookingsData.forEach((booking)=>{
+       booking.noOfHours = moment
+       .duration(
+         moment(booking.bookingTime?.endTime, "HH:mm").diff(
+           moment(booking.bookingTime?.startTime, "HH:mm")
+         )
+       )
+       .asHours();
+    })
 
     return res.json({
       status: true,
@@ -3230,6 +3241,8 @@ exports.getAllBookings = async (req, res, next) => {
       .json({ status: false, message: "Internal server error" });
   }
 };
+
+
 
 // get All Packages/Service Bookings
 exports.getServiceBookings = async (req, res) => {
