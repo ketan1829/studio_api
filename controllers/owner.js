@@ -115,20 +115,6 @@ exports.ownerLogin = async (req, res, next) => {
         token,
       });
     }
-
-    //   if (ownerData && ownerData.role === "tester") {
-    //     if (deviceId) {
-    //       ownerData.deviceId = deviceId;
-    //       await Owner.update(number, { deviceId: deviceId });
-    //     }
-    //     const token = jwt.sign({ user: ownerData }, 'myAppSecretKey');
-    //     return res.status(200).json({
-    //       status: true,
-    //       message: "Welcome Tester, OTP has been sent Successfully.",
-    //       user: ownerData,
-    //       token,
-    //     });
-    // }
   } else {
     Owner.findOwnerByEmail(email).then((ownerData) => {
       if (!ownerData) {
