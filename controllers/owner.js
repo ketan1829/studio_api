@@ -107,7 +107,7 @@ exports.ownerLogin = async (req, res, next) => {
         role: ownerData.role || "",
       };
 
-      const token = await jwt.sign({ user: OwnerData }, "myAppSecretKey");
+      const token = await jwt.sign({ owner: OwnerData }, "myAppSecretKey");
       return res.json({
         status: true,
         message: "Hello Owner, OTP has been sent Successfully",
@@ -115,6 +115,22 @@ exports.ownerLogin = async (req, res, next) => {
         token,
       });
     }
+      // Test Owner login
+      if (ownerData && ownerData.role === "owner") {
+        if (deviceId) {
+          ownerData.deviceId = deviceId;
+          await Owner.update(phoneNumber, { deviceId: deviceId });
+        }
+        const token = jwt.sign({ owner: ownerData }, secretKey);
+        statusInfo.role = "owner";
+        statusInfo.token = token;
+        statusInfo.newUser = false;
+        statusInfo.status = true;
+        statusInfo.owner = ownerData;
+        statusInfo.role = "owner";
+        statusInfo.message = "Welcome owner, OTP has been send Succesfully.";
+        return res.status(200).json(statusInfo);
+      }
   } else {
     Owner.findOwnerByEmail(email).then((ownerData) => {
       if (!ownerData) {
