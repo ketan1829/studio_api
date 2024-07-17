@@ -378,7 +378,7 @@ router.get('/studios-all' , auth.isGuest,controller.getStudios);
  *         description: Some server error, enter valid mongo object ID
  */
 
-router.get('/studios', auth.isGuest, controller.getAllStudios);
+router.get('/studios', auth.isGuest , controller.getAllStudios);
 
 // router.get('/all-states',controller.getAllStates);
 
