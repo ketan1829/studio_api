@@ -9,31 +9,31 @@ const ObjectId = mongodb.ObjectId;
 
 var request = require('request');
 
-var crypto = require("crypto");
-const Razorpay = require('razorpay');
-var instance = new Razorpay({  key_id: process.env.RAZORPAY_KEY_ID,  key_secret: process.env.RAZORPAY_KEY_SECRET,});
+// var crypto = require("crypto");
+// const Razorpay = require('razorpay');
+// var instance = new Razorpay({  key_id: process.env.RAZORPAY_KEY_ID,  key_secret: process.env.RAZORPAY_KEY_SECRET,});
 
 
-exports.createPhonePeOrder = (req,res,next)=>{
+// exports.createPhonePeOrder = (req,res,next)=>{
 
-    let amount = parseFloat(req.body.amount);
+//     let amount = parseFloat(req.body.amount);
 
-    var options = {
-        amount: amount * 100,  // amount in the smallest currency unit
-        currency: "INR"
-    };
-    instance.orders.create(options, function(err, order) {
-        // console.log(order);
-        if(err)
-        {
-            return res.status(500).json({status:false, message:"Error Occured", error:err});
-        }
-        else{
-            return res.json({status:true, message:"RazorPay-Order Created Successfully", order:order});
-        }
-    });
+//     var options = {
+//         amount: amount * 100,  // amount in the smallest currency unit
+//         currency: "INR"
+//     };
+//     instance.orders.create(options, function(err, order) {
+//         // console.log(order);
+//         if(err)
+//         {
+//             return res.status(500).json({status:false, message:"Error Occured", error:err});
+//         }
+//         else{
+//             return res.json({status:true, message:"RazorPay-Order Created Successfully", order:order});
+//         }
+//     });
       
-}
+// }
 
 
 exports.VerifyPaymentStatus = (req,res,next)=>{

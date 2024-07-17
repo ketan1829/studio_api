@@ -6,12 +6,31 @@ const verifyToken = (token) => {
   // console.log("token", token);
 
   return new Promise((resolve, reject) => {
-   
     jwt.verify(token,'myAppSecretKey', (err, decoded) => {
       if (err) reject(new ErrorHandler(401, "unauthorized"));
       else resolve(decoded);
     });
   });
+};
+
+const isGuest = async (req, res, next) => {
+  // console.log("authCheck2");
+  try {
+    let token =  req.body.guestId || req.params.guestId || req.headers.authorization.split(" ")[1];
+    console.log("token-->", token);
+    if (!token) throw new ErrorHandler(401, "unauthorized Token");
+
+    const decoded = await verifyToken(token);
+
+    if (!decoded.deviceId && !decoded.user) {
+      throw new ErrorHandler(401, "unauthorized");
+    }
+
+    next();
+  } catch (error) {
+    console.log("user error:=",error)
+    next(error);
+  }
 };
 
 const isUser = async (req, res, next) => {
@@ -208,4 +227,4 @@ const isAdminOrOwnerOrUser = async (req, res, next) => {
   }
 };
 
-module.exports = { isUser, isAdmin, isBoth, isAdminOrOwner, isAdminOrOwnerOrUser, isAdminV2 };
+module.exports = { isGuest, isUser, isAdmin, isBoth, isAdminOrOwner, isAdminOrOwnerOrUser, isAdminV2 };

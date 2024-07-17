@@ -154,6 +154,17 @@ class Booking
             .catch(err => console.error(err));
     }
 
+    static fetchUserEventBookings(userId,offerId,offerCode)
+    {
+        const db = getDb();
+        return db.collection('bookings').find({offerId,userId,offerCode,discountType:2}).toArray()
+            .then(bookingData=>{
+                return bookingData;
+            }).catch(err=>{
+                return [];
+        });
+    }
+
     // static async fetchAllBookingByAggregate() {
     //     try {
     //         const db = getDb();

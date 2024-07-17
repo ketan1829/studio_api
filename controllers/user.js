@@ -56,6 +56,19 @@ function generateRandomCode(length) {
   return token;
 }
 
+
+exports.guestLogin = async(req, res, next)=>{
+  const deviceId = req.body || req.params;
+
+  if (!deviceId) {
+    return res.status(400).json({ message: 'Device ID is required' });
+  }
+
+  const token = jwt.sign( deviceId , secretKey);
+
+  return res.status(200).json({ status: true, token: token });
+}
+
 exports.signupUser = async (req, res, next) => {
   const fullName = req.body.fullName.trim();
   const dateOfBirth = req.body.dateOfBirth;
@@ -78,6 +91,7 @@ exports.signupUser = async (req, res, next) => {
     hash.update(password);
     password = hash.digest("hex");
   }
+
 
   User.findUserByEmail(email).then((userData) => {
     if (userData) {
