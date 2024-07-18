@@ -142,7 +142,7 @@ exports.signupUser = async (req, res, next) => {
 };
 
 exports.loginUserOTP2 = (req, res, next) => {
-  logger.log("LOGIN-OTP", req.body);
+  logger.log("LOGIN-OTP", req.body);w
   return res.json({ status: true, message: "Login-OTP" });
 };
 
