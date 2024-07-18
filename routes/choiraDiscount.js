@@ -44,7 +44,7 @@ router.post('/discounts/create',auth.isAdmin,controller.createNewDiscount);
  *       500:
  *         description: Some server error, enter valid mongo object ID
  */
-router.get('/discounts/user/:userId',auth.isUser,controller.getAllUserDiscounts);
+router.get('/discounts/user/:userId',controller.getAllUserDiscounts);
 /**
  * @swagger
  * /discounts:
