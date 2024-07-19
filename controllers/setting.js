@@ -188,12 +188,12 @@ exports.createBanner = async (req, res) => {
         if (result.modifiedCount === 1) {
             res.status(200).json({ status:true, message: "Banner created successfully" });
         } else {
-            res.status(400).json({ status:false, message: "Failed to create banner" });
+            res.status(200).json({ status:false, message: "Failed to create banner" });
         }
     } catch (error) {
         logger.error(error, "Error while creating banner");
         console.log(error);
-        res.status(500).json({ message: "Internal server error" });
+        res.status(200).json({ status:false, message: "Internal server error" });
     }
 };
 
@@ -204,7 +204,7 @@ exports.editBanner = async (req, res) => {
         const { id, stage, name, photoURL, active, type, banner_redirect, entity_id, forr, redirectURL } = req.body;
 
         if (!id) {
-            return res.status(200).json({status:false, message: "Missing banner id" });
+            return res.status(200).json({ status:false, message: "Missing banner id" });
         }
 
         let objectOfBanner = {
@@ -220,27 +220,30 @@ exports.editBanner = async (req, res) => {
             redirectURL
         };
 
+        console.log(objectOfBanner);
+
         objectOfBanner = checks(objectOfBanner, banner_redirect, redirectURL, forr, entity_id);
 
         let { _id, banner } = await db.collection("settings").findOne({ type: "home_screen" });
         if(!_id){
             return res.status(200).json({ status:false, message: "Missing banner id" });
         }
+        // b1 : 4, b2 : 2, b3 : 3, b4 : 4
 
-
+        // get previous banner with this stage
         let existingBanner = banner.find(b => b.stage === stage);
+        console.log("existingBanner:::::",existingBanner);
         if (existingBanner) {
 
-            let currentBanner = banner.find(b => b.id === id);
-
+            let currentBanner = banner.find(b => b.id === id && b.type === type);
             if (currentBanner) {
                 await db.collection("settings").updateOne(
-                    { _id, "banner.id": existingBanner.id },
+                    { _id, "banner.id": existingBanner.id  },
                     { $set: { "banner.$.stage": currentBanner.stage } }
                 );
 
                 await db.collection("settings").updateOne(
-                    { _id, "banner.id": currentBanner.id },
+                    { _id, "banner.id": currentBanner.id ,},
                     { $set: { "banner.$.stage": existingBanner.stage } }
                 );
 
@@ -260,7 +263,7 @@ exports.editBanner = async (req, res) => {
                     }
                 );
             } else {
-                return res.status(400).json({ message: "Banner with the given id does not exist" });
+                return res.status(200).json({ status:false, message: "Banner with the given id does not exist" });
             }
         } else {
             await db.collection("settings").updateOne(
@@ -281,11 +284,10 @@ exports.editBanner = async (req, res) => {
             );
         }
 
-        return res.status(200).json({ message: "Banner updated successfully" });
+        return res.status(200).json({ status:true, message: "Banner updated successfully" });
     } catch (error) {
-        logger.error(error, "Error while updating banner");
-        console.log(error);
-        return res.status(500).json({ message: "Internal server error" });
+        logger.error({error}, "Error while updating banner");
+        return res.status(200).json({status:false, message: "Internal server error" });
     }
 };
 
@@ -469,3 +471,11 @@ const calculateMinPrice = (roomsDetails) => {
         discountPercentage:minRoom.discountPercentage
     };
   };
+
+const make_user_unique_field = async () => {
+
+    const db = mongodb.getDb();
+    return await db.collection("users").createIndex({ "phone": 1 }, { unique: true })
+
+
+}

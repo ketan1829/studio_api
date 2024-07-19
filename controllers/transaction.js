@@ -67,6 +67,7 @@ exports.createNewTransaction = async (req,res,next)=>{
 
     const transactionId = req.body.transactionId;
     let studioId = req.body.studioId;
+    let bookingId = req.body.bookingId;
     const userId = req.body.userId;
     let discountId = req.body.discountId;
     const amount = parseFloat(req.body.amount);
@@ -98,7 +99,7 @@ exports.createNewTransaction = async (req,res,next)=>{
             }
         }
         
-        const transactionObj = new Transaction(transactionId,studioId,userId,discountId,amount,transactionStatus);
+        const transactionObj = new Transaction(transactionId,studioId,userId,bookingId,discountId,amount,transactionStatus);
 
         // saving in database
         return transactionObj.save()

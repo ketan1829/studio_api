@@ -5,11 +5,12 @@ const ObjectId = mongodb.ObjectId;
 
 class Transaction
 {
-    constructor(transactionId,studioId,userId,discountId,amount,transactionStatus)
+    constructor(transactionId,studioId,userId,bookingId,discountId,amount,transactionStatus)
     {
         this.transactionId = transactionId;
         this.studioId = studioId;
         this.userId = userId;
+        this.bookingId = bookingId;
         this.discountId = discountId;
         this.amount = amount;
         this.transactionStatus = transactionStatus;    //0-> Pending , 1-> Success , 2-> Rejected

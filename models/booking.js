@@ -5,11 +5,13 @@ const ObjectId = mongodb.ObjectId;
 
 class Booking
 {
-    constructor(userId,studioId,roomId,bookingDate,bookingTime,totalPrice,bookingStatus, serviceType, countryCode)
+    constructor(userId,studioId,roomId,discountId,discountCode,bookingDate,bookingTime,totalPrice,bookingStatus, serviceType, countryCode)
     {
         this.userId = userId;
         this.studioId = studioId;
         this.roomId = roomId;
+        this.discountId = discountId;
+        this.discountCode = discountCode;
         this.bookingDate = bookingDate;
         this.bookingTime = bookingTime;
         this.totalPrice = totalPrice;
@@ -95,6 +97,12 @@ class Booking
                 return bookingData;
             })
             .catch(err=>console.log(err));
+    }
+
+    static async fetchAllBookingsByUserIdAndEventId(uId,discountEventId)
+    {
+        const db = getDb();
+        return await db.collection('bookings').find({userId:uId,discountId:discountEventId}).sort({creationTimeStamp:-1}).toArray();
     }
 
     static fetchAllBookingsByStudioId(sId,skipCount,limitCount)

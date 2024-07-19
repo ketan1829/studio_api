@@ -22,7 +22,7 @@ const isGuest = async (req, res, next) => {
 
     const decoded = await verifyToken(token);
 
-    if (!decoded.deviceId && !decoded.user) {
+    if (!decoded.deviceId && !decoded.user && !decoded.admin) {
       throw new ErrorHandler(401, "unauthorized");
     }
 
