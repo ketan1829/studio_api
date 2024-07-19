@@ -29,6 +29,13 @@ exports.createNewOwner = async (req, res, next) => {
         message: "Owner with this Email already exists",
       });
     }
+    Owner.findOwnerByPhone(phone).then((ownerPhoneData) => {
+      if (ownerPhoneData) {
+        return res.status(409).json({
+          status: false,
+          message: "Owner with this Phone already exists",
+        });
+      }
     Studio.findStudioById(studioId).then((studioData) => {
       if (!studioData) {
         return res.json({
@@ -49,7 +56,10 @@ exports.createNewOwner = async (req, res, next) => {
           email,
           password,
           studioId,
-          ownerImage
+          ownerImage,
+          phone,
+          userType,
+          deviceId
         );
 
         // saving in database
@@ -66,6 +76,7 @@ exports.createNewOwner = async (req, res, next) => {
       });
     });
   });
+})
 };
 
 exports.ownerLogin = async (req, res, next) => {
