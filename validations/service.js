@@ -1,6 +1,6 @@
 const Joi = require('joi');
 
-const serviceSchema = Joi.object({
+const serviceCreateSchema = Joi.object({
     service_id:Joi.number().integer().required(),
     serviceName:Joi.string().required(),
     startingPrice:Joi.number().strict().required(),
@@ -57,8 +57,69 @@ const serviceSchema = Joi.object({
     // featuredReviews:Joi.string().required(),
 })
 
-const service = (req,res,next) =>{
-    const {error} = serviceSchema.validate(req.body)
+const serviceCreate = (req,res,next) =>{
+    const {error} = serviceCreateSchema.validate(req.body)
+    if(error){
+        return res.status(200).json({
+            status:false,
+            Message:error.details[0].message
+        })
+    }
+    next()
+}
+
+const serviceUpdateSchema = Joi.object({
+    service_id:Joi.number().integer(),
+    serviceName:Joi.string(),
+    startingPrice:Joi.number().strict(),
+    offerings:Joi.array(),
+    TotalServices:Joi.number().strict(),
+    packages:Joi.array().items(Joi.object({
+        planId:Joi.number().strict(),
+        name:Joi.string(),
+        about:Joi.string(),
+        photo_url:Joi.array().items(),
+        price:Joi.number().strict(),
+        amenites:Joi.array().items(Joi.object({
+            name:Joi.string(),
+            id:Joi.number().strict()
+        })),
+        pricing:Joi.object({
+            USA:Joi.object({
+                price:Joi.number().strict(),
+                basePrice:Joi.number().strict(),
+                discountPercentage:Joi.number().strict(),
+            }),
+            IN:Joi.object({
+                price:Joi.number().strict(),
+                basePrice:Joi.number().strict(),
+                discountPercentage:Joi.number().strict(),
+            }),
+            JP:Joi.object({
+                price:Joi.number().strict(),
+                basePrice:Joi.number().strict(),
+                discountPercentage:Joi.number().strict(),
+            }),
+        }),
+    })),
+    ServicePhotos:Joi.array().items(),
+    description:Joi.string(),
+    workDetails:Joi.array().items(Joi.object({
+        imgUrl:Joi.string(),
+        name:Joi.string(),
+        designation:Joi.string(),
+        id:Joi.number().strict(),
+    })),
+    portfolio:Joi.array(),
+    userReviews:Joi.object(),
+    starredReviews:Joi.array(),
+    userPhotos:Joi.array(),
+    type:Joi.string(),
+    isActive:Joi.number().strict(),
+})
+
+const serviceUpdate = (req,res,next) =>{
+    const {error} = serviceUpdateSchema.validate(req.body)
     if(error){
         return res.status(200).json({
             status:false,
@@ -69,4 +130,4 @@ const service = (req,res,next) =>{
 }
 
 
-module.exports = {service}
+module.exports = {serviceCreate,serviceUpdate}

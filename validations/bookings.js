@@ -20,7 +20,7 @@ const serviceBooking = (req,res,next)=>{
     const {error}=serviceBookingSchems.validate(req.body)
     if(error){
         logger.error(error,"Error Accured during validating service booking schema")
-        res.status(200).json({status:false, message:error.details[0].message})
+        return res.status(200).json({status:false, message:error.details[0].message})
     }
     next()
 }

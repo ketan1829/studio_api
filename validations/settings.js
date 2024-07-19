@@ -2,9 +2,7 @@ const Joi = require("joi")
 const { logger } = require("../util/logger")
 
 
-const bannerSchema = Joi.object({
-
-    id:Joi.string(),
+const bannerCreateSchema = Joi.object({
     stage:Joi.number().strict().required(),
     name:Joi.string().required(),
     photoURL:Joi.string().required(),
@@ -17,12 +15,38 @@ const bannerSchema = Joi.object({
     forr:Joi.string()
 })
 
-const banner = (req,res,next)=>{
-    const url = req.url;
-    const initSchema = bannerSchema;
-    if(url.includes("editBanner")){
-        initSchema.id = Joi.string().required()
+const bannerCreate = (req,res,next)=>{
+    // const url = req.url;
+    // const initSchema = bannerCreateSchema;
+    // if(url.includes("editBanner")){
+    //     initSchema.id = Joi.string().required()
+    // }
+   
+    const {error} = bannerCreateSchema.validate(req.body)
+    if(error){
+        logger.error(error,"Error occured during validating creation of banner.")
+        return res.status(200).json({status:false, message:error.details[0].message})
     }
+    next()
+}
+
+const bannerSchema = Joi.object({
+
+    id:Joi.string().required(),
+    stage:Joi.number().strict(),
+    name:Joi.string(),
+    photoURL:Joi.string(),
+    active:Joi.number().strict(),
+    type:Joi.string(),
+    redirect_url:Joi.string(),
+    redirectURL:Joi.string(),
+    banner_redirect:Joi.string(),
+    entity_id:Joi.string(),
+    forr:Joi.string()
+})
+
+const bannerUpdate = (req,res,next)=>{
+
    
     const {error} = bannerSchema.validate(req.body)
     if(error){
@@ -32,6 +56,6 @@ const banner = (req,res,next)=>{
     next()
 }
 
-module.exports = {banner}
+module.exports = {bannerCreate,bannerUpdate}
 
 
