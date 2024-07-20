@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/service');
+const validSchema = require('../validations/service')
 
 const auth = require("../util/authCheck");
 
@@ -45,7 +46,7 @@ const auth = require("../util/authCheck");
  *       500:
  *         description: Internal server error
  */
-router.post('/services/create', auth.isBoth,controller.createNewService);
+router.post('/services/create',auth.isBoth,controller.createNewService);
 
 
 
