@@ -182,7 +182,7 @@ router.patch('/studios/studioId/active',controller.toggleStudioActiveStatus);
  *         description: Some server error, enter valid mongo object ID
  */
 
-router.get('/studios/:studioId', auth.isGuest, controller.getParticularStudioDetails);
+router.get('/studios/:studioId', [auth.isGuest,auth.isBoth], controller.getParticularStudioDetails);
 
 
 
@@ -333,7 +333,7 @@ router.post('/studios/dashboard-filter',controller.getDashboardStudios);
 // api/studios?skip=0&limit=50       --  Get particular range of studios based on skip and limit
 
 // get studios (location, filters, sorting)
-router.get('/studios-all' , auth.isGuest,controller.getStudios);
+router.get('/studios-all' , [auth.isGuest,auth.isBoth],controller.getStudios);
 
 /**
  * @swagger
@@ -378,7 +378,7 @@ router.get('/studios-all' , auth.isGuest,controller.getStudios);
  *         description: Some server error, enter valid mongo object ID
  */
 
-router.get('/studios', auth.isGuest, controller.getAllStudios);
+router.get('/studios', [auth.isGuest,auth.isBoth], controller.getAllStudios);
 
 // router.get('/all-states',controller.getAllStates);
 
@@ -509,7 +509,7 @@ router.patch('/studios/:studioId',auth.isAdminOrOwner,controller.editStudioDetai
  *       500:
  *         description: Some server error, enter valid mongo object ID
 */
-router.post('/near-studios', auth.isGuest, controller.getAllNearStudios);
+router.post('/near-studios', [auth.isGuest,auth.isUser], controller.getAllNearStudios);
 
 /**
 * @swagger

@@ -684,6 +684,8 @@ exports.createServiceBooking = async (req, res, next) => {
         userId,
         serviceId,
         parseInt(planId),
+        "0",
+        "#000",
         bookingDate,
         bookingTime,
         parseFloat(totalPrice),
@@ -691,8 +693,10 @@ exports.createServiceBooking = async (req, res, next) => {
         serviceType,
         countryCode
       );
+      logger.info({bookingObj})
       const resultData = await bookingObj.save();
       bookingData = resultData.ops[0];
+      logger.info({bookingData})
       bookingData.totalPrice = bookingData.totalPrice.toFixed(2);
     }
 

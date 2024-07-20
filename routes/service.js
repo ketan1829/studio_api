@@ -116,7 +116,7 @@ router.post('/services/create', auth.isBoth,controller.createNewService);
  *       500:
  *         description: Internal server error
  */
-router.get('/services',auth.isGuest,controller.getServices);
+router.get('/services',[auth.isGuest,auth.isBoth],controller.getServices);
 
 
 // router.get('/services/bookings',auth.isBoth,controller.getServiceBookings);
