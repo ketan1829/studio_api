@@ -18,7 +18,7 @@ const jwt = require("jsonwebtoken");
 var GeoPoint = require("geopoint");
 const { logger } = require("../util/logger");
 const { getLatLong } = require("../util/get_coordinates_from_url");
-const { studioCreateSchema } = require("../util/validations");
+
 const mapQuestKey = process.env.MAP_QUEST_KEY;
 const GOOGLE_MAP_KEY = process.env.GOOGLE_MAP_KEY;
 
@@ -789,13 +789,6 @@ exports.createNewStudio = async (req, res, next) => {
 
   try {
     console.log("req.body",req.body);
-    const { error } = studioCreateSchema(req.body);
-    if (error) {
-      console.log("error.details[0].message",error.details[0].message);
-      return res
-        .status(400)
-        .json({ status: false, message: error.details[0].message });
-    }
     minPrice = calculateMinPrice(roomsDetails);
     logger.info({ address });
     address = address.replace("&", "and");
@@ -1444,12 +1437,7 @@ exports.editStudioDetails = async (req, res, next) => {
   let latitude = "";
   let longitude = "";
   console.log("req.body",req.body);
-  const { error } = studioCreateSchema(req.body);
-  if (error) {
-    return res
-      .status(400)
-      .json({ status: false, message: error.details[0].message });
-  }
+
 
 
   let studio = await Studio.findStudioById(studioId);

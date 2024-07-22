@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/service');
-const validSchema = require('../validations/service')
+
 
 const auth = require("../util/authCheck");
 

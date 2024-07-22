@@ -3,7 +3,7 @@ const router = express.Router();
 const controller = require('../controllers/studio');
 
 const auth = require("../util/authCheck");
-const validSchema = require("../validations/studio")
+
 
 /**
  * @swagger

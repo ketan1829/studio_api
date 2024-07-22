@@ -8,7 +8,7 @@ const studioCreateSchema = Joi.object({
     state:Joi.string().required(),
     area:Joi.number().strict().required(),
     pincode:Joi.string().required(),
-    pricePerHour:Joi.number().strict().required(),
+    pricePerHour:Joi.number().integer().strict().required(),
     availabilities:Joi.array().items(Joi.object({
       endTime:Joi.string().required(),
       startTime:Joi.string().required()
@@ -25,8 +25,8 @@ const studioCreateSchema = Joi.object({
         area:Joi.string(),
         details:Joi.array(),
         amenities:Joi.array(),
-        basePrice:Joi.number().strict(),
-        discountPercentage:Joi.number().strict(),
+        basePrice:Joi.number().integer().strict().required(),
+        discountPercentage:Joi.number().integer().strict().required(),
         generalStartTime:Joi.string(),
         generalEndTime:Joi.string(),
         // availabilities:Joi.array().items(Joi.object({endTime:Joi.string(),startTime:Joi.string()})),
@@ -42,7 +42,7 @@ const studioCreateSchema = Joi.object({
         bookingDays:Joi.array().items(
           Joi.object({id:Joi.number().strict(),name:Joi.string()}),
         ),
-        pricePerHour:Joi.number().strict()
+        pricePerHour:Joi.number().integer().strict().required()
       }).required()
     ).min(1).required(),
     maxGuests:Joi.string().required(),
@@ -94,7 +94,7 @@ const studioUpdateSchema = Joi.object({
   state:Joi.string(),
   area:Joi.number().strict(),
   pincode:Joi.string(),
-  pricePerHour:Joi.number().strict(),
+  pricePerHour:Joi.number().integer().strict(),
   availabilities:Joi.array().items(Joi.object({
     endTime:Joi.string(),
     startTime:Joi.string()
@@ -111,8 +111,8 @@ const studioUpdateSchema = Joi.object({
       area:Joi.string(),
       details:Joi.array(),
       amenities:Joi.array(),
-      basePrice:Joi.number().strict(),
-      discountPercentage:Joi.number().strict(),
+      basePrice:Joi.number().integer().strict(),
+      discountPercentage:Joi.number().integer().strict(),
       generalStartTime:Joi.string(),
       generalEndTime:Joi.string(),
       // availabilities:Joi.array().items(Joi.object({endTime:Joi.string(),startTime:Joi.string()})),
@@ -128,7 +128,7 @@ const studioUpdateSchema = Joi.object({
       bookingDays:Joi.array().items(
         Joi.object({id:Joi.number().strict(),name:Joi.string()}),
       ),
-      pricePerHour:Joi.number().strict()
+      pricePerHour:Joi.number().integer().strict()
     })
   ),
   maxGuests:Joi.string(),

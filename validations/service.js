@@ -3,7 +3,7 @@ const Joi = require('joi');
 const serviceCreateSchema = Joi.object({
     service_id:Joi.number().integer().required(),
     serviceName:Joi.string().required(),
-    startingPrice:Joi.number().strict().required(),
+    startingPrice:Joi.number().integer().strict().required(),
     offerings:Joi.array().min(1).required(),
     TotalServices:Joi.number().strict().required(),
     packages:Joi.array().items(Joi.object({
@@ -11,26 +11,26 @@ const serviceCreateSchema = Joi.object({
         name:Joi.string().required(),
         about:Joi.string().required(),
         photo_url:Joi.array().items().min(1).required(),
-        price:Joi.number().strict().required(),
+        price:Joi.number().integer().strict().required(),
         amenites:Joi.array().items(Joi.object({
             name:Joi.string().required(),
             id:Joi.number().strict().required()
         })).min(1).required(),
         pricing:Joi.object({
             USA:Joi.object({
-                price:Joi.number().strict().required(),
-                basePrice:Joi.number().strict().required(),
-                discountPercentage:Joi.number().strict().required(),
+                price:Joi.number().integer().strict().required(),
+                basePrice:Joi.number().integer().strict().required(),
+                discountPercentage:Joi.number().integer().strict().required(),
             }),
             IN:Joi.object({
-                price:Joi.number().strict().required(),
-                basePrice:Joi.number().strict().required(),
-                discountPercentage:Joi.number().strict().required(),
+                price:Joi.number().integer().strict().required(),
+                basePrice:Joi.number().integer().strict().required(),
+                discountPercentage:Joi.number().integer().strict().required(),
             }),
             JP:Joi.object({
-                price:Joi.number().strict().required(),
-                basePrice:Joi.number().strict().required(),
-                discountPercentage:Joi.number().strict().required(),
+                price:Joi.number().integer().strict().required(),
+                basePrice:Joi.number().integer().strict().required(),
+                discountPercentage:Joi.number().integer().strict().required(),
             }),
         }),
         // planId:Joi.string().required(),
@@ -71,7 +71,7 @@ const serviceCreate = (req,res,next) =>{
 const serviceUpdateSchema = Joi.object({
     service_id:Joi.number().integer(),
     serviceName:Joi.string(),
-    startingPrice:Joi.number().strict(),
+    startingPrice:Joi.number().integer().strict(),
     offerings:Joi.array(),
     TotalServices:Joi.number().strict(),
     packages:Joi.array().items(Joi.object({
@@ -79,26 +79,26 @@ const serviceUpdateSchema = Joi.object({
         name:Joi.string(),
         about:Joi.string(),
         photo_url:Joi.array().items(),
-        price:Joi.number().strict(),
+        price:Joi.number().integer().strict(),
         amenites:Joi.array().items(Joi.object({
             name:Joi.string(),
             id:Joi.number().strict()
         })),
         pricing:Joi.object({
             USA:Joi.object({
-                price:Joi.number().strict(),
-                basePrice:Joi.number().strict(),
-                discountPercentage:Joi.number().strict(),
+                price:Joi.number().integer().strict(),
+                basePrice:Joi.number().integer().strict(),
+                discountPercentage:Joi.number().integer().strict(),
             }),
             IN:Joi.object({
-                price:Joi.number().strict(),
-                basePrice:Joi.number().strict(),
-                discountPercentage:Joi.number().strict(),
+                price:Joi.number().integer().strict(),
+                basePrice:Joi.number().integer().strict(),
+                discountPercentage:Joi.number().integer().strict(),
             }),
             JP:Joi.object({
-                price:Joi.number().strict(),
-                basePrice:Joi.number().strict(),
-                discountPercentage:Joi.number().strict(),
+                price:Joi.number().integer().strict(),
+                basePrice:Joi.number().integer().strict(),
+                discountPercentage:Joi.number().integer().strict(),
             }),
         }),
     })),

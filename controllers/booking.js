@@ -466,11 +466,7 @@ exports.createNewBooking = async (req, res, next) => {
     const req_body = req.body;
     logger.info("req.body |", { req_body });
 
-    // Validate input
-    // const errors = validationResult(req);
-    // if (!errors.isEmpty()) {
-    //     return res.status(400).json({ errors: errors.array() });
-    // }
+
 
     const { userId, studioId, roomId, bookingDate, bookingTime, totalPrice } = req.body;
 
@@ -606,10 +602,7 @@ async function createBooking({ userId, studioId, discountId, discountCode, roomI
 
 exports.createServiceBooking = async (req, res, next) => {
   try {
-    // const errors = validationResult(req);
-    // if (!errors.isEmpty()) {
-    //     return res.status(400).json({ errors: errors.array() });
-    // }
+
 
     const {
       userId,
