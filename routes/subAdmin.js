@@ -41,7 +41,7 @@ const auth = require("../util/authCheck");
  *       500:
  *         description: Internal server error
 */
-router.post('/sub-admins/create',controller.createNewSubAdmin);
+router.post('/sub-admins/create',auth.isAdminV2,controller.createNewSubAdmin);
 
 /**
  * @swagger
@@ -114,7 +114,7 @@ router.post('/sub-admins/login',controller.subAdminLogin);
  *       500:
  *         description: Some server error, enter valid mongo object ID
 */
-router.get('/sub-admins/:subAdminId',auth.isAdmin,controller.getParticularSubAdminDetails);
+router.get('/sub-admins/:subAdminId',auth.isAdminV2,controller.getParticularSubAdminDetails);
 
 /**
  * @swagger
@@ -153,7 +153,7 @@ router.get('/sub-admins/:subAdminId',auth.isAdmin,controller.getParticularSubAdm
 */
 // api/sub-admins                       --  Get all subadmins
 // api/sub-admins?skip=0&limit=50       --  Get particular range of subadmins based on skip and limit
-router.get('/sub-admins',auth.isAdmin,controller.getAllsubadmins);
+router.get('/sub-admins',auth.isAdminV2,controller.getAllsubadmins);
 
 /**
 * @swagger
@@ -196,7 +196,7 @@ router.get('/sub-admins',auth.isAdmin,controller.getAllsubadmins);
 *       500:
 *         description: Internal server error
 */
-router.patch('/sub-admins/:subAdminId',auth.isAdmin,controller.editSubAdminDetails);
+router.patch('/sub-admins/:subAdminId',auth.isAdminV2,controller.editSubAdminDetails);
 
 /**
 * @swagger
@@ -232,7 +232,7 @@ router.patch('/sub-admins/:subAdminId',auth.isAdmin,controller.editSubAdminDetai
 *       500:
 *         description: Some server error, enter valid mongo object ID
 */
-router.delete('/sub-admins/:subAdminId',auth.isAdmin,controller.deleteParticularSubAdmin);
+router.delete('/sub-admins/:subAdminId',auth.isAdminV2,controller.deleteParticularSubAdmin);
 
 
 module.exports = router;

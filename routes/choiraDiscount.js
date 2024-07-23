@@ -5,7 +5,7 @@ const controller = require('../controllers/choiraDiscount');
 const auth = require("../util/authCheck");
 
 
-router.post('/discounts/create',auth.isAdmin,controller.createNewDiscount);
+router.post('/discounts/create',auth.isAdminV2,controller.createNewDiscount);
 
 /**
  * @swagger
@@ -44,7 +44,7 @@ router.post('/discounts/create',auth.isAdmin,controller.createNewDiscount);
  *       500:
  *         description: Some server error, enter valid mongo object ID
  */
-router.get('/discounts/user/:userId', controller.getAllUserDiscounts);
+router.get('/discounts/user/:userId',auth.isUser, controller.getAllUserDiscounts);
 /**
  * @swagger
  * /discounts:
@@ -73,7 +73,7 @@ router.get('/discounts/user/:userId', controller.getAllUserDiscounts);
  *       500:
  *         description: Some server error, enter valid mongo object ID
  */
-router.get('/discounts',auth.isAdmin,controller.getAllDiscounts);
+router.get('/discounts',auth.isAdminV2,controller.getAllDiscounts);
 
 /**
  * @swagger
@@ -158,7 +158,7 @@ router.get('/discounts/:discountId',auth.isBoth,controller.getParticularDiscount
  *       500:
  *         description: Some server error, enter valid mongo object ID
 */
-router.patch('/discounts/:discountId',auth.isAdmin,controller.editDiscountDetails);
+router.patch('/discounts/:discountId',auth.isAdminV2,controller.editDiscountDetails);
 
 
 module.exports = router;
