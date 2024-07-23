@@ -60,7 +60,7 @@ exports.getAllUserDiscounts = (req, res, next) => {
         dt = "0" + dt.toString();
     }
     currDate = yr + "-" + mth + "-" + dt;
-    console.log("Current Date : ", currDate);
+    console.log("Current Date : ", moment_current_date);
 
     User.findUserByUserId(userId)
         .then(userData => {
@@ -121,10 +121,13 @@ exports.getAllUserDiscounts = (req, res, next) => {
                                 }
                             }
 
+                            console.log("===========>",discountsData);
+
                             return res.json({ status: true, message: "All discounts returned for this user", discounts: discountsData });
                         }
 
                     }).catch(e=>{
+                        console.log(e);
                         return res.json({ status: false, message: "All discounts returned for this user", discounts:[] });
                     })
                 }
@@ -170,6 +173,8 @@ exports.editDiscountDetails = (req, res, next) => {
     const discountDate = req.body.discountDate;
     const usersList = req.body.usersList;
     const couponCode = req.body.couponCode;
+    const startDate = req.body.startDate;
+    const endDate = req.body.endDate;
 
     ChoiraDiscount.findChoiraDiscountById(discountId)
         .then(discountData => {
@@ -181,8 +186,12 @@ exports.editDiscountDetails = (req, res, next) => {
             discountData.discountPercentage = discountPercentage;
             discountData.maxCapAmount = maxCapAmount;
             discountData.discountDate = discountDate;
-            discountData.usersList = usersList;
+            discountData.usersList = usersList || [];
             discountData.couponCode = couponCode;
+            discountData.endDate = endDate;
+            discountData.startDate = startDate;
+
+            console.log(discountData);
 
             const db = getDb();
             var o_id = new ObjectId(discountId);
