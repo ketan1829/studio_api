@@ -398,14 +398,15 @@ exports.updateService = async (req, res) => {
   const isActive = +req.body.isActive;
   let pricing = {}
   const serviceData = await Service.findServiceById(sId);
-  logger.info({sId});
-console.log("req.body",req.body);
+  logger.info({service_data:req.body});
   if (!serviceData) {
     return res.status(400).json({
       status: false,
       message: "Service does not exist or provide the correct service Id",
     });
   }
+
+  const fiter_empty_packages = packages?.filter(pk=>pk.photo_url && pk.name)
   // const updatedPackages = packages?.map((p_key, j) => {
   //   return serviceData.packages.map((pkg, i) => {
   //     if (pkg.planId === p_key.planId) {
@@ -418,7 +419,7 @@ console.log("req.body",req.body);
   // });
   // console.log(updatedPackages);
 
-  pricing = await minStartPrice(packages)
+  pricing = await minStartPrice(fiter_empty_packages)
   let service_obj = {
     service_id,
     fullName,
@@ -613,7 +614,7 @@ async function minStartPrice(packages) {
       "JP": { price: Infinity, basePrice: 0, discountPercentage: 0 }
     };
 
-    packages.forEach(packageObj => {
+    packages?.forEach(packageObj => {
       Object.entries(packageObj.pricing).forEach(([country, prices]) => {
         if (prices.price < minPrices[country].price) {
           minPrices[country].price = prices.price;
