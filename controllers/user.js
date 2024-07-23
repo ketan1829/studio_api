@@ -253,10 +253,13 @@ exports.signupUserV2 = async (req, res, next) => {
         userObj._id = _id;
         userObj.creationTimeStamp = creationTimeStamp;
 
-        if (role === "user") {
+        try {
           // Only add to Brevo if the role is 'user' and it's a new signup
           await addContactBrevo(userObj);
           console.log("Added to Brevo");
+        } catch (error) {
+          logger.error({ _userData }, `Adding USER DATA into Bravo PHONE:${phone}`);
+
         }
       }
     }
