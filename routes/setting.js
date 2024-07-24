@@ -32,7 +32,7 @@ router.post('/settings/studios/country',auth.isAdminV2,controller.addCountryFiel
 
 router.patch('/setting/users/append',auth.isAdminV2,controller.countryCodeBeforPhoneNo)
 
-// router.get('/settings/onboarding',auth.isAdminV2,controller.onBoarding);
+router.get('/settings/onboarding',controller.onBoarding);
 
 
 
