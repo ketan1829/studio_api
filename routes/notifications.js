@@ -74,7 +74,7 @@ router.get('/notifications/users/:userId',auth.isUser,notiController.getSingleUs
 *       500:
 *         description: Internal server error
 */
-router.post('/notifications/users',notiController.sendNotificationsToAllUsers);
+router.post('/notifications/users',auth.isAdminV2,notiController.sendNotificationsToAllUsers);
 
 /**
 * @swagger
@@ -109,12 +109,9 @@ router.post('/notifications/users',notiController.sendNotificationsToAllUsers);
 *       500:
 *         description: Internal server error
 */
-router.post('/notifications/multiple-users',auth.isAdmin,notiController.sendNotificationsToMultipleUsers);
+router.post('/notifications/multiple-users',auth.isAdminV2,notiController.sendNotificationsToMultipleUsers);
 
 //Send notification to particular user
-
-// added by me
-
 /**
 * @swagger
 *
@@ -148,7 +145,7 @@ router.post('/notifications/multiple-users',auth.isAdmin,notiController.sendNoti
 *       500:
 *         description: Internal server error
 */
-router.post('/notifications/users/:userId',auth.isAdmin,notiController.sendNotificationsToSingleUser);
+router.post('/notifications/users/:userId',auth.isAdminV2,notiController.sendNotificationsToSingleUser);
 
 
 module.exports = router;

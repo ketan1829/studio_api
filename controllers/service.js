@@ -8,11 +8,6 @@ const Service = require("../models/service");
 
 // utils
 const { homeScreen, collectionName } = require("../config/settings");
-const {
-  validateService,
-  validateFilterSchema,
-  validateServiceFilterSchema,
-} = require("../util/validations");
 const pick = require("../util/pick");
 const { paginate } = require("../util/plugins/paginate.plugin");
 const { getDB } = require("../util/database");
@@ -124,12 +119,7 @@ exports.createNewService = async (req, res, next) => {
     logger.info("else is running");
     logger.info(req.body);
     logger.info("else is running", type, isActive);
-    // const { error } = validateService(req.body);
-    // if (error) {
-    //   return res.status(400).json({ error: error.details[0].message });
-    // }
-    // If validation passes, proceed to the next middleware or controller function
-    // next();
+
     pricing = await minStartPrice(packages)
     
     const serviceObj = new Service(
@@ -218,10 +208,7 @@ exports.getServices = (req, res, next) => {
   console.log("collectionName----", collectionName, mappedFilter, options);
 
 
-  // const { error } = validateFilterSchema(filter);
-  // if (error) {
-  //     return res.status(400).json({ status: false, message: error.details[0].message });
-  // }
+
 
   paginate(collectionName, mappedFilter, options).then((ServiceData) => {
     const paginateData =
@@ -277,12 +264,6 @@ exports.getServiceBookings = (req, res, next) => {
 
   logger.info("collectionName----",{_collectionName, filter, options});
 
-  const { error } = validateServiceFilterSchema(filter);
-  if (error) {
-    return res
-      .status(400)
-      .json({ status: false, message: error.details[0].message });
-  }
 
   paginate(_collectionName, filter, options).then((ServiceData) => {
     return res.json({

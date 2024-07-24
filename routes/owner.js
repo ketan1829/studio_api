@@ -41,7 +41,7 @@ const auth = require("../util/authCheck");
  *       500:
  *         description: Internal server error
 */
-router.post('/owners/create',auth.isAdmin,controller.createNewOwner);
+router.post('/owners/create',auth.isAdminV2,controller.createNewOwner);
 
 /**
 * @swagger
@@ -153,7 +153,7 @@ router.get('/owners/:ownerId',auth.isAdminOrOwner,controller.getParticularOwnerD
 */
 // api/owners                       --  Get all owners
 // api/owners?skip=0&limit=50       --  Get particular range of owners based on skip and limit
-router.get('/owners',auth.isAdminV2,controller.getAllOwners);
+router.get('/owners',auth.isAdminV2,controller.getAllOwners); //old controllers
 
 /**
  * @swagger
@@ -196,7 +196,7 @@ router.get('/owners',auth.isAdminV2,controller.getAllOwners);
  *       500:
  *         description: Some server error, enter valid mongo object ID
  */
-router.get('/owner',controller.getAllOwnersV2);
+router.get('/owner',auth.isAdminV2,controller.getAllOwnersV2); //new controller
 
 /**
 * @swagger
@@ -311,7 +311,7 @@ router.patch('/owners/:ownerId/image',auth.isAdminOrOwner,controller.editOwnerIm
 *       500:
 *         description: Some server error, enter valid mongo object ID
 */
-router.get('/owners/:ownerId/dashboard-counts',controller.getAllDashboardCountsForOwner);
+router.get('/owners/:ownerId/dashboard-counts',auth.isAdminOrOwner,controller.getAllDashboardCountsForOwner);
 
 /**
 * @swagger
@@ -347,7 +347,7 @@ router.get('/owners/:ownerId/dashboard-counts',controller.getAllDashboardCountsF
 *       500:
 *         description: Some server error, enter valid mongo object ID
 */
-router.delete('/owners/:ownerId',auth.isAdmin,controller.deleteParticularOwner);
+router.delete('/owners/:ownerId',auth.isAdminV2,controller.deleteParticularOwner);
 
 
 module.exports = router;

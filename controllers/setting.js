@@ -10,7 +10,7 @@ const Setting = require('../models/setting');
 const User = require('../models/user');
 
 // utils
-const { validateService, validateFilterSchema } = require('../util/validations');
+
 const getDb = require('../util/database').getDB; 
 const pick = require('../util/pick')
 const {paginate} = require('../util/plugins/paginate.plugin');
@@ -124,10 +124,7 @@ exports.getBanner = (req,res,next)=>{
     if (TotalServices) filter.totalPlans = TotalServices;
     if (avgReview) filter.featuredReviews.avgService = parseFloat(avgReview);
 
-    // const { error } = validateFilterSchema(filter);
-    // if (error) {
-    //     return res.status(400).json({ status: false, message: error.details[0].message });
-    // }
+
 
     Setting.getBanner(active).then((banners)=>{
         return res.json({status:true, message:`banner returned`,banners});

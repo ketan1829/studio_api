@@ -450,8 +450,8 @@ router.post('/users/send-signup-otp',controller.sendSignUpOtp);
 
 // api/users                       --  Get all users
 // api/users?skip=0&limit=50       --  Get particular range of users based on skip and limit
-// router.get('/users',auth.isAdmin,controller.getAllUsers);
-router.get('/users',controller.getAllUsers);
+// router.get('/users',auth.,controller.getAllUsers);
+router.get('/users',auth.isAdminV2,controller.getAllUsers);
 
 /**
  * @swagger
@@ -920,7 +920,7 @@ router.post('/users/toggle-favourite',auth.isUser,controller.addRemoveUserFavour
 *       500:
 *         description: Some server error, enter valid mongo object ID
 */
-router.get('/users/graph',auth.isAdmin,controller.getAllUsersGraphDetails);
+router.get('/users/graph',auth.isAdminV2,controller.getAllUsersGraphDetails);
 
 
 

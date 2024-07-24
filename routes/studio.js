@@ -3,7 +3,7 @@ const router = express.Router();
 const controller = require('../controllers/studio');
 
 const auth = require("../util/authCheck");
-const validSchema = require("../validations/studio")
+
 
 /**
  * @swagger
@@ -76,7 +76,7 @@ const validSchema = require("../validations/studio")
  *         description: Internal server error
  */
 
-router.post('/studios/create',controller.createNewStudio);
+router.post('/studios/create',auth.isAdminV2,controller.createNewStudio);
 
 /**
 * @swagger
@@ -106,7 +106,7 @@ router.post('/studios/create',controller.createNewStudio);
 *       500:
 *         description: Some server error, enter valid mongo object ID
 */
-router.get('/studios/graph',auth.isAdmin,controller.getAllStudiosGraphDetails);
+router.get('/studios/graph',auth.isAdminV2,controller.getAllStudiosGraphDetails);
 
 router.get('/studios/unassignedstudios',auth.isAdminV2,controller.getUnassignedStudios)
 
@@ -143,7 +143,7 @@ router.get('/studios/unassignedstudios',auth.isAdminV2,controller.getUnassignedS
 *       500:
 *         description: Some server error, enter valid mongo object ID
 */
-router.patch('/studios/studioId/active',controller.toggleStudioActiveStatus);
+router.patch('/studios/studioId/active',auth.isAdminV2,controller.toggleStudioActiveStatus);
 
 
 
@@ -234,7 +234,7 @@ router.get('/studios/:studioId', [auth.isGuest,auth.isBoth], controller.getParti
  *       500:
  *         description: Some server error, enter valid mongo object ID
  */
-router.post('/studios/dashboard-filter',controller.getDashboardStudios);
+router.post('/studios/dashboard-filter',auth.isAdminV2,controller.getDashboardStudios);
 
 /**
  * @swagger
