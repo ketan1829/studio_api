@@ -336,6 +336,59 @@ let checks = (obj, banner_redirect, redirectURL, forr, entity_id) => {
     return obj;
 };
 
+exports.deleteBanner = async (req, res) => {
+    try {
+        let db = getDb();
+        const {
+            id
+        } = req.query;
+        if (!id) {
+            return res.status(200).json({
+                status: false,
+                message: "Missing banner id"
+            });
+        }
+        let {
+            _id,
+            banner
+        } = await db.collection("settings").findOne({
+            type: "home_screen"
+        });
+        if (!_id) {
+            return res.status(200).json({
+                status: false,
+                message: "Banners do not exist"
+            });
+        }
+        const bannerIndex = banner.findIndex(bn => bn.id === id);
+        if (bannerIndex === -1) {
+            return res.status(200).json({
+                status: false,
+                message: "Banner with the given id does not exist"
+            });
+        }
+        banner.splice(bannerIndex, 1);
+        await db.collection("settings").updateOne({
+            _id
+        }, {
+            $set: {
+                banner: banner
+            }
+        });
+        return res.status(200).json({
+            status: true,
+            message: "Banner deleted successfully"
+        });
+    } catch (error) {
+        logger.error({
+            error
+        }, "Error while deleting banner");
+        return res.status(200).json({
+            status: false,
+            message: "Internal server error"
+        });
+    }
+};
 exports.getCategory = (req,res,next)=>{
 
     console.log("query---", req.query);
