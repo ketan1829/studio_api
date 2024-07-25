@@ -154,8 +154,8 @@ exports.createBanner = async (req, res) => {
 
         let {_id, banner} = await db.collection("settings").findOne({ type: "home_screen" });
         console.log("banner.length", banner.length);
-
-        if(banner.length <5){
+        banner = banner.filter(one_bn=>one_bn.active && one_bn.type === type)
+        if(banner.length > 5){
             return res.status(200).json({
                 status:false,
                 message:"You can not add more than 4 Banners"
@@ -312,7 +312,8 @@ exports.editBanner = async (req, res) => {
 
         return res.status(200).json({ status:true, message: "Banner updated successfully" });
     } catch (error) {
-        logger.error({error}, "Error while updating banner");
+        logger.error("Error while updating banner==>");
+        logger.error(error);
         return res.status(200).json({status:false, message: "Internal server error" });
     }
 };
