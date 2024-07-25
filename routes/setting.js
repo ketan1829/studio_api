@@ -20,6 +20,7 @@ router.get('/settings/banner',[auth.isGuest,auth.isBoth],controller.getBanner);
 
 router.post('/settings/createBanner',auth.isAdminV2,controller.createBanner);
 router.patch('/settings/editBanner',auth.isAdminV2,controller.editBanner);
+router.delete('/settings/deleteBanner',controller.deleteBanner);
 
 
 router.get('/settings/category',auth.isGuest,controller.getCategory);
