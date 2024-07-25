@@ -153,9 +153,9 @@ exports.createBanner = async (req, res) => {
         obj = checks(obj, banner_redirect, redirectURL, forr, entity_id);
 
         let {_id, banner} = await db.collection("settings").findOne({ type: "home_screen" });
-        console.log("banner.length", banner.length);
         banner = banner.filter(one_bn=>one_bn.active && one_bn.type === type)
-        if(banner.length > 5){
+        console.log("banner.length", banner.length);
+        if(banner.length === 4){
             return res.status(200).json({
                 status:false,
                 message:"You can not add more than 4 Banners"
@@ -198,7 +198,8 @@ exports.editBanner = async (req, res) => {
 
     try {
         let db = getDb();
-        const { id, stage, name, photoURL, active, type, banner_redirect, entity_id, forr, redirectURL } = req.body;
+        const { id, stage, name, photoURL, active, type, banner_redirect, entity_id, redirectURL } = req.body;
+        const forr = req.body.for;
 
         if (!id) {
             return res.status(200).json({ status:false, message: "Missing banner id" });
@@ -213,11 +214,13 @@ exports.editBanner = async (req, res) => {
             type,
             banner_redirect,
             entity_id,
-            for: forr,
+            "for":forr,
             redirectURL
         };
         objectOfBanner = checks(objectOfBanner, banner_redirect, redirectURL, forr, entity_id);
 
+        if(!objectOfBanner.status) return res.status(200).json({ status:false, message: objectOfBanner.message });
+        objectOfBanner = objectOfBanner.obj
         let { _id, banner } = await db.collection("settings").findOne({ type: "home_screen" });
         if(!_id){
             return res.status(200).json({ status:false, message: "Banners not exists" });
@@ -227,26 +230,24 @@ exports.editBanner = async (req, res) => {
         let updated_banners = []
         if(objectOfBanner.for === "list") objectOfBanner.entity_id = "c1";
 
+        // normal update without stage swap
         if(old_banner.stage === stage){
-
-
             updated_banners = banner.map(bnnr=>{
                 if(bnnr.type === type && bnnr.id === old_banner.id){
                         return {...bnnr,...objectOfBanner}
                 }
                 return bnnr
             })
-
+        // update with stage swap
         }else{
             const old_stage = old_banner.stage;
             const old_banner2 = banner.find(bn=>bn.type === type && bn.stage === stage)
-            old_banner2.stage = old_stage
             updated_banners = banner.map(bnnr=>{
                 if(bnnr.type === type ){
                     if(bnnr.id === id){
                         return {...bnnr,...objectOfBanner}
                     }else if(bnnr.id === old_banner2.id){
-                        return {...bnnr,...old_banner2}
+                        return {...bnnr,stage:old_stage}
                     }
                     return bnnr
                 }
@@ -322,19 +323,34 @@ exports.editBanner = async (req, res) => {
 
 
 let checks = (obj, banner_redirect, redirectURL, forr, entity_id) => {
+    let status = false
+    let message = "Banner type required"
     if (banner_redirect === "external") {
         if (redirectURL) {
             obj.entity_id = "";
             obj.for = "";
+            status = true
+        }else{
+            message = "redirect url is required"
         }
-    } else {
+    } else if(banner_redirect === "in-app"){
         if (forr === "page" || forr === "list") {
-            if (entity_id) {
-                obj.redirectURL = "";
+            obj.redirectURL = "";
+            status = true
+        }
+        
+        if(forr === "page"){
+            
+            if(entity_id){
+                obj.redirectURL = ""
+                status = true
+            }else{
+                status = false
+                message = "studio is required"
             }
         }
     }
-    return obj;
+    return {status,obj,message};
 };
 
 exports.deleteBanner = async (req, res) => {
