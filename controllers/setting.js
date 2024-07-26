@@ -152,6 +152,10 @@ exports.createBanner = async (req, res) => {
         };
         obj = checks(obj, banner_redirect, redirectURL, forr, entity_id);
 
+        if(!obj.status) return res.status(200).json({status:false,message:obj.message})
+        
+        obj = obj.obj
+
         let {_id, banner} = await db.collection("settings").findOne({ type: "home_screen" });
         banner = banner.filter(one_bn=>one_bn.active && one_bn.type === type)
         console.log("banner.length", banner.length);
