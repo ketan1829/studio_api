@@ -3058,6 +3058,7 @@ exports.getAllBookings3 = async (req, res, next) => {
   }
 };
 
+
 // only Studio Bookings
 exports.getAllBookings = async (req, res, next) => {
   let req_query = req.query;
@@ -3070,19 +3071,32 @@ exports.getAllBookings = async (req, res, next) => {
     let startDate = req.query.startDate;
     let endDate = req.query.endDate;
     let skip = (page - 1) * limit;
-
     let bookingType = [0, 1, 2].includes(+req.query.bookingType)
       ? +req.query.bookingType
       : -1;
-
     let booking_category = req.query.category || "c1";
     logger.info("bookingType", { bookingType });
     logger.info({ booking_category, bookingType });
     logger.info("hello");
-
     const pipeline_lane = [];
-
     const commonPipeline = [
+      //Ensure discountId is a valid string before lookup
+      {
+        $addFields: {
+          validDiscountId: {
+            $cond: {
+              if: {
+                $and: [
+                  { $ne: ["$discountId", null] },
+                  { $regexMatch: { input: "$discountId", regex: /^[a-fA-F0-9]{24}$/ } }
+                ]
+              },
+              then: { $toObjectId: "$discountId" },
+              else: null
+            }
+          }
+        }
+      },
       {
         $lookup: {
           from: "studios",
@@ -3126,9 +3140,34 @@ exports.getAllBookings = async (req, res, next) => {
         },
       },
       {
+        $lookup: {
+          from: "choiraDiscounts",
+          let: { disId: "$validDiscountId" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", "$$disId"] }
+              }
+            },
+            {
+              $project: {
+                discountName: 1,  // Only include discountName in the lookup results
+                _id: 0  // Exclude _id to simplify the result
+              }
+            }
+          ],
+          as: "discount",
+        },
+      },
+      {
+        $addFields: {
+          discountName: { $arrayElemAt: ["$discount.discountName", 0] }
+        }
+      },
+      {
         $project: {
           studioName: { $arrayElemAt: ["$studioInfo.studioFullName", 0] },
-          roomName: { $arrayElemAt: ["$studioInfo.roomName", 0] },  // Add roomName to project
+          roomName: { $arrayElemAt: ["$studioInfo.roomName", 0] },
           userName: {
             $ifNull: [{ $arrayElemAt: ["$userInfo.fullName", 0] }, "Admin"],
           },
@@ -3151,19 +3190,18 @@ exports.getAllBookings = async (req, res, next) => {
               "$otherFields",
               {
                 studioName: "$studioName",
-                roomName: "$roomName",  // Add roomName to the final output
+                roomName: "$roomName",
                 userName: "$userName",
                 userEmail: "$userEmail",
                 userPhone: "$userPhone",
                 userType: "$userType",
+                discountName: "$discountName",  // Include discountName as a top-level field
               },
             ],
           },
         },
       },
     ];
-    
-    
     if (searchField) {
       commonPipeline.push({
         $match: {
@@ -3175,7 +3213,6 @@ exports.getAllBookings = async (req, res, next) => {
         },
       });
     }
-
     if (startDate && endDate) {
       commonPipeline.push({
         $match: {
@@ -3194,7 +3231,6 @@ exports.getAllBookings = async (req, res, next) => {
         userInfo: 0,
       },
     })
-
     if (bookingType === -1) {
       pipeline_lane.push(
         {
@@ -3217,24 +3253,17 @@ exports.getAllBookings = async (req, res, next) => {
         ...commonPipeline
       );
     }
-
     const db = getDb();
     console.log("pipeline_lane",pipeline_lane);
     const bookingsData = await Booking.aggregate(pipeline_lane)
-
     // Create a pipeline to count the total number of bookings
     const totalCountPipeline = [
       ...pipeline_lane.slice(0, -3), // Exclude $skip, $limit, and last $project
       { $count: 'total' }
     ];
-    
-
     const totalCountResult = await db.collection('bookings').aggregate(totalCountPipeline).toArray();
-
     const totalBookings = totalCountResult.length > 0 ? totalCountResult[0].total : 0;
-
     const totalPages = Math.ceil(totalBookings / limit);
-
     //to append noOfHours in booking data no
     bookingsData.forEach((booking)=>{
        booking.noOfHours = moment
@@ -3245,7 +3274,6 @@ exports.getAllBookings = async (req, res, next) => {
        )
        .asHours();
     })
-
     return res.json({
       status: true,
       message: "All booking(s) returned",
@@ -3265,30 +3293,38 @@ exports.getAllBookings = async (req, res, next) => {
   }
 };
 
-
-
 // get All Packages/Service Bookings
 exports.getServiceBookings = async (req, res) => {
-  let { bookingType, userId, phoneNumber, active, page, limit } = req.query;
+  let { bookingType, userId, active, page, limit, startDate, endDate, searchField } = req.query;
   page = +page || 1;
   limit = +limit || 10;
   // console.log("req.query |", req.query);
   const matchStage = {};
-
+  let lastMatchStage = {}
   if (bookingType) {
     matchStage.type = bookingType;
   } else {
     matchStage.type = { $in: ["c2", "c3"] };
   }
   if (userId) matchStage.userId = userId;
-
   if (active) matchStage.bookingStatus = parseInt(active);
-  if (phoneNumber) {
-    matchStage["user.phone"] = phoneNumber;
+  // if (phoneNumber) {
+  //   matchStage["user.phone"] = phoneNumber;
+  // }
+  if (startDate && endDate) {
+        matchStage.creationTimeStamp= {
+          $gte: new Date(startDate + "T00:00:00"),
+          $lt: new Date(endDate + "T23:59:59"),
+        }
   }
-
+  if (searchField) {
+    lastMatchStage.$or = [
+          { serviceFullName: { $regex: searchField, $options: "i" } },
+          { userFullName: { $regex: searchField, $options: "i" } },
+          { userPhone: { $regex: searchField, $options: "i" } },
+        ]
+  }
   // matchStage.bookingStatus = 0;
-
   const db = getDb();
   const pipeline = [
     {
@@ -3350,7 +3386,12 @@ exports.getServiceBookings = async (req, res) => {
         package: { $arrayElemAt: ["$service.packages", 0] },
         bookingStatus: "$bookingStatus",
         countryCode: "$countryCode",
+        bookingDate: "$bookingDate",
+        creationTimeStamp: "$creationTimeStamp",
       },
+    },
+    {
+      $match: lastMatchStage, // filters
     },
     {
       $skip: (page - 1) * parseInt(limit),
@@ -3359,13 +3400,15 @@ exports.getServiceBookings = async (req, res) => {
       $limit: parseInt(limit),
     },
   ];
-
   const data = await db.collection("bookings").aggregate(pipeline).toArray();
-  const totalRecords = await db
-    .collection("bookings")
-    .countDocuments(matchStage);
-  const totalPages = Math.ceil(totalRecords / limit);
-
+  const totalCountPipeline = [
+    ...pipeline.slice(0, -2), // Exclude $skip, $limit, and last $project
+    { $count: 'total' }
+  ];
+  console.log("pipeline",JSON.stringify(pipeline));
+  const totalCountResult = await db.collection('bookings').aggregate(totalCountPipeline).toArray();
+  const totalBookings = totalCountResult.length > 0 ? totalCountResult[0].total : 0;
+  const totalPages = Math.ceil(totalBookings / limit);
   // return res.json({ status: true, data, page: parseInt(page), totalPages, totalRecords });
   return res.json({
     status: true,
@@ -3374,7 +3417,7 @@ exports.getServiceBookings = async (req, res) => {
       page,
       limit,
       totalPages,
-      totalResults: totalRecords,
+      totalResults: totalBookings,
     },
   });
 };
