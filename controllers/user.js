@@ -844,10 +844,10 @@ exports.addEditUserLocation = (req, res, next) => {
 exports.editUserProfile = (req, res, next) => {
   const userId = req.params.userId;
 
-  const fullName = req.body.fullName;
-  const dateOfBirth = req.body.dateOfBirth;
-  const profileUrl = req.body.profileUrl;
-  const gender = req.body.gender;
+  const fullName = req.body.fullName || "";
+  const dateOfBirth = req.body.dateOfBirth || "";
+  const profileUrl = req.body.profileUrl || "";
+  const gender = req.body.gender || "";
 
   User.findUserByUserId(userId).then((userData) => {
     if (!userData) {
@@ -860,6 +860,12 @@ exports.editUserProfile = (req, res, next) => {
     userData.dateOfBirth = dateOfBirth;
     userData.profileUrl = profileUrl;
     userData.gender = gender;
+
+    Object.keys(userData).map(k=>{
+      if(!userData[k]){
+        delete userData[k]
+      }
+    })
 
     const db = getDb();
     var o_id = new ObjectId(userId);

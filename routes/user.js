@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/user');
 const {verifyOTP} = require('../util/mail');
-
+const validSchema = require('../validations/user')
 
 const serverName = `${process.env.SERVER_NAME}/download/`;
 
@@ -327,7 +327,7 @@ router.post('/users/signup',controller.signupUser);
  *       500:
  *         description: Internal server error
  */
-router.post('/users/send-signup-v2',controller.signupUserV2);
+router.post('/users/send-signup-v2',validSchema.userRegister,controller.signupUserV2);
 
 /**
  * @swagger
@@ -558,7 +558,7 @@ router.post('/users/:userId/edit-location',auth.isUser,controller.addEditUserLoc
 *       500:
 *         description: Some server error, enter valid mongo object ID
 */
-router.post('/users/:userId/edit-profile',auth.isUser,controller.editUserProfile);
+router.post('/users/:userId/edit-profile',[auth.isUser,validSchema.userUpdate],controller.editUserProfile);
 
 /**
  * @swagger
