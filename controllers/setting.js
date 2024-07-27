@@ -232,7 +232,7 @@ exports.editBanner = async (req, res) => {
         // b1 : 1, b2 : 2, b3 : 3, b4 : 4
         const old_banner = banner.find(bn=>bn.id === id && bn.type === type)
         let updated_banners = []
-        if(objectOfBanner.for === "list") objectOfBanner.entity_id = "c1";
+        if(objectOfBanner.for === "list") objectOfBanner.entity_id = entity_id || "c1";
 
         // normal update without stage swap
         if(old_banner.stage === stage){
