@@ -269,10 +269,79 @@ const performWeekOperations = async (db) => {
   return Object.values(combinedResults);
 };
 
+// const performMonthOperations = async (db) => {
+
 const performMonthOperations = async (db) => {
-  // Code for month operations not yet implemented
-  return { message: 'Month operations not yet implemented.' };
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth();
+
+  const getWeekRanges = () => {
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    let weeks = [];
+    let start = 1;
+
+    while (start <= daysInMonth) {
+      let end = start + 6;
+      if (end > daysInMonth) end = daysInMonth;
+      weeks.push({ start, end });
+      start = end + 1;
+    }
+
+    return weeks;
+  };
+
+  const weekRanges = getWeekRanges();
+  let combinedResults = {};
+
+  weekRanges.forEach((range, index) => {
+    const key = `Week ${index + 1}`;
+    combinedResults[key] = {
+      name: key,
+      studio: 0,
+      production: 0,
+      mixmaster: 0,
+      range: `${currentYear}-${currentMonth + 1}-${range.start} to ${currentYear}-${currentMonth + 1}-${range.end}`
+    };
+  });
+
+  const pipeline = (type, range) => [
+    {
+      $match: {
+        bookingStatus: 1,
+        type,
+        creationTimeStamp: {
+          $gte: new Date(currentYear, currentMonth, range.start),
+          $lt: new Date(currentYear, currentMonth, range.end + 1)
+        }
+      }
+    },
+    {
+      $group: {
+        _id: null,
+        totalSum: { $sum: "$totalPrice" }
+      }
+    }
+  ];
+
+  const bookingsCollection = db.collection('bookings');
+  const types = ["c1", "c2", "c3"];
+  const keys = Object.keys(combinedResults);
+
+  for (let i = 0; i < weekRanges.length; i++) {
+    for (let type of types) {
+      const result = await bookingsCollection.aggregate(pipeline(type, weekRanges[i])).toArray();
+      if (result.length > 0) {
+        if (type === "c1") combinedResults[keys[i]].studio = result[0].totalSum;
+        if (type === "c2") combinedResults[keys[i]].production = result[0].totalSum;
+        if (type === "c3") combinedResults[keys[i]].mixmaster = result[0].totalSum;
+      }
+    }
+  }
+
+  return Object.values(combinedResults);
 };
+
 
 exports.dashboardAnalytics = async (req, res) => {
   console.log("HITTTTTTTTTTTTT");
@@ -300,8 +369,80 @@ exports.dashboardAnalytics = async (req, res) => {
   }
 };
 
+//-------------------------------------------------------------------------------
 
 
 
 
 
+const calculateRevenue = async (db, period) => {
+  let startDate;
+  
+  const currentDate = new Date();
+  
+  switch (period) {
+    case 'year':
+      startDate = new Date(currentDate.setFullYear(currentDate.getFullYear() - 1));
+      break;
+    case 'month':
+      startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      break;
+    case 'week':
+      const currentDayOfWeek = currentDate.getDay();
+      startDate = new Date(currentDate.setDate(currentDate.getDate() - currentDayOfWeek + (currentDayOfWeek === 0 ? -6 : 1)));
+      break;
+    default:
+      throw new Error('Invalid period specified');
+  }
+
+  let createPipeline = (type) => [
+    {
+      $match: {
+        bookingStatus: 1,
+        type: type,
+        creationTimeStamp: {
+          $gt: startDate,
+          $lt: new Date()
+        }
+      }
+    },
+    { $group: { _id: null, totalRevenue: { $sum: "$totalPrice" } } },
+  ];
+
+  const bookingsCollection = db.collection('bookings');
+
+  const studioPipeline = createPipeline("c1");
+  const productionPipeline = createPipeline("c2");
+  const mixmasterPipeline = createPipeline("c3");
+
+  const [studioResult, productionResult, mixmasterResult] = await Promise.all([
+    bookingsCollection.aggregate(studioPipeline).toArray(),
+    bookingsCollection.aggregate(productionPipeline).toArray(),
+    bookingsCollection.aggregate(mixmasterPipeline).toArray()
+  ]);
+
+  return [
+    { name: "Production", value: productionResult.length > 0 ? productionResult[0].totalRevenue : 0, color: "#FFC658" },
+    { name: "Studio", value: studioResult.length > 0 ? studioResult[0].totalRevenue : 0, color: "#FF7300" },
+    { name: "Mixing", value: mixmasterResult.length > 0 ? mixmasterResult[0].totalRevenue : 0, color: "#FF0000" },
+  ];
+}
+
+exports.revenueAnalytics = async (req, res) => {
+  try {
+    const { timeframe } = req.query;
+    const db = getDB();
+
+    if (!['year', 'month', 'week'].includes(timeframe)) {
+      return res.status(400).send('Invalid timeframe parameter');
+    }
+
+    const data = await calculateRevenue(db, timeframe);
+
+    console.log("result", data);
+    res.json(data);
+  } catch (error) {
+    console.log(error);
+    res.status(500).send('Internal Server Error');
+  }
+}
