@@ -20,6 +20,8 @@ exports.createNewDiscount = (req, res, next) => {
     const discountDate = req.body.discountDate;
     const usersList = req.body.usersList;
     const couponCode = req.body.couponCode;
+    const startDate = req.body.startDate;
+    const endDate = req.body.endDate;
 
     ChoiraDiscount.findChoiraDiscountByType(discountType)
         .then(discountData => {
@@ -27,7 +29,7 @@ exports.createNewDiscount = (req, res, next) => {
                 return res.status(200).json({ status: false, message: "Discount for this type already exists" });
             }
             const discountObj = new ChoiraDiscount(discountName, description, discountType, discountPercentage, maxCapAmount, discountDate, usersList,
-                couponCode);
+                couponCode,startDate,endDate);
 
             //saving in database
             return discountObj.save()

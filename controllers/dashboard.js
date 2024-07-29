@@ -1,4 +1,6 @@
 const { getDB } = require("../util/database");
+const moment = require('moment-timezone');
+
 
 
 
@@ -369,80 +371,76 @@ exports.dashboardAnalytics = async (req, res) => {
   }
 };
 
-//-------------------------------------------------------------------------------
 
-
-
-
-
-const calculateRevenue = async (db, period) => {
+const getStartDateForTimeframe = (timeframe) => {
+moment.tz.setDefault('Asia/Kolkata');
   let startDate;
   
-  const currentDate = new Date();
-  
-  switch (period) {
-    case 'year':
-      startDate = new Date(currentDate.setFullYear(currentDate.getFullYear() - 1));
-      break;
-    case 'month':
-      startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      break;
-    case 'week':
-      const currentDayOfWeek = currentDate.getDay();
-      startDate = new Date(currentDate.setDate(currentDate.getDate() - currentDayOfWeek + (currentDayOfWeek === 0 ? -6 : 1)));
-      break;
-    default:
-      throw new Error('Invalid period specified');
+  if (timeframe === "week") {
+    startDate = moment().startOf('isoWeek').toDate(); // Start of the current ISO week (Monday) in IST
+  } else if (timeframe === "month") {
+    startDate = moment().startOf('month').toDate(); // Start of the current month in IST
+  } else if (timeframe === "year") {
+    startDate = moment().startOf('year').toDate(); // Start of the current year in IST
+  } else {
+    throw new Error("Invalid timeframe");
   }
+  
+  return startDate;
+};
 
-  let createPipeline = (type) => [
+const performOperations = async (db, timeframe) => {
+  const startDate = getStartDateForTimeframe(timeframe);
+  console.log("startDate",startDate);
+  const endDate = moment().endOf('day').toDate(); // End of the current day in IST
+  console.log("endDate",endDate);
+  const pipeline = (type) => [
     {
       $match: {
         bookingStatus: 1,
-        type: type,
+        type,
         creationTimeStamp: {
-          $gt: startDate,
-          $lt: new Date()
+          $gte: startDate,
+          $lt: endDate
         }
       }
     },
-    { $group: { _id: null, totalRevenue: { $sum: "$totalPrice" } } },
+    {
+      $group: {
+        _id: null,
+        totalRevenue: { $sum: "$totalPrice" }
+      }
+    }
   ];
-
+  
   const bookingsCollection = db.collection('bookings');
-
-  const studioPipeline = createPipeline("c1");
-  const productionPipeline = createPipeline("c2");
-  const mixmasterPipeline = createPipeline("c3");
-
   const [studioResult, productionResult, mixmasterResult] = await Promise.all([
-    bookingsCollection.aggregate(studioPipeline).toArray(),
-    bookingsCollection.aggregate(productionPipeline).toArray(),
-    bookingsCollection.aggregate(mixmasterPipeline).toArray()
+    bookingsCollection.aggregate(pipeline("c1")).toArray(),
+    bookingsCollection.aggregate(pipeline("c2")).toArray(),
+    bookingsCollection.aggregate(pipeline("c3")).toArray()
   ]);
-
+  
   return [
-    { name: "Production", value: productionResult.length > 0 ? productionResult[0].totalRevenue : 0, color: "#FFC658" },
     { name: "Studio", value: studioResult.length > 0 ? studioResult[0].totalRevenue : 0, color: "#FF7300" },
-    { name: "Mixing", value: mixmasterResult.length > 0 ? mixmasterResult[0].totalRevenue : 0, color: "#FF0000" },
+    { name: "Production", value: productionResult.length > 0 ? productionResult[0].totalRevenue : 0, color: "#FFC658" },
+    { name: "Mixing", value: mixmasterResult.length > 0 ? mixmasterResult[0].totalRevenue : 0, color: "#FF0000" }
   ];
-}
+};
 
 exports.revenueAnalytics = async (req, res) => {
   try {
     const { timeframe } = req.query;
     const db = getDB();
-
-    if (!['year', 'month', 'week'].includes(timeframe)) {
+    
+    if (!["year", "month", "week"].includes(timeframe)) {
       return res.status(400).send('Invalid timeframe parameter');
     }
-
-    const data = await calculateRevenue(db, timeframe);
-
+    
+    const data = await performOperations(db, timeframe);
     console.log("result", data);
     res.json(data);
   } catch (error) {
-    console.log(error);
+    console.error('Error while fetching booking data:', error);
     res.status(500).send('Internal Server Error');
   }
-}
+};
