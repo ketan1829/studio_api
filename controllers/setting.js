@@ -246,6 +246,7 @@ exports.editBanner = async (req, res) => {
         }else{
             const old_stage = old_banner.stage;
             const old_banner2 = banner.find(bn=>bn.type === type && bn.stage === stage)
+            if(!old_banner2) return res.status(200).json({ status:false, message: "Banner not found with provided order" })
             updated_banners = banner.map(bnnr=>{
                 if(bnnr.type === type ){
                     if(bnnr.id === id){
