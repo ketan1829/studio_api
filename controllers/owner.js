@@ -6,8 +6,8 @@ const axios = require("axios");
 const mongodb = require("mongodb");
 const getDb = require("../util/database").getDB;
 const pick = require("../util/pick");
-const ObjectId = mongodb.ObjectId;
 const { sendMsg91OTP} = require("../util/mail");
+const ObjectId = mongodb.ObjectId;
 
 const jwt = require("jsonwebtoken");
 
@@ -18,9 +18,6 @@ exports.createNewOwner = async (req, res, next) => {
   const password = req.body.password;
   const studioId = req.body.studioId;
   const ownerImage = "";
-  const phone = req.body.phone;
-  const userType = req.body.userType;
-  const deviceId = req.body.deviceId;
 
   Owner.findOwnerByEmail(email).then((ownerData) => {
     if (ownerData) {
@@ -29,13 +26,6 @@ exports.createNewOwner = async (req, res, next) => {
         message: "Owner with this Email already exists",
       });
     }
-    Owner.findOwnerByPhone(phone).then((ownerPhoneData) => {
-      if (ownerPhoneData) {
-        return res.status(409).json({
-          status: false,
-          message: "Owner with this Phone already exists",
-        });
-      }
     Studio.findStudioById(studioId).then((studioData) => {
       if (!studioData) {
         return res.json({
@@ -56,10 +46,7 @@ exports.createNewOwner = async (req, res, next) => {
           email,
           password,
           studioId,
-          ownerImage,
-          phone,
-          userType,
-          deviceId
+          ownerImage
         );
 
         // saving in database
@@ -76,104 +63,101 @@ exports.createNewOwner = async (req, res, next) => {
       });
     });
   });
-})
 };
 
 exports.ownerLogin = async (req, res, next) => {
-  const email = req.body.email;
-  const password = req.body.password;
-  const { number, role, userType, deviceId } = req.body;
+  const { number, role, userType, deviceId, email, password } = req.body;
 
-  if (userType === "NUMBER") {
-    // Validate and format the phone number
-    try {
-      if (number.length < 10) {
-        throw new Error("Phone number must be at least 10 digits long.");
+  try {
+    if (userType === "NUMBER") {
+      // Validate and format the phone number
+      if (!number || number.length < 11) {
+        return res.status(400).json({ status: false, message: "Enter a valid phone number with country code." });
       }
-      if (!number.startsWith("+")) {
-        number = `"+91" ${number}`;
+
+      const ownerData = await Owner.findOwnerByNumber(number);
+      if (!ownerData) {
+        const status_otp = await sendMsg91OTP(number);
+        if (!status_otp.status) {
+          return res.status(200).json({ status: false, message: "Error while sending OTP, Try again later" });
+        }
+        return res.status(200).json({ status: true, message: "OTP has been sent successfully", newUser: true });
       }
-    } catch (error) {
-      return res.status(400).json({ message: error.message });
-    }
-    const ownerData = await Owner.findOwnerByNumber(number);
 
-    if (!ownerData && role === "owner") {
-      return res
-        .status(500)
-        .json({ message: `${role} not found, Try again later` });
-    }
-
-    if (ownerData && ownerData.role === "owner" && ownerData.phone == number) {
-      const status_otp = await sendMsg91OTP(`${ownerData.phone}`);
+      const status_otp = await sendMsg91OTP(ownerData.phone);
       if (!status_otp.status) {
-        return res.status(400).json({
-          status: false,
-          message: "Error while sending OTP to owner",
-        });
+        return res.status(200).json({ status: false, message: "Error while sending OTP to owner, Try again later" });
       }
 
-      const OwnerData = {
+      const ownerResponseData = {
         id: ownerData.ownerId,
         fullName: ownerData.fullName || "",
         emailId: ownerData.email || "",
-        Image: ownerData.adminImage || "",
+        image: ownerData.adminImage || "",
         phoneNumber: ownerData.phone || "",
         role: ownerData.role || "",
       };
 
-      const token = await jwt.sign({ owner: OwnerData }, "myAppSecretKey");
+      const token = jwt.sign({ owner: ownerResponseData }, "myAppSecretKey");
       return res.json({
         status: true,
-        message: "Hello Owner, OTP has been sent Successfully",
-        user: OwnerData,
+        message: "OTP has been sent successfully",
+        user: ownerResponseData,
+        token,
+        newUser: false
+      });
+    } else {
+      const ownerData = await Owner.findOwnerByEmail(email);
+      if (!ownerData) {
+        return res.status(400).json({ status: false, message: "No owner with this email exists" });
+      }
+
+      if (ownerData.password !== password) {
+        return res.status(400).json({ status: false, message: "Incorrect password" });
+      }
+
+      const token = jwt.sign({ owner: ownerData }, "myAppSecretKey");
+      return res.json({
+        status: true,
+        message: "Successfully logged in",
+        owner: ownerData,
         token,
       });
     }
-      // Test Owner login
-      if (ownerData && ownerData.role === "owner") {
-        if (deviceId) {
-          ownerData.deviceId = deviceId;
-          await Owner.update(phoneNumber, { deviceId: deviceId });
-        }
-        const token = jwt.sign({ owner: ownerData }, secretKey);
-        statusInfo.role = "owner";
-        statusInfo.token = token;
-        statusInfo.newUser = false;
-        statusInfo.status = true;
-        statusInfo.owner = ownerData;
-        statusInfo.role = "owner";
-        statusInfo.message = "Welcome owner, OTP has been send Succesfully.";
-        return res.status(200).json(statusInfo);
-      }
-  } else {
-    Owner.findOwnerByEmail(email).then((ownerData) => {
-      if (!ownerData) {
-        return res.json({
-          status: false,
-          message: "No Owner with this email exists",
-        });
-      }
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ status: false, message: "An error occurred during the login process" });
+  }
+};
 
-      if (ownerData.password != password) {
-        return res.json({ status: false, message: "Incorrect password" });
-      }
+exports.verifyOTP = async (req, res) => {
+  try {
+    let phoneNumber = req.query.phoneNumber;
+    let otp = req.query.otp;
+    let role = req.query.role;
 
-      const db = getDb();
-      db.collection("owners")
-        .updateOne({ email: email }, { $set: ownerData })
-        .then((resultData) => {
-          jwt.sign({ owner: ownerData }, "myAppSecretKey", (err, token) => {
-            res.json({
-              status: true,
-              message: "Successfully Logged In",
-              owner: ownerData,
-              token: token,
-            });
-          });
-        })
-        .catch((err) => console.log(err));
-    });
+    const response = await axios.get(
+      `https://control.msg91.com/api/v5/otp/verify`,
+      {
+        params: { otp: otp, mobile: phoneNumber },
+        headers: { authkey: process.env.MSG91_AUT_KEY },
+      }
+    );
+    console.log("response.data-->", response.data.message, response.data.type);
+
+    if (response.status == 200 && response.data.type == "success") {
+      if(role==="owner"){
+        let ownerData = await Owner.findOwnerByNumber(phoneNumber)
+        const token = jwt.sign({ owner: ownerData }, 'myAppSecretKey');
+        return res.status(200).json({ status: true, message: response.data.message,token });
+      }
+      res.status(200).json({ status: true, message: response.data.message });
+    } else {
+      res.status(200).json({ status: false, message: response.data.message });
+    }
+  } catch (error) {
+    logger.info(error, "Error verifiying OTP");
+    res.status(404).json({ status: false, message: "otp verification failed" });
   }
 };
 

@@ -43,6 +43,16 @@ class Owner
             .catch(err=>console.log(err));
     }
 
+    static findOwnerByNumber(number)
+    {
+        const db = getDb();
+        return db.collection('owners').findOne({phone:number})
+            .then(ownerData=>{
+                return ownerData;
+            })
+            .catch(err=>console.log(err));
+    }
+
     static findOwnerByStudioId(sId)
     {
         const db = getDb();
