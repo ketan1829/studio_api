@@ -40,7 +40,7 @@ class Setting {
       .catch((err) => console.log(err));
   }
 
-  static getBanner(state) {
+  static getBanner(state,type) {
     const db = getDb();
     if (state === undefined) {
       return db.collection(collectionName).distinct("banner");
@@ -49,7 +49,7 @@ class Setting {
       .collection(collectionName)
       .aggregate([
         { $unwind: "$banner" },
-        { $match: { "banner.active": state } },
+        { $match: { "banner.active": state,"banner.type": type} },
         { $replaceRoot: { newRoot: "$banner" } },
       ])
       .toArray();

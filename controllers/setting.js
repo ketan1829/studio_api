@@ -108,9 +108,8 @@ try {
 
 exports.getBanner = (req,res,next)=>{
 
-    // console.log("body---", req.body);
-    let { settingId, startingPrice, offerings, TotalServices, avgReview, serviceId, active } = req.body;
-    const filter = pick(req.query, ['name', 'role']) || { active: 1 }
+    let { settingId,active,type } = req.body;
+    const filter = pick(req.query, ['name', 'role','type']) || { active: 1 }
     const options = pick(req.query, ['sortBy', 'limit', 'page']);
     
     // const filter = { isActive: 1 };
@@ -120,13 +119,9 @@ exports.getBanner = (req,res,next)=>{
         var o_id = new ObjectId(settingId);
         filter._id =o_id
     }
-    if (startingPrice) filter.price = startingPrice;
-    if (TotalServices) filter.totalPlans = TotalServices;
-    if (avgReview) filter.featuredReviews.avgService = parseFloat(avgReview);
 
-
-
-    Setting.getBanner(active).then((banners)=>{
+    if(!type){ type = "AdBanner" }
+    Setting.getBanner(active,type).then((banners)=>{
         return res.json({status:true, message:`banner returned`,banners});
     })
     
@@ -202,9 +197,7 @@ exports.editBanner = async (req, res) => {
 
     try {
         let db = getDb();
-        const { id, stage, name, photoURL, active, type, banner_redirect, entity_id, redirectURL } = req.body;
-        const forr = req.body.for;
-
+        const { id, stage, name, photoURL, active, type, banner_redirect, entity_id, redirectURL,forr } = req.body;
         if (!id) {
             return res.status(200).json({ status:false, message: "Missing banner id" });
         }
