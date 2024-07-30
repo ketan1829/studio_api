@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { dashboardAnalytics, dashboardAnalyticsForWeek } = require("../controllers/dashboard");
+const { dashboardAnalytics} = require("../controllers/dashboard");
 const { isAdminV2 } = require('../util/authCheck');
 
 
