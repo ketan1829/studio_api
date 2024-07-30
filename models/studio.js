@@ -76,6 +76,7 @@ class Studio {
       console.log("parseFloat(longitude), parseFloat(latitude)---", longitude, latitude);
       const db = getDb();
       const nearByStudiosCursor = await db.collection("studios").find({
+        isActive:1,
         location: {
           $nearSphere: {
             $geometry: { type: "Point", coordinates: [longitude, latitude] },

@@ -172,11 +172,11 @@ exports.editDiscountDetails = (req, res, next) => {
     const description = req.body.description;
     const discountPercentage = parseFloat(req.body.discountPercentage);
     const maxCapAmount = parseFloat(req.body.maxCapAmount);
-    const discountDate = req.body.discountDate;
+    const discountDate = req.body.discountDate || "";
     const usersList = req.body.usersList;
     const couponCode = req.body.couponCode;
-    const startDate = req.body.startDate;
-    const endDate = req.body.endDate;
+    const startDate = req.body.startDate || "";
+    const endDate = req.body.endDate || "";
 
     ChoiraDiscount.findChoiraDiscountById(discountId)
         .then(discountData => {
