@@ -4,13 +4,13 @@ const { logger } = require("../util/logger")
 const serviceBookingSchems = Joi.object({
     userId : Joi.string().required(),
     serviceId : Joi.string().required(),
-    planId : Joi.number().strict().required(),
+    planId : Joi.number().strict().required(), //sent in string by flutter
     bookingDate : Joi.string().required(),
     bookingTime : Joi.object({
         startTime:Joi.string(),
         endTime:Joi.string(),
     }),
-    totalPrice : Joi.number().strict().required(),
+    totalPrice : Joi.number().strict().required(), //sent in string by flutter
     serviceType : Joi.string().required(),
     countryCode : Joi.string().required(),
 })
@@ -29,15 +29,17 @@ const serviceBooking = (req,res,next)=>{
 const studioBookingSchems = Joi.object({
     userId : Joi.string().required(),
     studioId : Joi.string().required(),
-    roomId : Joi.number().strict().required(),
+    roomId : Joi.number().integer().strict().required(),
     bookingDate : Joi.string().required(),
     bookingTime : Joi.object({
         startTime:Joi.string().required(),
         endTime:Joi.string().required(),
     }),
     totalPrice : Joi.number().strict().required(),
-    serviceType : Joi.string().required(),
-    countryCode : Joi.string().required()
+    serviceType : Joi.string().required(),// //not sent by flutter
+    countryCode : Joi.string(),//not sent by flutter
+    discountCode : Joi.string().required(),
+    discountId : Joi.string().required(),
 })
 
 
