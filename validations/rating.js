@@ -12,7 +12,7 @@ const ratingSchema = Joi.object({
     }),
     reviewMsg:Joi.string().required(),
     reviewImage:Joi.array(),
-})
+}).unknown(true)
 
 
 

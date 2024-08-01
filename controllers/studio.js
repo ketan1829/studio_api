@@ -784,8 +784,13 @@ exports.createNewStudio = async (req, res, next) => {
   const featuredReviews = [];
   let minPrice = {};
   try {
-    console.log("req.body",req.body);
     minPrice = calculateMinPrice(roomsDetails);
+
+    roomsDetails.map(room=>{
+      room.bookingDays = updateStudioBookingDays(room.bookingDays)
+      return room;
+    })
+    
     logger.info({ address });
     address = address.replace("&", "and");
     let latitude = "";
@@ -1440,6 +1445,11 @@ exports.editStudioDetails = async (req, res, next) => {
       .json({ status: false, message: "No Studio with this ID exists" });
   }
 
+  roomsDetails.map(room=>{
+    room.bookingDays = updateStudioBookingDays(room.bookingDays)
+    return room;
+  })
+
   // const updatedAminities = amenities.map((a_key, j) => {
   //   return studio.amenities.map((ame, i) => {
   //     console.log(ame.id);
@@ -1885,6 +1895,17 @@ const calculateMinPrice = (roomsDetails) => {
     discountPercentage:minRoom.discountPercentage
   };
 };
+
+const updateStudioBookingDays = (days)=>{
+  const weekdays = {"monday":1,"tuesday":2,"wednesday ":3,"thursday":4,"friday":5,"saturday":6,"sunday":7}
+  days.map(wday=>{
+    wday.id = weekdays[wday.name.toLowerCase()]
+    console.log("wdy::::",wday);
+    return wday
+  })
+  return days
+
+}
 
 // exports = {calculateMinPrice}
 // // module.exports = calculateMinPrice;

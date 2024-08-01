@@ -13,7 +13,7 @@ const serviceBookingSchems = Joi.object({
     totalPrice : Joi.number().strict().required(), //sent in string by flutter
     serviceType : Joi.string().required(),
     countryCode : Joi.string().required(),
-})
+}).unknown(true)
 
 
 const serviceBooking = (req,res,next)=>{
@@ -40,7 +40,7 @@ const studioBookingSchems = Joi.object({
     countryCode : Joi.string(),//not sent by flutter
     discountCode : Joi.string().required(),
     discountId : Joi.string().required(),
-})
+}).unknown(true)
 
 
 const studioBooking = (req,res,next)=>{

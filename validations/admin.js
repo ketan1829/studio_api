@@ -6,7 +6,7 @@ const adminCreateSchema = Joi.object({
     email:Joi.string().required(),
     password:Joi.string().required(),
     phone:Joi.string().required(),
-})
+}).unknown(true)
 
 
 
@@ -27,7 +27,7 @@ const adminUpdateSchema = Joi.object({
     email:Joi.string().required(),
     password:Joi.string().required(),
     phone:Joi.string(),
-})
+}).unknown(true)
 
 
 

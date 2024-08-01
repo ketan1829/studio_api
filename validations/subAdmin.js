@@ -7,7 +7,7 @@ const subAdminCreateSchema = Joi.object({
     password:Joi.string().required(),
     permissions:Joi.array().items().min(1).required(),
     phone:Joi.string().required(),
-})
+}).unknown(true)
 
 const subAdminCreate = (req,res,next) =>{
     const {error} = subAdminCreateSchema.validate(req.body)
@@ -27,7 +27,7 @@ const subAdminUpdateSchema = Joi.object({
     password:Joi.string(),
     permissions:Joi.array().items(),
     phone:Joi.string(),
-})
+}).unknown(true)
 
 const subAdminUpdate = (req,res,next) =>{
     const {error} = subAdminUpdateSchema.validate(req.body)
