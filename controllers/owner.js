@@ -112,16 +112,25 @@ exports.ownerLogin = async (req, res, next) => {
         return res.status(400).json({ status: false, message: "No owner with this email exists" });
       }
 
+      const ownerResponseData = {
+        id: ownerData.ownerId,
+        fullName: ownerData.fullName || "",
+        emailId: ownerData.email || "",
+        image: ownerData.adminImage || "",
+        phoneNumber: ownerData.phone || "",
+        role: ownerData.role || "",
+      };
       if (ownerData.password !== password) {
         return res.status(400).json({ status: false, message: "Incorrect password" });
       }
 
-      const token = jwt.sign({ owner: ownerData }, "myAppSecretKey");
+      const token = jwt.sign({ owner: ownerResponseData }, "myAppSecretKey");
       return res.json({
         status: true,
         message: "Successfully logged in",
-        owner: ownerData,
+        owner: ownerResponseData,
         token,
+        newUser: false
       });
     }
   } catch (error) {
