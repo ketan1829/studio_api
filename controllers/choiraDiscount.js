@@ -112,19 +112,18 @@ exports.getAllUserDiscounts = (req, res, next) => {
                                 discountsData = discountsData.filter(i => i.discountType != 2);
                             }
                             //If user is not in special list, do not send this DISCOUNT in list
+
                             let specialDiscountData = discountsData.filter(i => i.discountType == 3);
+
                             // console.log(specialDiscountData);
                             if (specialDiscountData.length != 0) {
-                                console.log("specialDiscountData")
                                 const index = specialDiscountData[0].usersList.findIndex(i => i.toString() == userId.toString());
                                 if (index == -1) {
                                     //remove this discount from list
                                     discountsData = discountsData.filter(i => i.discountType != 3);
                                 }
                             }
-
-                            console.log("===========>",discountsData);
-
+                            
                             return res.json({ status: true, message: "All discounts returned for this user", discounts: discountsData });
                         }
 
@@ -148,7 +147,6 @@ exports.getAllDiscounts = (req, res, next) => {
 
 }
 
-
 exports.getParticularDiscountDetails = (req, res, next) => {
 
     const discountId = req.params.discountId;
@@ -160,7 +158,6 @@ exports.getParticularDiscountDetails = (req, res, next) => {
             }
             return res.json({ status: true, message: "Discount exists", discount: discountData });
         })
-
 }
 
 

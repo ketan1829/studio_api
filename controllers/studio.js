@@ -1452,25 +1452,12 @@ exports.editStudioDetails = async (req, res, next) => {
 
   /// Amenities issue solved
 
-  // const updatedAminities = studio.amenities.map((ame, i) => {
-  //   const matchingAmenity = amenities?.find((a_key) => a_key.id === ame.id);
-  //   if (matchingAmenity) {
-  //     return { ...ame, ...matchingAmenity };
-  //   } else if (!matchingAmenity) {
-  //     return { ...ame, ...amenities };
-  //   }
-  //   return ame;
-  // });
+  // let updatedAminities = [...studio.amenities,...amenities]
+  // const uniqueUpdatedAminities =  [...new Map(updatedAminities.map(item =>[item.name, item])).values()];
 
-  // const updatedTeamDetails = studio.teamDetails.map((team, i) => {
-  //   const matchingTeam = teamDetails?.find((t_key) => t_key.id === team.id);
-  //   if (matchingTeam) {
-  //     return { ...team, ...matchingTeam };
-  //   } else if (!matchingTeam) {
-  //     return { ...team, ...teamDetails };
-  //   }
-  //   return team;
-  // });
+  // let updatedTeamDetails = [...studio.teamDetails,...teamDetails]
+  // const uniqueUpdatedTeamDetails =  [...new Map(updatedTeamDetails.map(item =>[item.name, item])).values()];
+
 
   const minPrice = calculateMinPrice(roomsDetails);
   address = address?.replace("&", "and");

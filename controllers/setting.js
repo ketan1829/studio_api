@@ -386,7 +386,7 @@ exports.deleteBanner = async (req, res) => {
                 message: "Banners do not exist"
             });
         }
-        const bannerIndex = banner.findIndex(bn => bn.id === id && bn.type === type); // 1,2,3,4
+        const bannerIndex = banner.findIndex(bn => bn.id === id || bn.type === type); // 1,2,3,4
         if (bannerIndex === -1) {
             return res.status(200).json({
                 status: false,
