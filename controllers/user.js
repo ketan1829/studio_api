@@ -843,13 +843,13 @@ exports.addEditUserLocation = (req, res, next) => {
 
 exports.editUserProfile = (req, res, next) => {
   const userId = req.params.userId;
-
-  const fullName = req.body.fullName || "";
-  const dateOfBirth = req.body.dateOfBirth || "";
+  const fullName = req.body.fullName || "Artist";
+  const dateOfBirth = req.body.dateOfBirth || "2000-01-01";
   const profileUrl = req.body.profileUrl || "";
-  const gender = req.body.gender || "";
+  const gender = req.body.gender || "male";
 
   User.findUserByUserId(userId).then((userData) => {
+
     if (!userData) {
       return res
         .status(404)
@@ -860,16 +860,8 @@ exports.editUserProfile = (req, res, next) => {
     userData.dateOfBirth = dateOfBirth;
     userData.profileUrl = profileUrl;
     userData.gender = gender;
-
-    Object.keys(userData).map(k=>{
-      if(!userData[k]){
-        delete userData[k]
-      }
-    })
-
     const db = getDb();
     var o_id = new ObjectId(userId);
-
     db.collection("users")
       .updateOne({ _id: o_id }, { $set: userData })
       .then((resultData) => {
@@ -881,8 +873,7 @@ exports.editUserProfile = (req, res, next) => {
             token: token,
           });
         });
-      })
-      .catch((err) => logger.error(err));
+      }).catch((err) => logger.error(err));
   });
 };
 

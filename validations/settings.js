@@ -13,7 +13,7 @@ const bannerCreateSchema = Joi.object({
     banner_redirect:Joi.string(),
     entity_id:Joi.string(),
     forr:Joi.string()
-})
+}).unknown(true)
 
 const bannerCreate = (req,res,next)=>{
     // const url = req.url;
@@ -43,7 +43,7 @@ const bannerSchema = Joi.object({
     banner_redirect:Joi.string(),
     entity_id:Joi.string(),
     forr:Joi.string()
-})
+}).unknown(true)
 
 const bannerUpdate = (req,res,next)=>{
 

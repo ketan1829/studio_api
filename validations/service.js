@@ -55,7 +55,7 @@ const serviceCreateSchema = Joi.object({
     // discographyDetails:Joi.string().required(),
     // clientPhotos:Joi.string().required(),
     // featuredReviews:Joi.string().required(),
-})
+}).unknown(true)
 
 const serviceCreate = (req,res,next) =>{
     const {error} = serviceCreateSchema.validate(req.body)
@@ -116,7 +116,7 @@ const serviceUpdateSchema = Joi.object({
     userPhotos:Joi.array(),
     type:Joi.string(),
     isActive:Joi.number().strict(),
-})
+}).unknown(true)
 
 const serviceUpdate = (req,res,next) =>{
     const {error} = serviceUpdateSchema.validate(req.body)

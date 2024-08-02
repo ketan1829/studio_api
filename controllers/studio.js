@@ -789,30 +789,21 @@ exports.createNewStudio = async (req, res, next) => {
   try {
     
     console.log("req.body",req.body);
+
     minPrice = calculateMinPrice(roomsDetails);
+
+    roomsDetails.map(room=>{
+      room.bookingDays = updateStudioBookingDays(room.bookingDays)
+      return room;
+    })
+    
     logger.info({ address });
     address = address.replace("&", "and");
     let latitude = "";
     let longitude = "";
-    const response = await axios.get(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=${GOOGLE_MAP_KEY}`
-    );
-    const res_data = response.data?.results[0]?.geometry?.location;
-
-    if (!res_data) {
-      const latlong = await getLatLong(mapLink);
-      if (latlong.length === 0) {
-        return res.json({
-          status: false,
-          message: "Enter valid address for studio",
-        });
-      }
-      latitude = latlong[0].toString();
-      longitude = latlong[1].toString();
-    } else {
-      latitude = res_data.lat.toString();
-      longitude = res_data.lng.toString();
-    }
+    const coordinates = await getCoordinates(address,mapLink,res)
+    latitude = coordinates[0]
+    longitude = coordinates[1]
 
     logger.info(latitude, longitude);
     const location = {
@@ -1444,6 +1435,11 @@ exports.editStudioDetails = async (req, res, next) => {
       .json({ status: false, message: "No Studio with this ID exists" });
   }
 
+  roomsDetails.map(room=>{
+    room.bookingDays = updateStudioBookingDays(room.bookingDays)
+    return room;
+  })
+
   // const updatedAminities = amenities.map((a_key, j) => {
   //   return studio.amenities.map((ame, i) => {
   //     console.log(ame.id);
@@ -1459,55 +1455,42 @@ exports.editStudioDetails = async (req, res, next) => {
   //   });
   // });
 
-  const updatedAminities = studio.amenities.map((ame, i) => {
-    const matchingAmenity = amenities?.find((a_key) => a_key.id === ame.id);
-    if (matchingAmenity) {
-      return { ...ame, ...matchingAmenity };
-    } else if (!matchingAmenity) {
-      return { ...ame, ...amenities };
-    }
-    return ame;
-  });
 
-  const updatedTeamDetails = studio.teamDetails.map((team, i) => {
-    const matchingTeam = teamDetails?.find((t_key) => t_key.id === team.id);
-    if (matchingTeam) {
-      return { ...team, ...matchingTeam };
-    } else if (!matchingTeam) {
-      return { ...team, ...teamDetails };
-    }
-    return team;
-  });
+  /// Amenities issue solved
+
+  // const updatedAminities = studio.amenities.map((ame, i) => {
+  //   const matchingAmenity = amenities?.find((a_key) => a_key.id === ame.id);
+  //   if (matchingAmenity) {
+  //     return { ...ame, ...matchingAmenity };
+  //   } else if (!matchingAmenity) {
+  //     return { ...ame, ...amenities };
+  //   }
+  //   return ame;
+  // });
+
+  // const updatedTeamDetails = studio.teamDetails.map((team, i) => {
+  //   const matchingTeam = teamDetails?.find((t_key) => t_key.id === team.id);
+  //   if (matchingTeam) {
+  //     return { ...team, ...matchingTeam };
+  //   } else if (!matchingTeam) {
+  //     return { ...team, ...teamDetails };
+  //   }
+  //   return team;
+  // });
 
   const minPrice = calculateMinPrice(roomsDetails);
   address = address?.replace("&", "and");
 
-    const response = await axios.get(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=${GOOGLE_MAP_KEY}`
-    );
+  const coordinates = await getCoordinates(address,mapLink,res)
+  latitude = coordinates[0]
+  longitude = coordinates[1]
 
-    const res_data = response.data?.results[0]?.geometry?.location;
+  console.log(latitude,longitude);
 
-    if (!res_data) {
-      const latlong = await getLatLong(mapLink);
-      if (latlong.length === 0) {
-        return res.json({
-          status: false,
-          message: "Enter valid address for studio",
-        });
-      }
-      latitude = latlong[0].toString();
-      longitude = latlong[1].toString();
-    } else {
-      latitude = res_data.lat.toString();
-      longitude = res_data.lng.toString();
-    }
-
-    logger.info(latitude, longitude);
-    const location = {
-      type: "Point",
-      coordinates: [+longitude, +latitude],
-    };
+  const location = {
+    type: "Point",
+    coordinates: [+longitude, +latitude],
+  };
 
   let studioObj = {
     fullName,
@@ -1520,21 +1503,19 @@ exports.editStudioDetails = async (req, res, next) => {
     area,
     pincode,
     pricePerHour,
-    amenities: updatedAminities,
+    amenities,
     totalRooms,
     roomsDetails,
     maxGuests,
     studioPhotos,
     aboutUs,
-    teamDetails: updatedTeamDetails,
+    teamDetails,
     country,
     minPrice,
     location
   };
 
-  let newStudioData = await Studio.filterEmptyFields(studioObj);
-
-  const updated_result = await Studio.updateStudioById(studioId, newStudioData);
+  const updated_result = await Studio.updateStudioById(studioId, studioObj);
 
   res.send({
     status: true,
@@ -1889,6 +1870,45 @@ const calculateMinPrice = (roomsDetails) => {
     discountPercentage:minRoom.discountPercentage
   };
 };
+
+const updateStudioBookingDays = (days)=>{
+  const weekdays = {"monday":1,"tuesday":2,"wednesday":3,"thursday":4,"friday":5,"saturday":6,"sunday":7}
+  days.map(wday=>{
+    wday.id = weekdays[wday.name.toLowerCase()]
+    console.log("wdy::::",wday);
+    return wday
+  })
+  return days
+
+}
+
+const getCoordinates = async (address,mapLink,res) =>{
+  let latitude = ""
+  let longitude = ""
+  const response = await axios.get(
+    `https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=${GOOGLE_MAP_KEY}`
+  );
+
+  const res_data = response.data?.results[0]?.geometry?.location;
+
+  if (!res_data) {
+    const latlong = await getLatLong(mapLink);
+    if (latlong.length === 0) {
+      return res.json({
+        status: false,
+        message: "Enter valid address for studio",
+      });
+    }
+    latitude = latlong[0].toString();
+    longitude = latlong[1].toString();
+  } else {
+    latitude = res_data.lat.toString();
+    longitude = res_data.lng.toString();
+  }
+
+  return [latitude,longitude]
+
+}
 
 // exports = {calculateMinPrice}
 // // module.exports = calculateMinPrice;

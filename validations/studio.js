@@ -155,7 +155,7 @@ const studioUpdateSchema = Joi.object({
   overallAvgRating:Joi.number(),
   featuredReviews:Joi.array(),
   country:Joi.string()
-})
+}).unknown(true)
 const studioUpdate = (req,res,next)=>{
   try {
   const { error } = studioUpdateSchema.validate(req.body);

@@ -8,7 +8,7 @@ const userRegisterSchema = Joi.object({
     email:Joi.string().required(),
     userType:Joi.string().required(),
     role:Joi.string().required(),
-})
+}).unknown(true)
 
 const userRegister = (req,res,next) =>{
     const {error} = userRegisterSchema.validate(req.body)
@@ -27,7 +27,7 @@ const userUpdateSchema = Joi.object({
     dateOfBirth:Joi.string(),
     profileUrl:Joi.string(),
     gender:Joi.string()
-})
+}).unknown(true)
 
 
 const userUpdate = (req,res,next) =>{

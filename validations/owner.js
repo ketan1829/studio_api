@@ -7,7 +7,7 @@ const ownerCreateSchema = Joi.object({
     password:Joi.string().required(),
     studioId:Joi.string().required(),
     phone:Joi.string().required(),
-})
+}).unknown(true)
 
 
 const ownerCreate = (req,res,next)=>{
@@ -25,7 +25,7 @@ const ownerUpdateSchema = Joi.object({
     password:Joi.string(),
     studioId:Joi.string(),
     phone:Joi.string(),
-})
+}).unknown(true)
 
 
 const ownerUpdate = (req,res,next)=>{

@@ -197,7 +197,8 @@ exports.editBanner = async (req, res) => {
 
     try {
         let db = getDb();
-        const { id, stage, name, photoURL, active, type, banner_redirect, entity_id, redirectURL,forr } = req.body;
+        const { id, stage, name, photoURL, active, type, banner_redirect, entity_id, redirectURL} = req.body;
+        const forr = req.body.for;
         if (!id) {
             return res.status(200).json({ status:false, message: "Missing banner id" });
         }
@@ -216,6 +217,8 @@ exports.editBanner = async (req, res) => {
         };
         objectOfBanner = checks(objectOfBanner, banner_redirect, redirectURL, forr, entity_id);
 
+        console.log(objectOfBanner);
+
         if(!objectOfBanner.status) return res.status(200).json({ status:false, message: objectOfBanner.message });
         objectOfBanner = objectOfBanner.obj
         let { _id, banner } = await db.collection("settings").findOne({ type: "home_screen" });
@@ -224,11 +227,15 @@ exports.editBanner = async (req, res) => {
         }
         // b1 : 1, b2 : 2, b3 : 3, b4 : 4
         const old_banner = banner.find(bn=>bn.id === id && bn.type === type)
+
+        console.log("old_banner:");
+        console.log(old_banner);
         let updated_banners = []
         if(objectOfBanner.for === "list") objectOfBanner.entity_id = entity_id || "c1";
 
         // normal update without stage swap
         if(old_banner.stage === stage){
+            console.log("sssssssssssssssssss");
             updated_banners = banner.map(bnnr=>{
                 if(bnnr.type === type && bnnr.id === old_banner.id){
                         return {...bnnr,...objectOfBanner}
@@ -237,8 +244,10 @@ exports.editBanner = async (req, res) => {
             })
         // update with stage swap
         }else{
+            console.log("old_banner----",old_banner);
             const old_stage = old_banner.stage;
             const old_banner2 = banner.find(bn=>bn.type === type && bn.stage === stage)
+            console.log("old_banner2-------",old_banner2);
             if(!old_banner2) return res.status(200).json({ status:false, message: "Banner not found with provided order" })
             updated_banners = banner.map(bnnr=>{
                 if(bnnr.type === type ){
@@ -251,6 +260,8 @@ exports.editBanner = async (req, res) => {
                 }
                 return bnnr
             })
+
+            console.log("updated_banners=====",updated_banners);
         }
 
         await db.collection("settings").updateOne(
@@ -355,7 +366,7 @@ exports.deleteBanner = async (req, res) => {
     try {
         let db = getDb();
         const {
-            id
+            id,type
         } = req.query;
         if (!id) {
             return res.status(200).json({
@@ -375,7 +386,7 @@ exports.deleteBanner = async (req, res) => {
                 message: "Banners do not exist"
             });
         }
-        const bannerIndex = banner.findIndex(bn => bn.id === id);
+        const bannerIndex = banner.findIndex(bn => bn.id === id && bn.type === type); // 1,2,3,4
         if (bannerIndex === -1) {
             return res.status(200).json({
                 status: false,
@@ -383,6 +394,14 @@ exports.deleteBanner = async (req, res) => {
             });
         }
         banner.splice(bannerIndex, 1);
+        not_type_banner = banner.filter(bn=>bn.type !== type)
+        banner = banner.filter(bn=>bn.type === type)
+        banner = banner.sort((a, b) => a.stage - b.stage);
+        banner.map((bn,index)=>{
+            bn.stage = index+1
+            return bn
+        })
+        banner = [...banner,...not_type_banner]
         await db.collection("settings").updateOne({
             _id
         }, {
