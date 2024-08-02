@@ -1,6 +1,8 @@
 const { getDB } = require("../util/database");
 const moment = require('moment-timezone');
 
+
+//--------------------------------Transaction--------------------------------
 // Utility function to get month names
 const getMonthName = (monthNumber) => {
   const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
@@ -279,9 +281,6 @@ const performMonthOperations = async (db) => {
   return Object.values(combinedResults);
 };
 
-
-
-// Main controller function
 const transactionAnalytics = async (timeframe) => {
 
   console.log("HITTTTTTTTTTTTT");
@@ -307,10 +306,10 @@ const transactionAnalytics = async (timeframe) => {
     return {status:false, message :"Error while fething Transaction data"}
   }
 };
+//--------------------------------Transaction--------------------------------
 
 
-
-
+//--------------------------------Revenue--------------------------------
 
 const getStartDateForTimeframe = (timeframe) => {
 moment.tz.setDefault('Asia/Kolkata');
@@ -385,33 +384,177 @@ const revenueAnalytics = async (timeframe) => {
   }
 };
 
+//--------------------------------Revenue--------------------------------
 
+//--------------------------------Session--------------------------------
+
+
+
+const performOperationsForBooking = async (db, timeframe) => {
+  const startDate = getStartDateForTimeframe(timeframe);
+  const endDate = moment().endOf('day').toDate(); // End of the current day in IST
+
+  let groupId;
+  let dateLabels;
+  let ranges = [];
+
+  if (timeframe === "week") {
+    groupId = { day: { $dayOfWeek: "$creationTimeStamp" } };
+    dateLabels = moment.weekdaysShort(); // ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+  } else if (timeframe === "month") {
+    groupId = { week: { $week: "$creationTimeStamp" } };
+    let currentWeek = moment(startDate);
+    let monthEnd = moment(startDate).endOf('month');
+
+    while (currentWeek.isBefore(monthEnd)) {
+      let weekStart = currentWeek.clone();
+      let weekEnd = currentWeek.clone().endOf('isoWeek').isAfter(monthEnd) ? monthEnd : currentWeek.clone().endOf('isoWeek');
+
+      ranges.push(`${weekStart.format('YYYY-MM-DD')} to ${weekEnd.format('YYYY-MM-DD')}`);
+
+      currentWeek.add(1, 'week').startOf('isoWeek');
+    }
+    dateLabels = ranges.map((_, i) => `Week ${i + 1}`);
+  } else if (timeframe === "year") {
+    groupId = { month: { $month: "$creationTimeStamp" } };
+    const currentMonth = moment().month(); // 0-based index
+    dateLabels = moment.monthsShort().slice(0, currentMonth + 1); // Months till the current month
+  } else {
+    throw new Error("Invalid timeframe");
+  }
+
+  const pipeline = [
+    {
+      $match: {
+        bookingStatus: 1,
+        type: "c1",
+        creationTimeStamp: {
+          $gte: startDate,
+          $lt: endDate
+        }
+      }
+    },
+    {
+      $addFields: {
+        startTime: {
+          $dateFromString: {
+            dateString: { $concat: [{ $dateToString: { format: '%Y-%m-%d', date: '$creationTimeStamp' } }, 'T', '$bookingTime.startTime', ':00'] }
+          }
+        },
+        endTime: {
+          $dateFromString: {
+            dateString: { $concat: [{ $dateToString: { format: '%Y-%m-%d', date: '$creationTimeStamp' } }, 'T', '$bookingTime.endTime', ':00'] }
+          }
+        }
+      }
+    },
+    {
+      $group: {
+        _id: groupId,
+        BookingCount: { $sum: 1 },
+        BookingHours: {
+          $sum: {
+            $divide: [
+              { $subtract: ['$endTime', '$startTime'] },
+              3600000 // milliseconds in an hour
+            ]
+          }
+        }
+      }
+    },
+    {
+      $sort: { '_id': 1 }
+    }
+  ];
+
+  const bookings = await db.collection('bookings').aggregate(pipeline).toArray();
+  console.log("bookings", bookings);
+
+  // Initialize the result array with zero values
+  let result = dateLabels.map((label, i) => {
+    return {
+      name: label,
+      BookingHours: 0,
+      BookingCount: 0,
+      range: timeframe === "month" ? ranges[i] : undefined
+    };
+  });
+
+  // Merge the booking data with the complete date labels list
+  console.log(ranges);
+  bookings.forEach(booking => {
+    let index;
+    if (timeframe === "week") {
+      index = booking._id.day - 1; // Adjust for 0-based index (Sun: 0, Mon: 1, ..., Sat: 6)
+    } else if (timeframe === "month") {
+      console.log("booking._id.week",booking._id.week);
+      const bookingWeekStart = moment().week(booking._id.week+1).startOf('isoWeek').format('YYYY-MM-DD');
+      const bookingWeekEnd = moment().week(booking._id.week+1).endOf('isoWeek').format('YYYY-MM-DD');
+      const bstartweekdate = new Date(bookingWeekStart).getTime();
+      const bendweekdate = new Date(bookingWeekEnd).getTime();
+      index = ranges.findIndex(range => bstartweekdate <= new Date(range).getTime() <= bendweekdate);
+    } else if (timeframe === "year") {
+      index = booking._id.month - 1; // Adjust for 0-based index (Jan: 0, Feb: 1, ..., Dec: 11)
+    }
+    if (index >= 0 && index < result.length) {
+      result[index].BookingHours = booking.BookingHours;
+      result[index].BookingCount = booking.BookingCount;
+    }
+  });
+
+  return result;
+};
+
+const BookingHoursAndCount = async (timeframe) => {
+  try {
+    const db = getDB();
+
+    if (!["year", "month", "week"].includes(timeframe)) {
+      throw new Error("Invalid timeframe parameter");
+    }
+
+    const data = await performOperationsForBooking(db, timeframe);
+    console.log("Result", data);
+    return { status: true, message: "Booking data", data };
+  } catch (error) {
+    console.error('Error while fetching booking data:', error);
+    return { status: false, message: "Error while fetching booking data" };
+  }
+};
+
+
+
+//--------------------------------Session--------------------------------
+
+//--------------------------------Main Controller--------------------------------
 exports.dashboardAnalytics= async(req,res)=>{
   try {
     const timeframe = req.query.timeframe || "year";
     const analytics = req.query.analytics;
     let transactionData;
     let revenueData;
+    let BookingCountAndHours;
     if(analytics==="transaction"){
       transactionData = await transactionAnalytics(timeframe)
     } else if(analytics==="revenue"){
       revenueData = await revenueAnalytics(timeframe)
+    }else if(analytics==="BookingHoursAndCount"){
+      BookingCountAndHours = await BookingHoursAndCount(timeframe)
     }else{
       transactionData = await transactionAnalytics(timeframe)
       revenueData = await revenueAnalytics(timeframe)
+      BookingCountAndHours = await BookingHoursAndCount(timeframe)
     }
-    
 
-    
     res.status(200).json({
-      status:true, transactionData,revenueData
+      status:true, transactionData,revenueData,BookingCountAndHours
     })
   } catch (error) {
     console.log(error);
 
   }
 }
-
+//--------------------------------Main Controller--------------------------------
 
 
 // backup:-
