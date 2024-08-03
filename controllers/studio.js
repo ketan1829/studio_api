@@ -145,7 +145,8 @@ exports.getStudios = async (req, res, next) => {
     totalRooms,
     creationTimeStamp,
     page,
-    limit
+    limit,
+    id
   } = req.query;
 
   const filter = pick(req.query, ["name", "role", "city", "state"]);
@@ -155,8 +156,10 @@ exports.getStudios = async (req, res, next) => {
 
   // Filters
 
+
   if (searchText) filter.fullName = searchText;
   if (city) filter.city = city;
+  if (id) filter._id = ObjectId(id);
   if (state) filter.state = state;
   if (totalRooms) filter.totalRooms = +totalRooms;
   if (studioId) filter._id = new ObjectId(studioId);
@@ -784,6 +787,9 @@ exports.createNewStudio = async (req, res, next) => {
   const featuredReviews = [];
   let minPrice = {};
   try {
+    
+    console.log("req.body",req.body);
+
     minPrice = calculateMinPrice(roomsDetails);
 
     roomsDetails.map(room=>{
