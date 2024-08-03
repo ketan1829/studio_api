@@ -13,15 +13,15 @@ const Booking = require('../models/booking');
 exports.createNewDiscount = (req, res, next) => {
 
     const discountName = req.body.discountName;
-    const description = req.body.description;
+    const description = req.body.description || "";
     const discountType = +req.body.discountType;
-    const discountPercentage = parseFloat(req.body.discountPercentage);
-    const maxCapAmount = parseFloat(req.body.maxCapAmount);
-    const discountDate = req.body.discountDate;
-    const usersList = req.body.usersList;
-    const couponCode = req.body.couponCode;
-    const startDate = req.body.startDate;
-    const endDate = req.body.endDate;
+    const discountPercentage = parseFloat(req.body.discountPercentage) || 5;
+    const maxCapAmount = parseFloat(req.body.maxCapAmount) || 50;
+    const discountDate = req.body.discountDate || "";
+    const usersList = req.body.usersList || [];
+    const couponCode = req.body.couponCode || "CHOIRADISCOUNT";
+    const startDate = req.body.startDate || "";
+    const endDate = req.body.endDate || "";
 
     ChoiraDiscount.findChoiraDiscountByType(discountType)
         .then(discountData => {
@@ -166,9 +166,9 @@ exports.editDiscountDetails = (req, res, next) => {
     const discountId = req.params.discountId;
 
     const discountName = req.body.discountName;
-    const description = req.body.description;
-    const discountPercentage = parseFloat(req.body.discountPercentage);
-    const maxCapAmount = parseFloat(req.body.maxCapAmount);
+    const description = req.body.description || "" ;
+    const discountPercentage = parseFloat(req.body.discountPercentage) || 5;
+    const maxCapAmount = parseFloat(req.body.maxCapAmount) || 50;
     const discountDate = req.body.discountDate || "";
     const usersList = req.body.usersList || [];
     const couponCode = req.body.couponCode;

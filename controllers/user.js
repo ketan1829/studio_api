@@ -1814,7 +1814,7 @@ exports.verifyOTP = async (req, res) => {
       res.status(200).json({ status: false, message: response.data.message });
     }
   } catch (error) {
-    logger.info(error, "Error verifiying OTP");
-    res.status(404).json({ status: false, message: "otp verification failed" });
+    logger.error({error})
+    res.status(200).json({ status: false, message: "otp verification failed" });
   }
 };
