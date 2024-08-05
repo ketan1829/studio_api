@@ -860,7 +860,14 @@ exports.createNewStudio = async (req, res, next) => {
 
 exports.getParticularStudioDetails = (req, res, next) => {
   const studioId = req.params.studioId;
+  const { role, userId } = req.user;
 
+  if (role === 'owner') {
+    Owner.findOwnerByOwnerId(userId).then((ownerData)=>{
+      if(ownerData._id.toString() !== userId) return res.status(200).json({ status: false, message: "Access denied" });
+    })
+  }
+  
   Studio.findStudioById(studioId).then((studioData) => {
     if (!studioData) {
       return res
