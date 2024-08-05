@@ -21,10 +21,11 @@ const isGuest = async (req, res, next) => {
       next()
     } else {
       const decoded = await verifyToken(token);
-      if (!decoded.deviceId && !decoded.user && !decoded.admin) {
+      if (!decoded.deviceId && !decoded.user && !decoded.admin && !decoded.iat) {
         throw new ErrorHandler(401, "unauthorized");
       }
-      next();
+      req.isGuest = true
+      return next();
     }
 
 
@@ -38,6 +39,7 @@ const isUser = async (req, res, next) => {
   console.log("authCheck1");
 
   try {
+    if(req.isGuest) return next();
     let token = req.headers.authorization;
 
     if (!token) throw new ErrorHandler(401, "unauthorized");
@@ -123,6 +125,7 @@ const isBoth = async (req, res, next) => {
 
   try {
 
+    if(req.isGuest) return next();
     let token = req.headers.authorization;
     let secret_by_pass = req.headers.secret_by_pass;
     if (!token) throw new ErrorHandler(401, "unauthorized");

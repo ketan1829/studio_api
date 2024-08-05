@@ -334,7 +334,7 @@ router.post('/studios/dashboard-filter',auth.isAdminV2,controller.getDashboardSt
 // api/studios?skip=0&limit=50       --  Get particular range of studios based on skip and limit
 
 // get studios (location, filters, sorting)
-router.get('/studios-all' , [auth.isGuest,auth.isBoth],controller.getStudios);
+router.get('/studios-all' ,auth.isGuest,auth.isBoth,controller.getStudios);
 
 /**
  * @swagger
