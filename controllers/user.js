@@ -17,11 +17,13 @@ const httpStatus = require("http-status");
 
 //For Email
 var nodemailer = require("nodemailer");
-const { sendOTP, addContactBrevo, sendMsg91OTP} = require("../util/mail");
+const { sendOTP, addContactBrevo, sendMsg91OTP } = require("../util/mail");
 const { json } = require("express");
 const { logger } = require("../util/logger");
 
 const { send_mail } = require("../util/mail.js");
+const SubAdmin = require("../models/subAdmin.js");
+const Owner = require("../models/owner.js");
 
 // Sendinblue library\
 // const SibApiV3Sdk = require('sib-api-v3-sdk');
@@ -55,14 +57,14 @@ function generateRandomCode(length) {
 }
 
 
-exports.guestLogin = async(req, res, next)=>{
+exports.guestLogin = async (req, res, next) => {
   const deviceId = req.body || req.params;
 
   if (!deviceId) {
     return res.status(400).json({ message: 'Device ID is required' });
   }
 
-  const token = jwt.sign( deviceId , secretKey);
+  const token = jwt.sign(deviceId, secretKey);
 
   return res.status(200).json({ status: true, token: token });
 }
@@ -251,10 +253,13 @@ exports.signupUserV2 = async (req, res, next) => {
         userObj._id = _id;
         userObj.creationTimeStamp = creationTimeStamp;
 
-        if (role === "user") {
+        try {
           // Only add to Brevo if the role is 'user' and it's a new signup
           await addContactBrevo(userObj);
           console.log("Added to Brevo");
+        } catch (error) {
+          logger.error({ _userData }, `Adding USER DATA into Bravo PHONE:${phone}`);
+
         }
       }
     }
@@ -304,13 +309,13 @@ exports.loginUserOTP = async (req, res, next) => {
       }
 
       // ADMIN login
-      if (userData && userData.role === "admin" && userData.phone=="919892023861") {
+      if (userData && userData.role === "admin" && userData.phone == "919892023861") {
         console.log("this runned");
         const status_otp = await sendMsg91OTP(`${userData.phone}`);
-        if(!(status_otp.status)){
+        if (!(status_otp.status)) {
           return res.status(400).json({
-            status:false,
-            message:"Error while sending OTP to admin"
+            status: false,
+            message: "Error while sending OTP to admin"
           })
         }
         const AdminData = {
@@ -440,12 +445,12 @@ exports.registerOfflineUser = async ({
   try {
     const user_data = {
       fullName: fullName,
-      dateOfBirth: dateOfBirth || "Offline",
+      dateOfBirth: dateOfBirth || "",
       email,
       phone: phoneNumber,
-      password: "",
-      userType: userType || "Offline",
-      deviceId: deviceId || "Offline",
+      password: "offline",
+      userType: userType || "NUMBER",
+      deviceId: deviceId || "0",
       latitude: "",
       longitude: "",
       city: "",
@@ -625,11 +630,11 @@ exports.sendSignUpOtp = (req, res, next) => {
       axios
         .get(
           "https://www.fast2sms.com/dev/bulkV2?authorization=" +
-            process.env.FAST2SMS_AUTH_KEY +
-            "&variables_values" +
-            token +
-            "&route=otp&numbers=" +
-            phone
+          process.env.FAST2SMS_AUTH_KEY +
+          "&variables_values" +
+          token +
+          "&route=otp&numbers=" +
+          phone
         )
         .then(function (response) {
           if (
@@ -675,8 +680,6 @@ exports.sendSignUpOtp = (req, res, next) => {
 
 exports.getAllUsers = async (req, res) => {
   try {
-    console.log("query");
-    console.log(req.query);
     const page = +req.query.page || 1;
     const limit = +req.query.limit || 10;
 
@@ -687,6 +690,13 @@ exports.getAllUsers = async (req, res) => {
     console.log(source_web_site);
 
     let { searchUser, startDate, endDate } = req.query;
+
+    if (Array.isArray(searchUser)) {
+      console.log("ARRRRRRRR", searchUser);
+      const objectIds = searchUser.map(id => ObjectId(id));
+      const results = await User.findUsersByUserIds(objectIds)
+      return res.json({ status: true, users: results })
+    }
 
     let filter = pick(req.query, ["status"]);
 
@@ -735,7 +745,6 @@ exports.getAllUsers = async (req, res) => {
       const limitStage = { $limit: parseInt(limit) };
       pipeline.push(limitStage);
     }
-    console.log("USER FILTER :::",JSON.stringify(pipeline));
     let users = await User.fetchAllUsersByAggregate(pipeline);
     const db = getDb();
     console.log("filter2");
@@ -745,13 +754,13 @@ exports.getAllUsers = async (req, res) => {
       { $match: filter },
       startDate
         ? {
-            $match: {
-              creationTimeStamp: {
-                $gte: new Date(startDate + "T00:00:00"),
-                $lt: new Date(endDate + "T23:59:59"),
-              },
+          $match: {
+            creationTimeStamp: {
+              $gte: new Date(startDate + "T00:00:00"),
+              $lt: new Date(endDate + "T23:59:59"),
             },
-          }
+          },
+        }
         : { $match: {} },
       { $count: "total" },
     ];
@@ -838,13 +847,13 @@ exports.addEditUserLocation = (req, res, next) => {
 
 exports.editUserProfile = (req, res, next) => {
   const userId = req.params.userId;
-
-  const fullName = req.body.fullName;
-  const dateOfBirth = req.body.dateOfBirth;
-  const profileUrl = req.body.profileUrl;
-  const gender = req.body.gender;
+  const fullName = req.body.fullName || "Artist";
+  const dateOfBirth = req.body.dateOfBirth || "2000-01-01";
+  const profileUrl = req.body.profileUrl || "";
+  const gender = req.body.gender || "male";
 
   User.findUserByUserId(userId).then((userData) => {
+
     if (!userData) {
       return res
         .status(404)
@@ -855,10 +864,8 @@ exports.editUserProfile = (req, res, next) => {
     userData.dateOfBirth = dateOfBirth;
     userData.profileUrl = profileUrl;
     userData.gender = gender;
-
     const db = getDb();
     var o_id = new ObjectId(userId);
-
     db.collection("users")
       .updateOne({ _id: o_id }, { $set: userData })
       .then((resultData) => {
@@ -870,8 +877,7 @@ exports.editUserProfile = (req, res, next) => {
             token: token,
           });
         });
-      })
-      .catch((err) => logger.error(err));
+      }).catch((err) => logger.error(err));
   });
 };
 
@@ -990,11 +996,11 @@ exports.sendPhoneOtpForEdit = (req, res, next) => {
     axios
       .get(
         "https://www.fast2sms.com/dev/bulkV2?authorization=" +
-          process.env.FAST2SMS_AUTH_KEY +
-          "&variables_values" +
-          token +
-          "&route=otp&numbers=" +
-          phone
+        process.env.FAST2SMS_AUTH_KEY +
+        "&variables_values" +
+        token +
+        "&route=otp&numbers=" +
+        phone
       )
       .then(function (response) {
         if (
@@ -1180,11 +1186,11 @@ exports.sendForgotPasswordOtp = (req, res, next) => {
       axios
         .get(
           "https://www.fast2sms.com/dev/bulkV2?authorization=" +
-            process.env.FAST2SMS_AUTH_KEY +
-            "&variables_values" +
-            token +
-            "&route=otp&numbers=" +
-            identity
+          process.env.FAST2SMS_AUTH_KEY +
+          "&variables_values" +
+          token +
+          "&route=otp&numbers=" +
+          identity
         )
         .then(function (response) {
           if (
@@ -1566,7 +1572,7 @@ exports.getUserNearyByLocations = async (req, res, next) => {
 
 exports.exportUserData = async (req, res) => {
   try {
-    const filter = pick(req.query, ["dateOfBirth", "userType", "role","status"]); // {startDate: 2022-19-01}
+    const filter = pick(req.query, ["dateOfBirth", "userType", "role", "status"]); // {startDate: 2022-19-01}
     const options = pick(req.query, [
       "sort",
       "limit",
@@ -1791,17 +1797,28 @@ exports.verifyOTP = async (req, res) => {
     console.log("response.data-->", response.data.message, response.data.type);
 
     if (response.status == 200 && response.data.type == "success") {
-      if(role==="admin"){
+      if (role === "admin") {
         let adminData = await Admin.findAdminByNumber(phoneNumber)
         const token = jwt.sign({ admin: adminData }, 'myAppSecretKey');
-        return res.status(200).json({ status: true, message: response.data.message,token });
+        return res.status(200).json({ status: true, message: response.data.message, token });
+      }
+      if (role === "subAdmin") {
+        let subAdmin = await SubAdmin.findSubAdminByNumber(phoneNumber)
+        const token = jwt.sign({ subAdmin }, 'myAppSecretKey');
+        console.log("HIEE");
+        return res.status(200).json({ status: true, message: response.data.message, token });
+      }
+      if (role === "owner") {
+        let ownearData = await Owner.findOwnerByNumber(phoneNumber)
+        const token = jwt.sign({ ownearData }, 'myAppSecretKey');
+        return res.status(200).json({ status: true, message: response.data.message, token });
       }
       res.status(200).json({ status: true, message: response.data.message });
     } else {
       res.status(200).json({ status: false, message: response.data.message });
     }
   } catch (error) {
-    logger.info(error, "Error verifiying OTP");
-    res.status(404).json({ status: false, message: "otp verification failed" });
+    logger.error({ error })
+    res.status(200).json({ status: false, message: "otp verification failed" });
   }
 };

@@ -10,7 +10,7 @@ const Setting = require('../models/setting');
 const User = require('../models/user');
 
 // utils
-const { validateService, validateFilterSchema } = require('../util/validations');
+
 const getDb = require('../util/database').getDB; 
 const pick = require('../util/pick')
 const {paginate} = require('../util/plugins/paginate.plugin');
@@ -108,9 +108,8 @@ try {
 
 exports.getBanner = (req,res,next)=>{
 
-    // console.log("body---", req.body);
-    let { settingId, startingPrice, offerings, TotalServices, avgReview, serviceId, active } = req.body;
-    const filter = pick(req.query, ['name', 'role']) || { active: 1 }
+    let { settingId,active,type } = req.body;
+    const filter = pick(req.query, ['name', 'role','type']) || { active: 1 }
     const options = pick(req.query, ['sortBy', 'limit', 'page']);
     
     // const filter = { isActive: 1 };
@@ -120,21 +119,310 @@ exports.getBanner = (req,res,next)=>{
         var o_id = new ObjectId(settingId);
         filter._id =o_id
     }
-    if (startingPrice) filter.price = startingPrice;
-    if (TotalServices) filter.totalPlans = TotalServices;
-    if (avgReview) filter.featuredReviews.avgService = parseFloat(avgReview);
 
-    // const { error } = validateFilterSchema(filter);
-    // if (error) {
-    //     return res.status(400).json({ status: false, message: error.details[0].message });
-    // }
-
-    Setting.getBanner(active).then((banners)=>{
+    if(!type){ type = "AdBanner" }
+    Setting.getBanner(active,type).then((banners)=>{
         return res.json({status:true, message:`banner returned`,banners});
     })
     
 }
 
+exports.createBanner = async (req, res) => {
+    try {
+        let db = getDb();
+        // mandatory => id, stage, banner_redirect, active, photoURL
+        const { stage, name, photoURL, active, type, banner_redirect, entity_id, forr, redirectURL } = req.body;
+        const id = new ObjectId().toString();
+        let obj = {
+            id,
+            stage,
+            name,
+            photoURL,
+            active,
+            type,
+            banner_redirect,
+            entity_id,
+            for: forr,
+            redirectURL
+        };
+        obj = checks(obj, banner_redirect, redirectURL, forr, entity_id);
+
+        if(!obj.status) return res.status(200).json({status:false,message:obj.message})
+        
+        obj = obj.obj
+
+        let {_id, banner} = await db.collection("settings").findOne({ type: "home_screen" });
+        banner = banner.filter(one_bn=>one_bn.active && one_bn.type === type)
+        console.log("banner.length", banner.length);
+        if(banner.length === 4){
+            return res.status(200).json({
+                status:false,
+                message:"You can not add more than 4 Banners"
+            })
+        }
+
+        let existingBanner = banner.find(b => b.stage === stage);
+        if (existingBanner) {
+            let newStage = banner.length + 1;
+            await db.collection("settings").updateOne(
+                { _id, "banner.id": existingBanner.id },
+                {
+                    $set: { "banner.$.stage": newStage }
+                }
+            );
+        }
+
+        let result = await db.collection("settings").updateOne(
+            { _id },
+            {
+                $push: {
+                    banner: obj
+                }
+            }
+        );
+
+        if (result.modifiedCount === 1) {
+            res.status(200).json({ status:true, message: "Banner created successfully" });
+        } else {
+            res.status(200).json({ status:false, message: "Failed to create banner" });
+        }
+    } catch (error) {
+        logger.error(error, "Error while creating banner");
+        console.log(error);
+        res.status(200).json({ status:false, message: "Internal server error" });
+    }
+};
+
+exports.editBanner = async (req, res) => {
+
+    try {
+        let db = getDb();
+        const { id, stage, name, photoURL, active, type, banner_redirect, entity_id, redirectURL} = req.body;
+        const forr = req.body.for;
+        if (!id) {
+            return res.status(200).json({ status:false, message: "Missing banner id" });
+        }
+
+        let objectOfBanner = {
+            id,
+            stage,
+            name,
+            photoURL,
+            active,
+            type,
+            banner_redirect,
+            entity_id,
+            "for":forr,
+            redirectURL
+        };
+        objectOfBanner = checks(objectOfBanner, banner_redirect, redirectURL, forr, entity_id);
+
+        console.log(objectOfBanner);
+
+        if(!objectOfBanner.status) return res.status(200).json({ status:false, message: objectOfBanner.message });
+        objectOfBanner = objectOfBanner.obj
+        let { _id, banner } = await db.collection("settings").findOne({ type: "home_screen" });
+        if(!_id){
+            return res.status(200).json({ status:false, message: "Banners not exists" });
+        }
+        // b1 : 1, b2 : 2, b3 : 3, b4 : 4
+        const old_banner = banner.find(bn=>bn.id === id && bn.type === type)
+
+        console.log("old_banner:");
+        console.log(old_banner);
+        let updated_banners = []
+        if(objectOfBanner.for === "list") objectOfBanner.entity_id = entity_id || "c1";
+
+        // normal update without stage swap
+        if(old_banner.stage === stage){
+            console.log("sssssssssssssssssss");
+            updated_banners = banner.map(bnnr=>{
+                if(bnnr.type === type && bnnr.id === old_banner.id){
+                        return {...bnnr,...objectOfBanner}
+                }
+                return bnnr
+            })
+        // update with stage swap
+        }else{
+            console.log("old_banner----",old_banner);
+            const old_stage = old_banner.stage;
+            const old_banner2 = banner.find(bn=>bn.type === type && bn.stage === stage)
+            console.log("old_banner2-------",old_banner2);
+            if(!old_banner2) return res.status(200).json({ status:false, message: "Banner not found with provided order" })
+            updated_banners = banner.map(bnnr=>{
+                if(bnnr.type === type ){
+                    if(bnnr.id === id){
+                        return {...bnnr,...objectOfBanner}
+                    }else if(bnnr.id === old_banner2.id){
+                        return {...bnnr,stage:old_stage}
+                    }
+                    return bnnr
+                }
+                return bnnr
+            })
+
+            console.log("updated_banners=====",updated_banners);
+        }
+
+        await db.collection("settings").updateOne(
+            {_id},
+            { $set: { banner: updated_banners} }
+        );
+
+        // if (existingBanner) {
+
+        //     let currentBanner = banner.find(b => b.id === id && b.type === type);
+        //     if (currentBanner) {
+        //         await db.collection("settings").updateOne(
+        //             { _id, "banner.id": existingBanner.id  },
+        //             { $set: { "banner.$.stage": currentBanner.stage } }
+        //         );
+
+        //         await db.collection("settings").updateOne(
+        //             { _id, "banner.id": currentBanner.id ,},
+        //             { $set: { "banner.$.stage": existingBanner.stage } }
+        //         );
+
+        //         await db.collection("settings").updateOne(
+        //             { _id, "banner.id": id },
+        //             {
+        //                 $set: {
+        //                     "banner.$.name": objectOfBanner.name,
+        //                     "banner.$.photoURL": objectOfBanner.photoURL,
+        //                     "banner.$.active": objectOfBanner.active,
+        //                     "banner.$.type": objectOfBanner.type,
+        //                     "banner.$.banner_redirect": objectOfBanner.banner_redirect,
+        //                     "banner.$.entity_id": objectOfBanner.entity_id,
+        //                     "banner.$.for": objectOfBanner.for,
+        //                     "banner.$.redirectURL": objectOfBanner.redirectURL
+        //                 }
+        //             }
+        //         );
+        //     } else {
+        //         return res.status(200).json({ status:false, message: "Banner with the given id does not exist" });
+        //     }
+        // } else {
+        //     await db.collection("settings").updateOne(
+        //         { _id, "banner.id": id },
+        //         {
+        //             $set: {
+        //                 "banner.$.stage": objectOfBanner.stage,
+        //                 "banner.$.name": objectOfBanner.name,
+        //                 "banner.$.photoURL": objectOfBanner.photoURL,
+        //                 "banner.$.active": objectOfBanner.active,
+        //                 "banner.$.type": objectOfBanner.type,
+        //                 "banner.$.banner_redirect": objectOfBanner.banner_redirect,
+        //                 "banner.$.entity_id": objectOfBanner.entity_id,
+        //                 "banner.$.for": objectOfBanner.for,
+        //                 "banner.$.redirectURL": objectOfBanner.redirectURL
+        //             }
+        //         }
+        //     );
+        // }
+
+        return res.status(200).json({ status:true, message: "Banner updated successfully" });
+    } catch (error) {
+        logger.error("Error while updating banner==>");
+        logger.error(error);
+        return res.status(200).json({status:false, message: "Internal server error" });
+    }
+};
+
+
+
+
+let checks = (obj, banner_redirect, redirectURL, forr, entity_id) => {
+    let status = false
+    let message = "Banner type required"
+    if (banner_redirect === "external") {
+        if (redirectURL) {
+            obj.entity_id = "";
+            obj.for = "";
+            status = true
+        }else{
+            message = "redirect url is required"
+        }
+    } else if(banner_redirect === "in-app"){
+        if (forr === "page" || forr === "list") {
+            obj.redirectURL = "";
+            status = true
+        }
+        
+        if(forr === "page"){
+            
+            if(entity_id){
+                obj.redirectURL = ""
+                status = true
+            }else{
+                status = false
+                message = "studio is required"
+            }
+        }
+    }
+    return {status,obj,message};
+};
+
+exports.deleteBanner = async (req, res) => {
+    try {
+        let db = getDb();
+        const {
+            id,type
+        } = req.query;
+        if (!id) {
+            return res.status(200).json({
+                status: false,
+                message: "Missing banner id"
+            });
+        }
+        let {
+            _id,
+            banner
+        } = await db.collection("settings").findOne({
+            type: "home_screen"
+        });
+        if (!_id) {
+            return res.status(200).json({
+                status: false,
+                message: "Banners do not exist"
+            });
+        }
+        const bannerIndex = banner.findIndex(bn => bn.id === id || bn.type === type); // 1,2,3,4
+        if (bannerIndex === -1) {
+            return res.status(200).json({
+                status: false,
+                message: "Banner with the given id does not exist"
+            });
+        }
+        banner.splice(bannerIndex, 1);
+        not_type_banner = banner.filter(bn=>bn.type !== type)
+        banner = banner.filter(bn=>bn.type === type)
+        banner = banner.sort((a, b) => a.stage - b.stage);
+        banner.map((bn,index)=>{
+            bn.stage = index+1
+            return bn
+        })
+        banner = [...banner,...not_type_banner]
+        await db.collection("settings").updateOne({
+            _id
+        }, {
+            $set: {
+                banner: banner
+            }
+        });
+        return res.status(200).json({
+            status: true,
+            message: "Banner deleted successfully"
+        });
+    } catch (error) {
+        logger.error({
+            error
+        }, "Error while deleting banner");
+        return res.status(200).json({
+            status: false,
+            message: "Internal server error"
+        });
+    }
+};
 exports.getCategory = (req,res,next)=>{
 
     console.log("query---", req.query);
@@ -278,26 +566,29 @@ exports.onBoarding = async(req,res) =>{
 
 
 const calculateMinPrice = (roomsDetails) => {
-    let minPriceOfRoom = [];
-  
+    if (!roomsDetails.length) {
+      throw new Error('No rooms details provided');
+    }
+
+    let minRoom = roomsDetails[0];
+
     roomsDetails.forEach((room) => {
-      if (typeof room.pricePerHour === 'number') {
-        minPriceOfRoom.push(room.pricePerHour);
-      } else {
-        const parsedPrice = parseFloat(room.pricePerHour);
-        if (!isNaN(parsedPrice)) {
-          minPriceOfRoom.push(parsedPrice);
-        }
+      if (room.pricePerHour < minRoom.pricePerHour) {
+        minRoom = room;
       }
     });
-  
-    if (minPriceOfRoom.length === 0) {
-      throw new Error('No valid room prices found');
-    }
-  
-    let min = Math.min(...minPriceOfRoom);
+
     return {
-      price: min,
-      basePrice: min,
+        price: minRoom.pricePerHour,
+        basePrice: minRoom.basePrice,
+        discountPercentage:minRoom.discountPercentage
     };
   };
+
+const make_user_unique_field = async () => {
+
+    const db = mongodb.getDb();
+    return await db.collection("users").createIndex({ "phone": 1 }, { unique: true })
+
+
+}

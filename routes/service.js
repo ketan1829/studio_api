@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/service');
 
+
 const auth = require("../util/authCheck");
 
 /**
@@ -45,7 +46,7 @@ const auth = require("../util/authCheck");
  *       500:
  *         description: Internal server error
  */
-router.post('/services/create', auth.isBoth,controller.createNewService);
+router.post('/services/create',auth.isBoth,controller.createNewService);
 
 
 
@@ -116,7 +117,7 @@ router.post('/services/create', auth.isBoth,controller.createNewService);
  *       500:
  *         description: Internal server error
  */
-router.get('/services',auth.isGuest,controller.getServices);
+router.get('/services',[auth.isGuest,auth.isBoth],controller.getServices);
 
 
 // router.get('/services/bookings',auth.isBoth,controller.getServiceBookings);

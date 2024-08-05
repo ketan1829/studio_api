@@ -16,7 +16,12 @@ const auth = require("../util/authCheck");
 
 // router.post('/settings/create',controller.createNewSetting);
 
-router.get('/settings/banner',auth.isGuest,controller.getBanner);
+router.get('/settings/banner',[auth.isGuest,auth.isBoth],controller.getBanner);
+
+router.post('/settings/createBanner',auth.isAdminV2,controller.createBanner);
+router.patch('/settings/editBanner',auth.isAdminV2,controller.editBanner);
+router.delete('/settings/deleteBanner',auth.isAdminV2,controller.deleteBanner);
+
 
 router.get('/settings/category',auth.isGuest,controller.getCategory);
 
@@ -24,7 +29,7 @@ router.post('/settings/booking/AddCountryCode',auth.isAdminV2,controller.addCoun
 
 router.post('/settings/studios/country',auth.isAdminV2,controller.addCountryFieldInStudios)
 
-router.post('/settings/minpricestudio',controller.calAndSaveMinPriceOfStduio)
+// router.post('/settings/minpricestudio',auth.isAdminV2,controller.calAndSaveMinPriceOfStduio)
 
 router.patch('/setting/users/append',auth.isAdminV2,controller.countryCodeBeforPhoneNo)
 

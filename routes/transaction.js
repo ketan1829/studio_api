@@ -3,7 +3,7 @@ const router = express.Router();
 const controller = require('../controllers/transaction');
 
 const auth = require("../util/authCheck");
-
+//Need to check about middleware in this file
 
 /**
  * @swagger
@@ -37,7 +37,7 @@ const auth = require("../util/authCheck");
  *       500:
  *         description: Internal server error
  */
-// router.post('/transactions/razorpay',controller.createRazorPayOrder);
+router.post('/transactions/razorpay',controller.createRazorPayOrder);
 
 /**
  * @swagger
@@ -73,7 +73,7 @@ const auth = require("../util/authCheck");
  *       500:
  *         description: Internal server error
  */
-// router.post('/transactions/razorpay/verify-payment-status',auth.isBoth,controller.razorPayVerifyPaymentStatus);
+router.post('/transactions/razorpay/verify-payment-status',auth.isBoth,controller.razorPayVerifyPaymentStatus);
 
 /**
  * @swagger
@@ -147,7 +147,7 @@ router.post('/transactions/create',controller.createNewTransaction);
 *       500:
 *         description: Some server error, enter valid mongo object ID
 */
-router.get('/transactions/graph',auth.isAdmin,controller.getAllTransactionsGraphDetails);
+router.get('/transactions/graph',auth.isAdminV2,controller.getAllTransactionsGraphDetails);
 
 /**
 * @swagger
@@ -298,7 +298,7 @@ router.patch('/transactions/:transactionId/status',controller.editTransactionSta
 
 // api/transactions                       --  Get all transactions
 // api/transactions?skip=0&limit=50       --  Get particular range of transactions based on skip and limit
-router.get('/transactions',auth.isAdmin,controller.getAllTransactions);
+router.get('/transactions',auth.isAdminV2,controller.getAllTransactions);
 
 /**
 * @swagger

@@ -4,6 +4,7 @@ const controller = require('../controllers/studio');
 
 const auth = require("../util/authCheck");
 
+
 /**
  * @swagger
  * components:
@@ -75,7 +76,7 @@ const auth = require("../util/authCheck");
  *         description: Internal server error
  */
 
-router.post('/studios/create',controller.createNewStudio);
+router.post('/studios/create',auth.isAdminV2,controller.createNewStudio);
 
 /**
 * @swagger
@@ -105,7 +106,7 @@ router.post('/studios/create',controller.createNewStudio);
 *       500:
 *         description: Some server error, enter valid mongo object ID
 */
-router.get('/studios/graph',auth.isAdmin,controller.getAllStudiosGraphDetails);
+router.get('/studios/graph',auth.isAdminV2,controller.getAllStudiosGraphDetails);
 
 router.get('/studios/unassignedstudios',auth.isAdminV2,controller.getUnassignedStudios)
 
@@ -142,7 +143,7 @@ router.get('/studios/unassignedstudios',auth.isAdminV2,controller.getUnassignedS
 *       500:
 *         description: Some server error, enter valid mongo object ID
 */
-router.patch('/studios/studioId/active',controller.toggleStudioActiveStatus);
+router.patch('/studios/studioId/active',auth.isAdminV2,controller.toggleStudioActiveStatus);
 
 
 
@@ -182,7 +183,7 @@ router.patch('/studios/studioId/active',controller.toggleStudioActiveStatus);
  *         description: Some server error, enter valid mongo object ID
  */
 
-router.get('/studios/:studioId', auth.isGuest, controller.getParticularStudioDetails);
+router.get('/studios/:studioId', [auth.isGuest,auth.isBoth], controller.getParticularStudioDetails);
 
 
 
@@ -233,7 +234,7 @@ router.get('/studios/:studioId', auth.isGuest, controller.getParticularStudioDet
  *       500:
  *         description: Some server error, enter valid mongo object ID
  */
-router.post('/studios/dashboard-filter',controller.getDashboardStudios);
+router.post('/studios/dashboard-filter',auth.isAdminV2,controller.getDashboardStudios);
 
 /**
  * @swagger
@@ -333,7 +334,7 @@ router.post('/studios/dashboard-filter',controller.getDashboardStudios);
 // api/studios?skip=0&limit=50       --  Get particular range of studios based on skip and limit
 
 // get studios (location, filters, sorting)
-router.get('/studios-all' , auth.isGuest,controller.getStudios);
+router.get('/studios-all' ,auth.isGuest,auth.isBoth,controller.getStudios);
 
 /**
  * @swagger
@@ -378,7 +379,7 @@ router.get('/studios-all' , auth.isGuest,controller.getStudios);
  *         description: Some server error, enter valid mongo object ID
  */
 
-router.get('/studios', auth.isGuest , controller.getAllStudios);
+router.get('/studios', [auth.isGuest,auth.isBoth], controller.getAllStudios);
 
 // router.get('/all-states',controller.getAllStates);
 
@@ -509,7 +510,7 @@ router.patch('/studios/:studioId',auth.isAdminOrOwner,controller.editStudioDetai
  *       500:
  *         description: Some server error, enter valid mongo object ID
 */
-router.post('/near-studios', auth.isGuest, controller.getAllNearStudios);
+router.post('/near-studios', [auth.isGuest,auth.isUser], controller.getAllNearStudios);
 
 /**
 * @swagger

@@ -107,10 +107,6 @@ class Service {
           { $set: newData },
           { returnOriginal:false }
         );
-
-      console.log("updatedResult");
-      console.log(updatedResult);
-
       return {
         status: true,
         message: "Service updated successfully",
@@ -130,15 +126,14 @@ class Service {
         .findOneAndUpdate(
           { _id: new ObjectId(pId) },
           { $set: newData },
-          { new: true }
+          { returnOriginal:false }
         );
       return {
         status: true,
         message: "Service updated successfully",
-        updatedService: updatedResult,
+        updatedService: updatedResult.value,
       };
     } catch (error) {
-      console.error("Error deleting service:", error);
       return { status: false, message: "Internal Server Error" };
     }
   }

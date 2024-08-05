@@ -6,7 +6,7 @@ const verifyToken = (token) => {
   // console.log("token", token);
 
   return new Promise((resolve, reject) => {
-    jwt.verify(token,'myAppSecretKey', (err, decoded) => {
+    jwt.verify(token, 'myAppSecretKey', (err, decoded) => {
       if (err) reject(new ErrorHandler(401, "unauthorized"));
       else resolve(decoded);
     });
@@ -16,19 +16,21 @@ const verifyToken = (token) => {
 const isGuest = async (req, res, next) => {
   // console.log("authCheck2");
   try {
-    let token =  req.body.guestId || req.params.guestId || req.headers.authorization.split(" ")[1];
-    console.log("token-->", token);
-    if (!token) throw new ErrorHandler(401, "unauthorized Token");
-
-    const decoded = await verifyToken(token);
-
-    if (!decoded.deviceId && !decoded.user) {
-      throw new ErrorHandler(401, "unauthorized");
+    let token = req.body.guestId || req.params.guestId || req.headers.authorization.split(" ")[1];
+    if (!token) {
+      next()
+    } else {
+      const decoded = await verifyToken(token);
+      if (!decoded.deviceId && !decoded.user && !decoded.admin && !decoded.iat) {
+        throw new ErrorHandler(401, "unauthorized");
+      }
+      req.isGuest = true
+      return next();
     }
 
-    next();
+
   } catch (error) {
-    console.log("user error:=",error)
+    console.log("user error:=", error)
     next(error);
   }
 };
@@ -37,6 +39,7 @@ const isUser = async (req, res, next) => {
   console.log("authCheck1");
 
   try {
+    if(req.isGuest) return next();
     let token = req.headers.authorization;
 
     if (!token) throw new ErrorHandler(401, "unauthorized");
@@ -51,7 +54,7 @@ const isUser = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.log("user error:=",error)
+    console.log("user error:=", error)
     next(error);
   }
 };
@@ -74,7 +77,7 @@ const isAdminV2 = async (req, res, next) => {
     const decoded = await verifyToken(token);
     console.log("decoded:::", decoded)
 
-    if(decoded.admin){
+    if (decoded.admin) {
       console.log("----admin----");
       return next()
     }
@@ -121,19 +124,20 @@ const isBoth = async (req, res, next) => {
   // console.log("in ---- both >>>")
 
   try {
-  
+
+    if(req.isGuest) return next();
     let token = req.headers.authorization;
     let secret_by_pass = req.headers.secret_by_pass;
     if (!token) throw new ErrorHandler(401, "unauthorized");
 
-    token = token.split(" ").length > 1 ? token.split(" ")[1]:token.split(" ")[0]
-    
+    token = token.split(" ").length > 1 ? token.split(" ")[1] : token.split(" ")[0]
+
     if (token === "debugTest" || secret_by_pass === "debugTest") {
       console.log("authCheck3 >>>")
       return next();
     } else {
       const decoded = await verifyToken(token);
-   
+
       if (!decoded.admin && !decoded.user) {
         console.log("isboth:====");
         throw new ErrorHandler(401, "unauthorized");
@@ -141,7 +145,7 @@ const isBoth = async (req, res, next) => {
       next();
     }
   } catch (error) {
-    console.log("isboth error:=",error);
+    console.log("isboth error:=", error);
     next(error);
   }
 };
@@ -189,10 +193,10 @@ const isAdminOrOwner = async (req, res, next) => {
     console.log(decoded, "<<<<<");
 
     // if (!decoded.admin || !decoded.owner || decoded?.user?.role !== "admin") {
-    
-    if(decoded?.user?.role === "admin" || decoded.admin || decoded.owner){
+
+    if (decoded?.user?.role === "admin" || decoded.admin || decoded.owner) {
       next();
-    }else{
+    } else {
       throw new ErrorHandler(401, "unauthorized admin or owner");
     }
 

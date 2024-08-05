@@ -37,3 +37,4 @@ logs/info.log
 .xlsx
 /.xlsx
 /files/.xlsx
+/launch.json

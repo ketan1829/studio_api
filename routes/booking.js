@@ -293,7 +293,7 @@ router.post('/bookings/availability-check2',auth.isAdminOrOwnerOrUser,controller
 *       500:
 *         description: Some server error, enter valid mongo object ID
 */
-router.get('/bookings/graph',auth.isAdmin,controller.getAllBookingsGraphDetails);
+router.get('/bookings/graph',auth.isAdminV2,controller.getAllBookingsGraphDetails);
 
 /**
 * @swagger

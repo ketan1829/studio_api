@@ -9,31 +9,31 @@ const ObjectId = mongodb.ObjectId;
 
 var request = require('request');
 
-// var crypto = require("crypto");
-// const Razorpay = require('razorpay');
-// var instance = new Razorpay({  key_id: process.env.RAZORPAY_KEY_ID,  key_secret: process.env.RAZORPAY_KEY_SECRET,});
+var crypto = require("crypto");
+const Razorpay = require('razorpay');
+var instance = new Razorpay({  key_id: process.env.RAZORPAY_KEY_ID,  key_secret: process.env.RAZORPAY_KEY_SECRET,});
 
 
-// exports.createRazorPayOrder = (req,res,next)=>{
+exports.createRazorPayOrder = (req,res,next)=>{
 
-//     let amount = parseFloat(req.body.amount);
+    let amount = parseFloat(req.body.amount);
 
-//     var options = {
-//         amount: amount * 100,  // amount in the smallest currency unit
-//         currency: "INR"
-//     };
-//     instance.orders.create(options, function(err, order) {
-//         // console.log(order);
-//         if(err)
-//         {
-//             return res.status(500).json({status:false, message:"Error Occured", error:err});
-//         }
-//         else{
-//             return res.json({status:true, message:"RazorPay-Order Created Successfully", order:order});
-//         }
-//     });
+    var options = {
+        amount: amount * 100,  // amount in the smallest currency unit
+        currency: "INR"
+    };
+    instance.orders.create(options, function(err, order) {
+        // console.log(order);
+        if(err)
+        {
+            return res.status(500).json({status:false, message:"Error Occured", error:err});
+        }
+        else{
+            return res.json({status:true, message:"RazorPay-Order Created Successfully", order:order});
+        }
+    });
       
-// }
+}
 
 
 exports.razorPayVerifyPaymentStatus = (req,res,next)=>{
@@ -67,6 +67,7 @@ exports.createNewTransaction = async (req,res,next)=>{
 
     const transactionId = req.body.transactionId;
     let studioId = req.body.studioId;
+    let bookingId = req.body.bookingId;
     const userId = req.body.userId;
     let discountId = req.body.discountId;
     const amount = parseFloat(req.body.amount);
@@ -98,7 +99,7 @@ exports.createNewTransaction = async (req,res,next)=>{
             }
         }
         
-        const transactionObj = new Transaction(transactionId,studioId,userId,discountId,amount,transactionStatus);
+        const transactionObj = new Transaction(transactionId,studioId,userId,bookingId,discountId,amount,transactionStatus);
 
         // saving in database
         return transactionObj.save()

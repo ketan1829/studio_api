@@ -8,11 +8,6 @@ const Service = require("../models/service");
 
 // utils
 const { homeScreen, collectionName } = require("../config/settings");
-const {
-  validateService,
-  validateFilterSchema,
-  validateServiceFilterSchema,
-} = require("../util/validations");
 const pick = require("../util/pick");
 const { paginate } = require("../util/plugins/paginate.plugin");
 const { getDB } = require("../util/database");
@@ -124,12 +119,7 @@ exports.createNewService = async (req, res, next) => {
     logger.info("else is running");
     logger.info(req.body);
     logger.info("else is running", type, isActive);
-    // const { error } = validateService(req.body);
-    // if (error) {
-    //   return res.status(400).json({ error: error.details[0].message });
-    // }
-    // If validation passes, proceed to the next middleware or controller function
-    // next();
+
     pricing = await minStartPrice(packages)
     
     const serviceObj = new Service(
@@ -218,10 +208,7 @@ exports.getServices = (req, res, next) => {
   console.log("collectionName----", collectionName, mappedFilter, options);
 
 
-  // const { error } = validateFilterSchema(filter);
-  // if (error) {
-  //     return res.status(400).json({ status: false, message: error.details[0].message });
-  // }
+
 
   paginate(collectionName, mappedFilter, options).then((ServiceData) => {
     const paginateData =
@@ -277,12 +264,6 @@ exports.getServiceBookings = (req, res, next) => {
 
   logger.info("collectionName----",{_collectionName, filter, options});
 
-  const { error } = validateServiceFilterSchema(filter);
-  if (error) {
-    return res
-      .status(400)
-      .json({ status: false, message: error.details[0].message });
-  }
 
   paginate(_collectionName, filter, options).then((ServiceData) => {
     return res.json({
@@ -398,14 +379,15 @@ exports.updateService = async (req, res) => {
   const isActive = +req.body.isActive;
   let pricing = {}
   const serviceData = await Service.findServiceById(sId);
-  logger.info({sId});
-console.log("req.body",req.body);
+  logger.info({service_data:req.body});
   if (!serviceData) {
     return res.status(400).json({
       status: false,
       message: "Service does not exist or provide the correct service Id",
     });
   }
+
+  const fiter_empty_packages = packages?.filter(pk=>pk.photo_url && pk.name)
   // const updatedPackages = packages?.map((p_key, j) => {
   //   return serviceData.packages.map((pkg, i) => {
   //     if (pkg.planId === p_key.planId) {
@@ -418,7 +400,7 @@ console.log("req.body",req.body);
   // });
   // console.log(updatedPackages);
 
-  pricing = await minStartPrice(packages)
+  pricing = await minStartPrice(fiter_empty_packages)
   let service_obj = {
     service_id,
     fullName,
@@ -605,42 +587,49 @@ exports.exportServicesData = async (req, res) => {
 
 
 //functions:-
-async function  minStartPrice(packages) {
+async function minStartPrice(packages) {
   try {
-  //   const db = getDB();
-  // const objectId = new ObjectId(o_id);
-  // const services = await db.collection("services").find({ _id: objectId }).toArray();
-  let minUsa = [];
-  let minIn = [];
-  let minJp = [];
+    let minPrices = {
+      "USA": { price: Infinity, basePrice: 0, discountPercentage: 0 },
+      "IN": { price: Infinity, basePrice: 0, discountPercentage: 0 },
+      "JP": { price: Infinity, basePrice: 0, discountPercentage: 0 }
+    };
 
-packages?.forEach(packageObj => {
-          Object.entries(packageObj.pricing).forEach(([country, prices]) => {
-              if (country === 'USA') minUsa.push(prices.basePrice);
-              if (country === 'IN') minIn.push(prices.basePrice);
-              if (country === 'JP') minJp.push(prices.basePrice);
-          });
-});
+    packages?.forEach(packageObj => {
+      Object.entries(packageObj.pricing).forEach(([country, prices]) => {
+        if (prices.price < minPrices[country].price) {
+          minPrices[country].price = prices.price;
+          minPrices[country].basePrice = prices.basePrice;
+          minPrices[country].discountPercentage = prices.discountPercentage;
+        }
+      });
+    });
 
-
-  return {
-    "USA": {
-        "price":0,
-        "basePrice": Math.min(...minUsa),
-        "discountPercentage": 10
-    },"IN": {
-        "price":0,
-        "basePrice": Math.min(...minIn),
-        "discountPercentage": 10
-    },"JP": {
-        "price": 0,
-        "basePrice": Math.min(...minJp),
-        "discountPercentage": 10
-    },
-}
+    return {
+      "USA": {
+        "price": minPrices.USA.price,
+        "basePrice": minPrices.USA.basePrice,
+        "discountPercentage": minPrices.USA.discountPercentage
+      },
+      "IN": {
+        "price": minPrices.IN.price,
+        "basePrice": minPrices.IN.basePrice,
+        "discountPercentage": minPrices.IN.discountPercentage
+      },
+      "JP": {
+        "price": minPrices.JP.price,
+        "basePrice": minPrices.JP.basePrice,
+        "discountPercentage": minPrices.JP.discountPercentage
+      }
+    };
 
   } catch (error) {
-    logger.error(error,"Error in calculating minimum start price");
-    console.log(error);
+    logger.error(error,"Error in calculating nin price")
+    console.error("Error in calculating minimum start price", error);
+    // return {
+    //   "USA": { price: 0, basePrice: 0, discountPercentage: 0 },
+    //   "IN": { price: 0, basePrice: 0, discountPercentage: 0 },
+    //   "JP": { price: 0, basePrice: 0, discountPercentage: 0 }
+    // };
   }
 }
