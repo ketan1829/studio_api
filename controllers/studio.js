@@ -860,7 +860,7 @@ exports.createNewStudio = async (req, res, next) => {
 
 exports.getParticularStudioDetails = (req, res, next) => {
   const studioId = req.params.studioId;
-  const { role, userId } = req.user;
+  const { role, userId } = req.user || '';
 
   if (role === 'owner') {
     Owner.findOwnerByOwnerId(userId).then((ownerData)=>{
@@ -1432,6 +1432,19 @@ exports.editStudioDetails = async (req, res, next) => {
   const aboutUs = req.body.aboutUs;
   const teamDetails = req.body.teamDetails;
   const country = req.body.country;
+  const { role, userId } = req.user || '';
+
+  if (role === 'owner') {
+    Owner.findOwnerByOwnerId(userId).then((ownerData)=>{
+      if(ownerData._id.toString() !== userId) return res.status(200).json({ status: false, message: "Access denied" });
+    })
+  }
+  if (role === 'admin') {
+    Admin .findOwnerByOwnerId(userId).then((ownerData)=>{
+      if(ownerData._id.toString() !== userId) return res.status(200).json({ status: false, message: "Access denied" });
+    })
+  }
+
   let latitude = "";
   let longitude = "";
   logger.info({studio_edit_data : req.body});
@@ -1446,31 +1459,6 @@ exports.editStudioDetails = async (req, res, next) => {
     room.bookingDays = updateStudioBookingDays(room.bookingDays)
     return room;
   })
-
-  // const updatedAminities = amenities.map((a_key, j) => {
-  //   return studio.amenities.map((ame, i) => {
-  //     console.log(ame.id);
-  //     console.log(a_key.id);
-  //     if (ame.id === a_key.id) {
-  //       console.log(ame.id === a_key.id);
-  //       let upadated_ame = studio.amenities[i];
-  //       upadated_ame = { ...upadated_ame, ...amenities[j] };
-  //       console.log(upadated_ame);
-  //       return upadated_ame;
-  //     }
-  //     return ame;
-  //   });
-  // });
-
-
-  /// Amenities issue solved
-
-  // let updatedAminities = [...studio.amenities,...amenities]
-  // const uniqueUpdatedAminities =  [...new Map(updatedAminities.map(item =>[item.name, item])).values()];
-
-  // let updatedTeamDetails = [...studio.teamDetails,...teamDetails]
-  // const uniqueUpdatedTeamDetails =  [...new Map(updatedTeamDetails.map(item =>[item.name, item])).values()];
-
 
   const minPrice = calculateMinPrice(roomsDetails);
   address = address?.replace("&", "and");
