@@ -15,6 +15,7 @@ const getDb = require('../util/database').getDB;
 const pick = require('../util/pick')
 const {paginate} = require('../util/plugins/paginate.plugin');
 const { logger } = require('../util/logger');
+const Studio = require('../models/studio');
 // const calculateMinPrice = require("./studio.js")
 
 
@@ -564,6 +565,43 @@ exports.onBoarding = async(req,res) =>{
     }
 }
 
+
+exports.AddLocationFieldinallStudios = (req,res)=>{
+    try {
+    const check = req.body.check
+    if (check && check === "2dsphere") {
+    const db = getDb();
+    Studio.fetchAllStudios(0, 0).then((studioData) => {
+      studioData.forEach((element) => {
+        const { latitude, longitude } = element;
+        const point = {
+          type: "Point",
+          coordinates: [parseFloat(longitude), parseFloat(latitude)],
+        };
+        db.collection("studios").updateOne(
+          { _id: element._id },
+          { $set: { location: point } }
+        );
+      });
+    });
+
+    // db.collection('studios').updateMany({}, { $unset: { location: "" } })
+
+    db.collection("studios")
+      .createIndex({ location: "2dsphere" })
+      .then((data) => {
+        logger.info("2dSphrere created", { data });
+        return res.json({ status: true, message: "2dSphrere created" });
+      });
+  }
+  res.status(200).json({
+    status:true,
+    message:"All studios Updated with Location Field and location index created"
+  })
+    } catch (error) {
+        console.log(error,"Error while getting lat long");
+    }
+}
 
 const calculateMinPrice = (roomsDetails) => {
     if (!roomsDetails.length) {

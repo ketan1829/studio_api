@@ -25,6 +25,8 @@ router.delete('/settings/deleteBanner',auth.isAdminV2,controller.deleteBanner);
 
 router.get('/settings/category',auth.isGuest,controller.getCategory);
 
+router.get('/settings/AddLocToAllStudios',controller.AddLocationFieldinallStudios);
+
 router.post('/settings/booking/AddCountryCode',auth.isAdminV2,controller.addCountryCodeInBookings)
 
 router.post('/settings/studios/country',auth.isAdminV2,controller.addCountryFieldInStudios)

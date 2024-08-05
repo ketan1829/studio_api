@@ -549,7 +549,7 @@ const NoOfBookingsOfSudioCount = async(timeframe)=>{
         bookings: { $sum: 1 }
       }
     },
-    {
+    {           
       '$lookup': {
         from: "studios",
         let: { studioIdStr: "$_id" },
@@ -585,13 +585,204 @@ const NoOfBookingsOfSudioCount = async(timeframe)=>{
   ];
   try {
     let db = getDB()
-    let No_Of_Bookings = await db.collection("bookings").aggregate(NoOfBookings_pipeline).toArray();
-    return No_Of_Bookings
+    let data = await db.collection("bookings").aggregate(NoOfBookings_pipeline).toArray();
+    return {status:true, message :"No Of Bookings", data} 
   } catch (error) {
     console.log(error);
   }
 }
 //--------------------------------No of Bookings of a Studio-------------------------
+
+//--------------------------------Studio Onboard-------------------------
+
+const studioOnboard = async (timeframe) => {
+  const currentStartDate = getStartDateForTimeframeOnboarding(timeframe, false);
+  const previousStartDate = getStartDateForTimeframeOnboarding(timeframe, true);
+  console.log("currentStartDate",currentStartDate);
+  console.log("previousStartDate",previousStartDate);
+  const currentEndDate = moment().endOf('day').toDate(); // End of the current day in IST
+  const previousEndDate = moment().subtract(1, 'year').endOf('day').toDate(); // End of the same day last year in IST
+
+  const currentPipeline = [
+    {
+      $match: {
+        creationTimeStamp: {
+          $gt: currentStartDate,
+          $lt: currentEndDate
+        }
+      }
+    },
+    {
+      $group: {
+        _id: {
+          year: { $year: "$creationTimeStamp" },
+          month: { $month: "$creationTimeStamp" },
+          dayOfYear: { $dayOfYear: "$creationTimeStamp" }
+        },
+        count: { $sum: 1 }
+      }
+    },
+    {
+      $project: {
+        year: "$_id.year",
+        month: "$_id.month",
+        dayOfYear: "$_id.dayOfYear",
+        count: 1,
+        _id: 0
+      }
+    }
+  ];
+
+  const previousPipeline = [
+    {
+      $match: {
+        creationTimeStamp: {
+          $gt: previousStartDate,
+          $lt: previousEndDate
+        }
+      }
+    },
+    {
+      $group: {
+        _id: {
+          year: { $year: "$creationTimeStamp" },
+          month: { $month: "$creationTimeStamp" },
+          dayOfYear: { $dayOfYear: "$creationTimeStamp" }
+        },
+        count: { $sum: 1 }
+      }
+    },
+    {
+      $project: {
+        year: "$_id.year",
+        month: "$_id.month",
+        dayOfYear: "$_id.dayOfYear",
+        count: 1,
+        _id: 0
+      }
+    }
+  ];
+
+  try {
+    let db = getDB();
+    let [currentData, previousData] = await Promise.all([
+      db.collection("studios").aggregate(currentPipeline).toArray(),
+      db.collection("studios").aggregate(previousPipeline).toArray()
+    ]);
+    console.log("[currentData, previousData]",[currentData, previousData]);
+    let data = [];
+
+    if (timeframe === "week") {
+      const startOfWeek = moment().startOf('isoWeek');
+      for (let day = 1; day <= 7; day++) {
+        const currentDay = startOfWeek.clone().isoWeekday(day);
+        const previousDay = currentDay.clone().subtract(1, 'year');
+
+        const currentDayData = currentData.find(d => d.dayOfYear === currentDay.dayOfYear());
+        const previousDayData = previousData.find(d => d.dayOfYear === previousDay.dayOfYear());
+
+        data.push({
+          name: currentDay.format('ddd').toUpperCase(),
+          Current: currentDayData ? currentDayData.count : 0,
+          Previous: previousDayData ? previousDayData.count : 0
+        });
+      }
+    } else if (timeframe === "month") {
+      const startOfMonth = moment().startOf('month');
+      const endOfMonth = moment().endOf('month');
+      let currentWeek = startOfMonth.clone().startOf('isoWeek');
+
+      while (currentWeek.isBefore(endOfMonth)) {
+        const nextWeek = currentWeek.clone().add(1, 'week');
+
+        const currentWeekData = currentData.filter(d => d.dayOfYear >= currentWeek.dayOfYear() && d.dayOfYear < nextWeek.dayOfYear());
+        const previousWeekData = previousData.filter(d => d.dayOfYear >= currentWeek.clone().subtract(1, 'year').dayOfYear() && d.dayOfYear < nextWeek.clone().subtract(1, 'year').dayOfYear());
+
+        data.push({
+          name: `Week ${currentWeek.isoWeek() - startOfMonth.isoWeek() + 1}`,
+          Current: currentWeekData.reduce((acc, d) => acc + d.count, 0),
+          Previous: previousWeekData.reduce((acc, d) => acc + d.count, 0),
+          range: `${currentWeek.format('YYYY-MM-DD')} to ${nextWeek.subtract(1, 'days').format('YYYY-MM-DD')}`
+        });
+
+        currentWeek.add(1, 'week');
+      }
+    } else if (timeframe === "year") {
+      for (let month = 1; month <= 12; month++) {
+        const currentMonthData = currentData.filter(d => d.month === month);
+        const previousMonthData = previousData.filter(d => d.month === month);
+
+        const monthName = moment(month, 'M').format('MMM');
+
+        data.push({
+          name: monthName,
+          Current: currentMonthData.reduce((acc, d) => acc + d.count, 0),
+          Previous: previousMonthData.reduce((acc, d) => acc + d.count, 0)
+        });
+      }
+    }
+
+    console.log("data", data);
+    return data;
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+const getStartDateForTimeframeOnboarding = (timeframe, isPreviousYear) => {
+  moment.tz.setDefault('Asia/Kolkata');
+  let startDate;
+
+  if (isPreviousYear) {
+    if (timeframe === "week") {
+      startDate = moment().subtract(1, 'year').startOf('isoWeek').toDate(); // Start of the same ISO week last year in IST
+    } else if (timeframe === "month") {
+      startDate = moment().subtract(1, 'year').startOf('month').toDate(); // Start of the same month last year in IST
+    } else if (timeframe === "year") {
+      startDate = moment().subtract(1, 'year').startOf('year').toDate(); // Start of the same year last year in IST
+    }
+  } else {
+    if (timeframe === "week") {
+      startDate = moment().startOf('isoWeek').toDate(); // Start of the current ISO week in IST
+    } else if (timeframe === "month") {
+      startDate = moment().startOf('month').toDate(); // Start of the current month in IST
+    } else if (timeframe === "year") {
+      startDate = moment().startOf('year').toDate(); // Start of the current year in IST
+    }
+  }
+
+  if (!startDate) {
+    throw new Error("Invalid timeframe");
+  }
+
+  return startDate;
+};
+
+
+
+// const getStartDateForTimeframe = (timeframe) => {
+//   moment.tz.setDefault('Asia/Kolkata');
+//   let startDate;
+
+//   if (timeframe === "week") {
+//     startDate = moment().startOf('isoWeek').toDate(); // Start of the current ISO week (Monday) in IST
+//   } else if (timeframe === "month") {
+//     startDate = moment().startOf('month').toDate(); // Start of the current month in IST
+//   } else if (timeframe === "year") {
+//     startDate = moment().startOf('year').toDate(); // Start of the current year in IST
+//   } else {
+//     throw new Error("Invalid timeframe");
+//   }
+
+//   return startDate;
+// };
+
+
+
+
+
+//--------------------------------Studio Onboard-------------------------
+
 
 //--------------------------------Main Controller--------------------------------
 exports.dashboardAnalytics= async(req,res)=>{
@@ -602,6 +793,7 @@ exports.dashboardAnalytics= async(req,res)=>{
     let revenueData;
     let BookingCountAndHours;
     let NoOfBookings;
+    let studioOnboardData;
     if(analytics==="transaction"){
       transactionData = await transactionAnalytics(timeframe)
     } else if(analytics==="revenue"){
@@ -610,15 +802,18 @@ exports.dashboardAnalytics= async(req,res)=>{
       BookingCountAndHours = await BookingHoursAndCount(timeframe)
     }else if(analytics==="NoOfBooking"){
       NoOfBookings = await NoOfBookingsOfSudioCount(timeframe)
+    }else if(analytics==="studioOnboard"){
+      studioOnboardData = await studioOnboard(timeframe)
     }else{
       transactionData = await transactionAnalytics(timeframe)
       revenueData = await revenueAnalytics(timeframe)
       BookingCountAndHours = await BookingHoursAndCount(timeframe)
       NoOfBookings = await NoOfBookingsOfSudioCount(timeframe)
+      studioOnboardData = await studioOnboard(timeframe)
     }
 
     res.status(200).json({
-      status:true, transactionData,revenueData,BookingCountAndHours,NoOfBookings
+      status:true, transactionData,revenueData,BookingCountAndHours,NoOfBookings,studioOnboardData
     })
   } catch (error) {
     console.log(error);
