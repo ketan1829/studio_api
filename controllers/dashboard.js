@@ -526,6 +526,73 @@ const BookingHoursAndCount = async (timeframe) => {
 
 //--------------------------------Session--------------------------------
 
+//--------------------------------No of Bookings of a Studio-------------------------
+const NoOfBookingsOfSudioCount = async(timeframe)=>{
+  const startDate = getStartDateForTimeframe(timeframe);
+  const endDate = moment().endOf('day').toDate(); // End of the current day in IST
+  console.log("startDate",startDate);
+  console.log("endDate",endDate);
+  let NoOfBookings_pipeline = [
+    {
+      '$match': {
+        bookingStatus: 1,
+        type: "c1",
+        creationTimeStamp: {
+          $gte: startDate,
+          $lt: endDate
+        }
+      }
+    },
+    {
+      '$group': {
+        _id: "$studioId",
+        bookings: { $sum: 1 }
+      }
+    },
+    {
+      '$lookup': {
+        from: "studios",
+        let: { studioIdStr: "$_id" },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] },
+            },
+          },
+          {
+            $project: { fullName: 1 }
+          }
+        ],
+        as: "studioInfo"
+      }
+    },
+    {
+      '$project': {
+        _id: 0,
+        name: {
+          $cond: {
+            if: { $eq: [{ $size: "$studioInfo" }, 0] },
+            then: "Deleted studio",
+            else: { $arrayElemAt: ["$studioInfo.fullName", 0] }
+          }
+        },
+        bookings: 1
+      }
+    },
+    {
+      '$sort': { bookings: -1 }
+    }
+  ];
+  try {
+    let db = getDB()
+    let No_Of_Bookings = await db.collection("bookings").aggregate(NoOfBookings_pipeline).toArray();
+    return No_Of_Bookings
+  } catch (error) {
+    console.log(error);
+  }
+}
+//--------------------------------No of Bookings of a Studio-------------------------
+
 //--------------------------------Main Controller--------------------------------
 exports.dashboardAnalytics= async(req,res)=>{
   try {
@@ -534,20 +601,24 @@ exports.dashboardAnalytics= async(req,res)=>{
     let transactionData;
     let revenueData;
     let BookingCountAndHours;
+    let NoOfBookings;
     if(analytics==="transaction"){
       transactionData = await transactionAnalytics(timeframe)
     } else if(analytics==="revenue"){
       revenueData = await revenueAnalytics(timeframe)
     }else if(analytics==="BookingHoursAndCount"){
       BookingCountAndHours = await BookingHoursAndCount(timeframe)
+    }else if(analytics==="NoOfBooking"){
+      NoOfBookings = await NoOfBookingsOfSudioCount(timeframe)
     }else{
       transactionData = await transactionAnalytics(timeframe)
       revenueData = await revenueAnalytics(timeframe)
       BookingCountAndHours = await BookingHoursAndCount(timeframe)
+      NoOfBookings = await NoOfBookingsOfSudioCount(timeframe)
     }
 
     res.status(200).json({
-      status:true, transactionData,revenueData,BookingCountAndHours
+      status:true, transactionData,revenueData,BookingCountAndHours,NoOfBookings
     })
   } catch (error) {
     console.log(error);
