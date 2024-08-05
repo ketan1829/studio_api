@@ -69,6 +69,13 @@ class User {
             .catch(err => console.log(err));
     }
 
+    static async findUsersByUserIds(uIds) {
+        const db = getDb();
+        return await db.collection("users").find({ _id: { $in: uIds } },
+            { projection: { _id: 1, fullName: 1 } }
+          ).toArray();
+    }
+
     static findUserByEmail(email) {
         const db = getDb();
 

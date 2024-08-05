@@ -17,7 +17,7 @@ const httpStatus = require("http-status");
 
 //For Email
 var nodemailer = require("nodemailer");
-const { sendOTP, addContactBrevo, sendMsg91OTP} = require("../util/mail");
+const { sendOTP, addContactBrevo, sendMsg91OTP } = require("../util/mail");
 const { json } = require("express");
 const { logger } = require("../util/logger");
 
@@ -57,14 +57,14 @@ function generateRandomCode(length) {
 }
 
 
-exports.guestLogin = async(req, res, next)=>{
+exports.guestLogin = async (req, res, next) => {
   const deviceId = req.body || req.params;
 
   if (!deviceId) {
     return res.status(400).json({ message: 'Device ID is required' });
   }
 
-  const token = jwt.sign( deviceId , secretKey);
+  const token = jwt.sign(deviceId, secretKey);
 
   return res.status(200).json({ status: true, token: token });
 }
@@ -309,13 +309,13 @@ exports.loginUserOTP = async (req, res, next) => {
       }
 
       // ADMIN login
-      if (userData && userData.role === "admin" && userData.phone=="919892023861") {
+      if (userData && userData.role === "admin" && userData.phone == "919892023861") {
         console.log("this runned");
         const status_otp = await sendMsg91OTP(`${userData.phone}`);
-        if(!(status_otp.status)){
+        if (!(status_otp.status)) {
           return res.status(400).json({
-            status:false,
-            message:"Error while sending OTP to admin"
+            status: false,
+            message: "Error while sending OTP to admin"
           })
         }
         const AdminData = {
@@ -630,11 +630,11 @@ exports.sendSignUpOtp = (req, res, next) => {
       axios
         .get(
           "https://www.fast2sms.com/dev/bulkV2?authorization=" +
-            process.env.FAST2SMS_AUTH_KEY +
-            "&variables_values" +
-            token +
-            "&route=otp&numbers=" +
-            phone
+          process.env.FAST2SMS_AUTH_KEY +
+          "&variables_values" +
+          token +
+          "&route=otp&numbers=" +
+          phone
         )
         .then(function (response) {
           if (
@@ -680,8 +680,6 @@ exports.sendSignUpOtp = (req, res, next) => {
 
 exports.getAllUsers = async (req, res) => {
   try {
-    console.log("query");
-    console.log(req.query);
     const page = +req.query.page || 1;
     const limit = +req.query.limit || 10;
 
@@ -692,6 +690,13 @@ exports.getAllUsers = async (req, res) => {
     console.log(source_web_site);
 
     let { searchUser, startDate, endDate } = req.query;
+
+    if (Array.isArray(searchUser)) {
+      console.log("ARRRRRRRR", searchUser);
+      const objectIds = searchUser.map(id => ObjectId(id));
+      const results = await User.findUsersByUserIds(objectIds)
+      return res.json({ status: true, users: results })
+    }
 
     let filter = pick(req.query, ["status"]);
 
@@ -740,7 +745,6 @@ exports.getAllUsers = async (req, res) => {
       const limitStage = { $limit: parseInt(limit) };
       pipeline.push(limitStage);
     }
-    console.log("USER FILTER :::",JSON.stringify(pipeline));
     let users = await User.fetchAllUsersByAggregate(pipeline);
     const db = getDb();
     console.log("filter2");
@@ -750,13 +754,13 @@ exports.getAllUsers = async (req, res) => {
       { $match: filter },
       startDate
         ? {
-            $match: {
-              creationTimeStamp: {
-                $gte: new Date(startDate + "T00:00:00"),
-                $lt: new Date(endDate + "T23:59:59"),
-              },
+          $match: {
+            creationTimeStamp: {
+              $gte: new Date(startDate + "T00:00:00"),
+              $lt: new Date(endDate + "T23:59:59"),
             },
-          }
+          },
+        }
         : { $match: {} },
       { $count: "total" },
     ];
@@ -992,11 +996,11 @@ exports.sendPhoneOtpForEdit = (req, res, next) => {
     axios
       .get(
         "https://www.fast2sms.com/dev/bulkV2?authorization=" +
-          process.env.FAST2SMS_AUTH_KEY +
-          "&variables_values" +
-          token +
-          "&route=otp&numbers=" +
-          phone
+        process.env.FAST2SMS_AUTH_KEY +
+        "&variables_values" +
+        token +
+        "&route=otp&numbers=" +
+        phone
       )
       .then(function (response) {
         if (
@@ -1182,11 +1186,11 @@ exports.sendForgotPasswordOtp = (req, res, next) => {
       axios
         .get(
           "https://www.fast2sms.com/dev/bulkV2?authorization=" +
-            process.env.FAST2SMS_AUTH_KEY +
-            "&variables_values" +
-            token +
-            "&route=otp&numbers=" +
-            identity
+          process.env.FAST2SMS_AUTH_KEY +
+          "&variables_values" +
+          token +
+          "&route=otp&numbers=" +
+          identity
         )
         .then(function (response) {
           if (
@@ -1568,7 +1572,7 @@ exports.getUserNearyByLocations = async (req, res, next) => {
 
 exports.exportUserData = async (req, res) => {
   try {
-    const filter = pick(req.query, ["dateOfBirth", "userType", "role","status"]); // {startDate: 2022-19-01}
+    const filter = pick(req.query, ["dateOfBirth", "userType", "role", "status"]); // {startDate: 2022-19-01}
     const options = pick(req.query, [
       "sort",
       "limit",
@@ -1793,28 +1797,28 @@ exports.verifyOTP = async (req, res) => {
     console.log("response.data-->", response.data.message, response.data.type);
 
     if (response.status == 200 && response.data.type == "success") {
-      if(role==="admin"){
+      if (role === "admin") {
         let adminData = await Admin.findAdminByNumber(phoneNumber)
         const token = jwt.sign({ admin: adminData }, 'myAppSecretKey');
-        return res.status(200).json({ status: true, message: response.data.message,token });
+        return res.status(200).json({ status: true, message: response.data.message, token });
       }
-      if(role==="subAdmin"){
+      if (role === "subAdmin") {
         let subAdmin = await SubAdmin.findSubAdminByNumber(phoneNumber)
         const token = jwt.sign({ subAdmin }, 'myAppSecretKey');
         console.log("HIEE");
-        return res.status(200).json({ status: true, message: response.data.message,token });
+        return res.status(200).json({ status: true, message: response.data.message, token });
       }
-      if(role==="owner"){
+      if (role === "owner") {
         let ownearData = await Owner.findOwnerByNumber(phoneNumber)
         const token = jwt.sign({ ownearData }, 'myAppSecretKey');
-        return res.status(200).json({ status: true, message: response.data.message,token });
+        return res.status(200).json({ status: true, message: response.data.message, token });
       }
       res.status(200).json({ status: true, message: response.data.message });
     } else {
       res.status(200).json({ status: false, message: response.data.message });
     }
   } catch (error) {
-    logger.error({error})
+    logger.error({ error })
     res.status(200).json({ status: false, message: "otp verification failed" });
   }
 };
