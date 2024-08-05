@@ -185,7 +185,7 @@ const isAdminOrOwner = async (req, res, next) => {
     token = token.split(" ")[1]; // remove "Bearer"
 
     const decoded = await verifyToken(token);
-
+    req.user = decoded;
     console.log(decoded, "<<<<<");
 
     // if (!decoded.admin || !decoded.owner || decoded?.user?.role !== "admin") {
@@ -216,6 +216,7 @@ const isAdminOrOwnerOrUser = async (req, res, next) => {
     }
 
     const decoded = await verifyToken(token);
+    req.user = decoded;
 
     if (!decoded.admin && !decoded.owner && !decoded.user) {
       throw new ErrorHandler(401, "unauthorized");

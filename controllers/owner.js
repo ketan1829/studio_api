@@ -95,7 +95,7 @@ exports.ownerLogin = async (req, res, next) => {
         emailId: ownerData.email || "",
         image: ownerData.adminImage || "",
         phoneNumber: ownerData.phone || "",
-        role: ownerData.role || "",
+        role: ownerData.role || "owner",
       };
 
       const token = jwt.sign({ owner: ownerResponseData }, "myAppSecretKey");
@@ -118,7 +118,7 @@ exports.ownerLogin = async (req, res, next) => {
         emailId: ownerData.email || "",
         image: ownerData.adminImage || "",
         phoneNumber: ownerData.phone || "",
-        role: ownerData.role || "",
+        role: ownerData.role || "owner",
       };
       if (ownerData.password !== password) {
         return res.status(400).json({ status: false, message: "Incorrect password" });

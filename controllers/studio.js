@@ -17,6 +17,7 @@ const jwt = require("jsonwebtoken");
 
 var GeoPoint = require("geopoint");
 const { logger } = require("../util/logger");
+const Owner = require("../models/owner");
 const mapQuestKey = process.env.MAP_QUEST_KEY;
 const GOOGLE_MAP_KEY = process.env.GOOGLE_MAP_KEY;
 
@@ -740,8 +741,15 @@ exports.createNewStudio = async (req, res, next) => {
 
 exports.getParticularStudioDetails = (req, res, next) => {
   const studioId = req.params.studioId;
+  const { role, userId } = req.user;
 
-  Studio.findStudioById(studioId).then((studioData) => {
+  if (role === 'owner') {
+    Owner.findOwnerByOwnerId(userId).then((ownerData)=>{
+      if(ownerData._id.toString() !== userId) return res.status(200).json({ status: false, message: "Access denied" });
+    })
+  }
+
+  Studio.findStudioById(studioId, role).then((studioData) => {
     if (!studioData) {
       return res
         .status(404)
@@ -1308,6 +1316,11 @@ exports.editStudioDetails = async (req, res, next) => {
   const teamDetails = req.body.teamDetails;
   const country = req.body.country;
 
+  if (role === 'owner') {
+    Owner.findOwnerByOwnerId(userId).then((ownerData)=>{
+      if(ownerData._id.toString() !== userId) return res.status(200).json({ status: false, message: "Access denied" });
+    })
+  }
 
   let studio = await Studio.findStudioById(studioId);
   if (!studio) {
