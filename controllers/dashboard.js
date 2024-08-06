@@ -598,8 +598,6 @@ const NoOfBookingsOfSudioCount = async(timeframe)=>{
 const studioOnboard = async (timeframe) => {
   const currentStartDate = getStartDateForTimeframeOnboarding(timeframe, false);
   const previousStartDate = getStartDateForTimeframeOnboarding(timeframe, true);
-  console.log("currentStartDate",currentStartDate);
-  console.log("previousStartDate",previousStartDate);
   const currentEndDate = moment().endOf('day').toDate(); // End of the current day in IST
   const previousEndDate = moment().subtract(1, 'year').endOf('day').toDate(); // End of the same day last year in IST
 
@@ -680,7 +678,6 @@ const studioOnboard = async (timeframe) => {
 
         const currentDayData = currentData.find(d => d.dayOfYear === currentDay.dayOfYear());
         const previousDayData = previousData.find(d => d.dayOfYear === previousDay.dayOfYear());
-
         data.push({
           name: currentDay.format('ddd').toUpperCase(),
           Current: currentDayData ? currentDayData.count : 0,
@@ -722,8 +719,7 @@ const studioOnboard = async (timeframe) => {
       }
     }
 
-    console.log("data", data);
-    return data;
+    return {status:true,message:"Studio Onboard Data",data}
   } catch (error) {
     console.log(error);
   }
@@ -783,41 +779,140 @@ const getStartDateForTimeframeOnboarding = (timeframe, isPreviousYear) => {
 
 //--------------------------------Studio Onboard-------------------------
 
+//--------------------------------------------Dashboard Cards---------------------------------------
+
+const UserCard = async()=>{
+  try {
+    let user_pipline = [
+      {
+        $facet: {
+          activeCount: [
+            { $match: { status: 1 } },
+            { $count: "count" }
+          ],
+          totalCount: [
+            { $match: {  } },
+            { $count: "count" }
+          ]
+        }
+      },
+      {
+        $project: {
+          activeCount: { $arrayElemAt: ["$activeCount.count", 0] },
+          totalCount: { $arrayElemAt: ["$totalCount.count", 0] }
+        }
+      }
+    ]
+    let db = getDB()
+    let UserData = await db.collection("users").aggregate(user_pipline).toArray()
+    return {status:true,message:"No of Users",data:UserData,}
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+const StudioCard = async()=>{
+  try {
+    let user_pipline = [
+      {
+        $facet: {
+          activeCount: [
+            { $match: { isActive: 1 } },
+            { $count: "count" }
+          ],
+          totalCount: [
+            { $match: {  } },
+            { $count: "count" }
+          ]
+        }
+      },
+      {
+        $project: {
+          activeCount: { $arrayElemAt: ["$activeCount.count", 0] },
+          totalCount: { $arrayElemAt: ["$totalCount.count", 0] }
+        }
+      }
+    ]
+    let db = getDB()
+    let StudioData = await db.collection("studios").aggregate(user_pipline).toArray()
+    return {status:true,message:"No of Studios",data:StudioData}
+  } catch (error) {
+    console.log(error);
+  }
+}
+const BookingCard = async()=>{
+  try {
+    let user_pipline = [
+      {
+        $facet: {
+          activeCount: [
+            { $match: { type:"c1", bookingStatus: 0 } },
+            { $count: "count" }
+          ],  
+          totalCount: [
+            { $match: { type:"c1", bookingStatus:{ $nin: [2] } } },
+            { $count: "count" }
+          ]
+        }
+      },
+      {
+        $project: {
+          activeCount: { $arrayElemAt: ["$activeCount.count", 0] },
+          totalCount: { $arrayElemAt: ["$totalCount.count", 0] }
+        }
+      }
+    ]
+    let db = getDB()
+    let BookingData = await db.collection("bookings").aggregate(user_pipline).toArray()
+    return {status:true,message:"No of Bookings",data:BookingData}
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+
+
+
+
+
+
+
+
+//--------------------------------------------Dashboard Cards---------------------------------------
 
 //--------------------------------Main Controller--------------------------------
 exports.dashboardAnalytics= async(req,res)=>{
   try {
     const timeframe = req.query.timeframe || "year";
     const analytics = req.query.analytics;
-    let transactionData;
-    let revenueData;
-    let BookingCountAndHours;
-    let NoOfBookings;
-    let studioOnboardData;
     if(analytics==="transaction"){
-      transactionData = await transactionAnalytics(timeframe)
+     var transactionData = await transactionAnalytics(timeframe)
     } else if(analytics==="revenue"){
-      revenueData = await revenueAnalytics(timeframe)
+      var revenueData = await revenueAnalytics(timeframe)
     }else if(analytics==="BookingHoursAndCount"){
-      BookingCountAndHours = await BookingHoursAndCount(timeframe)
+      var BookingCountAndHours = await BookingHoursAndCount(timeframe)
     }else if(analytics==="NoOfBooking"){
-      NoOfBookings = await NoOfBookingsOfSudioCount(timeframe)
+      var NoOfBookings = await NoOfBookingsOfSudioCount(timeframe)
     }else if(analytics==="studioOnboard"){
-      studioOnboardData = await studioOnboard(timeframe)
+      var studioOnboardData = await studioOnboard(timeframe)
     }else{
-      transactionData = await transactionAnalytics(timeframe)
-      revenueData = await revenueAnalytics(timeframe)
-      BookingCountAndHours = await BookingHoursAndCount(timeframe)
-      NoOfBookings = await NoOfBookingsOfSudioCount(timeframe)
-      studioOnboardData = await studioOnboard(timeframe)
-    }
+    var [transactionData,revenueData,BookingCountAndHours,NoOfBookings,studioOnboardData,UserData,StudioData,BookingData] = await Promise.all([
+        transactionAnalytics(timeframe),
+        revenueAnalytics(timeframe),
+        BookingHoursAndCount(timeframe),
+        NoOfBookingsOfSudioCount(timeframe),
+        studioOnboard(timeframe),
+        UserCard(),
+        StudioCard(),
+        BookingCard(),
+      ])
 
+    }
     res.status(200).json({
-      status:true, transactionData,revenueData,BookingCountAndHours,NoOfBookings,studioOnboardData
+      status:true, transactionData,revenueData,BookingCountAndHours,NoOfBookings,studioOnboardData,UserData,StudioData,BookingData
     })
   } catch (error) {
     console.log(error);
-
   }
 }
 //--------------------------------Main Controller--------------------------------
