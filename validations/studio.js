@@ -53,7 +53,6 @@ const studioCreateSchema = Joi.object({
       infrastructure:Joi.string(),
     }).min(1).required(),
     teamDetails:Joi.array().items(Joi.object({
-      imgUrl:Joi.string(),
       name:Joi.string().required(),
       designation:Joi.string(),
       id:Joi.number().strict()

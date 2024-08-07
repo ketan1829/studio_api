@@ -1448,6 +1448,14 @@ exports.editStudioDetails = async (req, res, next) => {
     return room;
   })
 
+  teamDetails?.map(team=>{
+    if(!team?.imgUrl){
+      team.imgUrl = "https://sadmin.choira.io/api/v2/download/1723032342090IMG_20240807_173434.jpg"
+      return team
+    }
+    return team
+  })
+
   // const updatedAminities = amenities.map((a_key, j) => {
   //   return studio.amenities.map((ame, i) => {
   //     console.log(ame.id);
