@@ -117,7 +117,7 @@ exports.getAllUserDiscounts = (req, res, next) => {
 
                             // console.log(specialDiscountData);
                             if (specialDiscountData.length != 0) {
-                                const index = specialDiscountData[0].usersList.findIndex(i => i.toString() == userId.toString());
+                                const index = specialDiscountData[0].usersList.findIndex(i => i.value?.toString() == userId.toString() || i?.toString() == userId.toString());
                                 if (index == -1) {
                                     //remove this discount from list
                                     discountsData = discountsData.filter(i => i.discountType != 3);

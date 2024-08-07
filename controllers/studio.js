@@ -796,6 +796,15 @@ exports.createNewStudio = async (req, res, next) => {
       room.bookingDays = updateStudioBookingDays(room.bookingDays)
       return room;
     })
+
+    teamDetails?.map(team=>{
+      if(!team?.imgUrl){
+        team.imgUrl = "https://sadmin.choira.io/api/v2/download/1723032342090IMG_20240807_173434.jpg"
+        return team
+      }
+      return team
+    })
+
     
     logger.info({ address });
     address = address.replace("&", "and");
@@ -856,7 +865,6 @@ exports.createNewStudio = async (req, res, next) => {
     });
   }
 };
-
 
 exports.getParticularStudioDetails = (req, res, next) => {
   const studioId = req.params.studioId;
