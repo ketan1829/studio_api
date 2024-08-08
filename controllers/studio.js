@@ -1450,7 +1450,7 @@ exports.editStudioDetails = async (req, res, next) => {
 
   teamDetails?.map(team=>{
     if(!team?.imgUrl){
-      team.imgUrl = "https://sadmin.choira.io/api/v2/download/1723032342090IMG_20240807_173434.jpg"
+      team.imgUrl = "https://sadmin.choira.io/api/v2/download/1723104357540team_profile_placeholder.jpeg"
       return team
     }
     return team
