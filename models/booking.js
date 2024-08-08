@@ -67,11 +67,11 @@ class Booking
         }
     }
 
-    static fetchBookingsByStudioIdAndBookingDate(sId,bDate)
+    static fetchBookingsByStudioIdAndBookingDate(sId,rid,bDate)
     {
         const db = getDb();
                             
-        return db.collection('bookings').find({ studioId:sId, bookingDate:{$gte:bDate+"T00:00:00", $lt:bDate+"T23:59:59"} ,bookingStatus: {$in: [0,1] } }).sort({creationTimeStamp:1}).toArray()
+        return db.collection('bookings').find({ studioId:sId,roomId:rid, bookingDate:{$gte:bDate+"T00:00:00", $lt:bDate+"T23:59:59"} ,bookingStatus: {$in: [0,1] } }).sort({creationTimeStamp:1}).toArray()
             .then(bookingData=>{
                 return bookingData;
             })

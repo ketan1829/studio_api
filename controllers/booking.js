@@ -860,7 +860,7 @@ exports.getStudioAvailabilities = async (req, res, next) => {
     });
     // logger.info("All Slots : ",{allSlots});
 
-    Booking.fetchBookingsByStudioIdAndBookingDate(studioId, bookingDate).then(
+    Booking.fetchBookingsByStudioIdAndBookingDate(studioId,roomId, bookingDate).then(
       (bookingsData) => {
         // logger.info({bookingsData});
 
@@ -1378,7 +1378,7 @@ exports.getStudioAvailabilitiesLate = (req, res, next) => {
     });
     logger.info("\n\n----All Slots : ", { allSlots });
 
-    Booking.fetchBookingsByStudioIdAndBookingDate(studioId, bookingDate).then(
+    Booking.fetchBookingsByStudioIdAndBookingDate(studioId,roomId, bookingDate).then(
       (bookingsData) => {
         // logger.info({bookingsData});
 
@@ -1759,7 +1759,7 @@ exports.getStudioAvailabilitiesbackup = (req, res, next) => {
     });
     // logger.info("All Slots : ",{allSlots});
 
-    Booking.fetchBookingsByStudioIdAndBookingDate(studioId, bookingDate).then(
+    Booking.fetchBookingsByStudioIdAndBookingDate(studioId,roomId, bookingDate).then(
       (bookingsData) => {
         // logger.info({bookingsData});
 
@@ -2089,7 +2089,7 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
     });
     // logger.info("All Slots : ",{allSlots});
 
-    Booking.fetchBookingsByStudioIdAndBookingDate(studioId, bookingDate).then(
+    Booking.fetchBookingsByStudioIdAndBookingDate(studioId,roomId, bookingDate).then(
       (bookingsData) => {
         // logger.info({bookingsData});
 
