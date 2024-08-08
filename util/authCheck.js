@@ -47,7 +47,7 @@ const isUser = async (req, res, next) => {
     token = token.split(" ")[1]; // remove "Bearer"
 
     const decoded = await verifyToken(token);
-
+    req.user = decoded;
     if (!decoded.user || !decoded.user._id) {
       throw new ErrorHandler(401, "unauthorized");
     }
@@ -75,6 +75,7 @@ const isAdminV2 = async (req, res, next) => {
     token = token.split(" ")[1]; // remove "Bearer"
     // console.log("token", token);
     const decoded = await verifyToken(token);
+    req.user = decoded;
     console.log("decoded:::", decoded)
 
     if (decoded.admin) {
@@ -108,6 +109,7 @@ const isAdmin = async (req, res, next) => {
     token = token.split(" ")[1]; // remove "Bearer"
     // console.log("token", token);
     const decoded = await verifyToken(token);
+    req.user = decoded;
     // console.log("decoded:::", decoded, decoded.user.role)
 
     if (!decoded.admin || !decoded.admin.email) {
@@ -137,7 +139,7 @@ const isBoth = async (req, res, next) => {
       return next();
     } else {
       const decoded = await verifyToken(token);
-
+      req.user = decoded;
       if (!decoded.admin && !decoded.user) {
         console.log("isboth:====");
         throw new ErrorHandler(401, "unauthorized");

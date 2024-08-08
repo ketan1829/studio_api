@@ -783,10 +783,19 @@ exports.createNewStudio = async (req, res, next) => {
   const teamDetails = req.body.teamDetails;
   const clientPhotos = req.body.clientPhotos;
   const country = req.body.country || "IN";
+  const { role, userId } = req.user || '';
+
   const reviews = {};
   const featuredReviews = [];
   let minPrice = {};
+
   try {
+
+    if (role === 'admin') {
+      Admin.findAdminById(userId).then((adminData)=>{
+        if(adminData.adminId.toString() !== userId) return res.status(200).json({ status: false, message: "Access denied" });
+      })
+    }
     
     console.log("req.body",req.body);
 
@@ -1434,15 +1443,19 @@ exports.editStudioDetails = async (req, res, next) => {
   const country = req.body.country;
   const { role, userId } = req.user || '';
 
-  if (role === 'owner') {
+  if (role === 'studio-owner') {
     Owner.findOwnerByOwnerId(userId).then((ownerData)=>{
       if(ownerData._id.toString() !== userId) return res.status(200).json({ status: false, message: "Access denied" });
     })
   }
   if (role === 'admin') {
-    Admin .findOwnerByOwnerId(userId).then((ownerData)=>{
-      if(ownerData._id.toString() !== userId) return res.status(200).json({ status: false, message: "Access denied" });
+    Admin.findAdminById(userId).then((adminData)=>{
+      if(adminData.adminId.toString() !== userId) return res.status(200).json({ status: false, message: "Access denied" });
     })
+  }
+
+  if(role === 'user'){
+    return res.status(200).json({ status: false, message: "Access denied" });
   }
 
   let latitude = "";

@@ -54,60 +54,116 @@ exports.createNewOwner = async(req,res,next)=>{
 
 }
 
-
-exports.ownerLogin = async(req,res,next)=>{
-
-    const email = req.body.email;
-    const password = req.body.password;
-    const userType = req.body.userType;
-    const phoneNumber = req.body.phoneNumber;
-
-    if(userType==="Number"){
-        let ownerData = await Owner.findOwnerByNumber(phoneNumber)
-    if(!ownerData){
-        return res.json({status:false,message:'Owner does not exist'});
-    }
-    const status_otp = await sendMsg91OTP(`${ownerData.phone}`);
-        if(!(status_otp.status)){
-          return res.status(400).json({
-            status:false,
-            message:"Error while sending OTP to owner"
-        })
-    }
-      return res.json({
-        status: true,
-        message: "Hello Owner, OTP has been send Succesfully"
-      });
-    }else{
-    Owner.findOwnerByEmail(email)
-    .then(ownerData=>{
-        if(!ownerData)
-        {
-            return res.json({status:false, message:'No Owner with this email exists'});
+exports.ownerLogin = async (req, res, next) => {
+    const { number, role, userType, deviceId, email, password } = req.body;
+  
+    try {
+      if (userType === "NUMBER") {
+        // Validate and format the phone number
+        if (!number || number.length < 11) {
+          return res.status(400).json({ status: false, message: "Enter a valid phone number with country code." });
         }
-
-        if(ownerData.password!=password)
-        {
-            return res.json({status:false, message:"Incorrect password"});
+  
+        const ownerData = await Owner.findOwnerByNumber(number);
+        if (!ownerData) {
+          const status_otp = await sendMsg91OTP(number);
+          if (!status_otp.status) {
+            return res.status(200).json({ status: false, message: "Error while sending OTP, Try again later" });
+          }
+          return res.status(200).json({ status: true, message: "OTP has been sent successfully", newUser: true });
         }
-
-        const db = getDb();
-        db.collection('owners').updateOne({email:email},{$set:ownerData})
-        .then(resultData=>{
-            jwt.sign({ owner:ownerData }, 'myAppSecretKey', (err, token) => {
-                res.json({
-                    status: true,
-                    message: "Successfully Logged In",
-                    owner: ownerData,
-                    token: token
-                });
-            });
-        })
-        .catch(err=>console.log(err));
-    })
+  
+        const status_otp = await sendMsg91OTP(ownerData.phone);
+        if (!status_otp.status) {
+          return res.status(200).json({ status: false, message: "Error while sending OTP to owner, Try again later" });
+        }
+  
+        const ownerResponseData = {
+          id: ownerData.ownerId,
+          fullName: ownerData.fullName || "",
+          emailId: ownerData.email || "",
+          image: ownerData.adminImage || "",
+          phoneNumber: ownerData.phone || "",
+          role: ownerData.role || "studio-owner",
+        };
+  
+        const token = jwt.sign({ owner: {
+            id: ownerData.ownerId,
+            fullName: ownerData.fullName || "",
+            emailId: ownerData.email || "",
+            phoneNumber: ownerData.phone || "",
+            role: ownerData.role || "studio-owner",
+          } }, "myAppSecretKey");
+        return res.json({
+          status: true,
+          message: "OTP has been sent successfully",
+          user: ownerResponseData,
+          token,
+          newUser: false
+        });
+      } else {
+        const ownerData = await Owner.findOwnerByEmail(email);
+        if (!ownerData) {
+          return res.status(400).json({ status: false, message: "No owner with this email exists" });
+        }
+  
+        const ownerResponseData = {
+          id: ownerData.ownerId,
+          fullName: ownerData.fullName || "",
+          emailId: ownerData.email || "",
+          image: ownerData.adminImage || "",
+          phoneNumber: ownerData.phone || "",
+          role: ownerData.role || "studio-owner",
+        };
+        if (ownerData.password !== password) {
+          return res.status(400).json({ status: false, message: "Incorrect password" });
+        }
+  
+        const token = jwt.sign({ owner: ownerResponseData }, "myAppSecretKey");
+        return res.json({
+          status: true,
+          message: "Successfully logged in",
+          owner: ownerResponseData,
+          token,
+          newUser: false
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ status: false, message: "An error occurred during the login process" });
     }
-}
+  };
+  
+exports.verifyOTP = async (req, res) => {
+    try {
+        let phoneNumber = req.query.phoneNumber;
+        let otp = req.query.otp;
+        let role = req.query.role;
 
+        const response = await axios.get(
+        `https://control.msg91.com/api/v5/otp/verify`,
+        {
+            params: { otp: otp, mobile: phoneNumber },
+            headers: { authkey: process.env.MSG91_AUT_KEY },
+        }
+        );
+        console.log("response.data-->", response.data.message, response.data.type);
+
+        if (response.status == 200 && response.data.type == "success") {
+        if(role==="owner"){
+            let ownerData = await Owner.findOwnerByNumber(phoneNumber)
+            const token = jwt.sign({ owner: ownerData }, 'myAppSecretKey');
+            return res.status(200).json({ status: true, message: response.data.message,token });
+        }
+        res.status(200).json({ status: true, message: response.data.message });
+        } else {
+        res.status(200).json({ status: false, message: response.data.message });
+        }
+    } catch (error) {
+        logger.info(error, "Error verifiying OTP");
+        res.status(404).json({ status: false, message: "otp verification failed" });
+    }
+  };
 
 exports.getParticularOwnerDetails = (req,res,next)=>{
 
