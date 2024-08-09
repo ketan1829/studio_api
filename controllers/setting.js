@@ -60,6 +60,7 @@ exports.addPricingInServicePackage = async(req, res)=>{
         console.log("Pricing details updated for all packages");
 }catch (err) {
     console.error("Error updating pricing details:", err);
+    logger.error(err,"Error updating pricing details");
 }
 res.send({status:true, message:"Pricing details updated successfully"})
 }
@@ -78,7 +79,7 @@ try {
     })
     res.json({status:true,message:"All Studio Udated Successfully"})
 } catch (error) {
-    logger.error("Error while calculating and storing price of each studio")
+    logger.error(error,"Error while calculating and storing price of each studio")
     console.log(error);
 }
 }
@@ -109,22 +110,26 @@ try {
 
 exports.getBanner = (req,res,next)=>{
 
-    let { settingId,active,type } = req.body;
-    const filter = pick(req.query, ['name', 'role','type']) || { active: 1 }
-    const options = pick(req.query, ['sortBy', 'limit', 'page']);
-    
-    // const filter = { isActive: 1 };
-
-    if (active) filter.isActive = active;
-    if (settingId) {
-        var o_id = new ObjectId(settingId);
-        filter._id =o_id
-    }
-
-    if(!type){ type = "AdBanner" }
-    Setting.getBanner(active,type).then((banners)=>{
-        return res.json({status:true, message:`banner returned`,banners});
-    })
+   try {
+     let { settingId,active,type } = req.body;
+     const filter = pick(req.query, ['name', 'role','type']) || { active: 1 }
+     const options = pick(req.query, ['sortBy', 'limit', 'page']);
+     
+     // const filter = { isActive: 1 };
+     logger.info({ settingId,active,type,filter,options },"coming request of getBanner")
+     if (active) filter.isActive = active;
+     if (settingId) {
+         var o_id = new ObjectId(settingId);
+         filter._id =o_id
+     }
+ 
+     if(!type){ type = "AdBanner" }
+     Setting.getBanner(active,type).then((banners)=>{
+         return res.json({status:true, message:`banner returned`,banners});
+     })
+   } catch (error) {
+    logger.error(error,"Error Occured in getBanner")
+   }
     
 }
 
@@ -133,6 +138,7 @@ exports.createBanner = async (req, res) => {
         let db = getDb();
         // mandatory => id, stage, banner_redirect, active, photoURL
         const { stage, name, photoURL, active, type, banner_redirect, entity_id, forr, redirectURL } = req.body;
+        logger.info({"coming request data of createBanner":req.body})
         const id = new ObjectId().toString();
         let obj = {
             id,
@@ -199,6 +205,7 @@ exports.editBanner = async (req, res) => {
     try {
         let db = getDb();
         const { id, stage, name, photoURL, active, type, banner_redirect, entity_id, redirectURL} = req.body;
+        logger.info({"coming request data of editBanner":req.body})
         const forr = req.body.for;
         if (!id) {
             return res.status(200).json({ status:false, message: "Missing banner id" });
@@ -323,8 +330,7 @@ exports.editBanner = async (req, res) => {
 
         return res.status(200).json({ status:true, message: "Banner updated successfully" });
     } catch (error) {
-        logger.error("Error while updating banner==>");
-        logger.error(error);
+        logger.error(error,"Error while updating banner==>");
         return res.status(200).json({status:false, message: "Internal server error" });
     }
 };
@@ -369,6 +375,7 @@ exports.deleteBanner = async (req, res) => {
         const {
             id,type
         } = req.query;
+        logger.info({"coming request data of deleteBanner":req.query})
         if (!id) {
             return res.status(200).json({
                 status: false,
@@ -415,9 +422,7 @@ exports.deleteBanner = async (req, res) => {
             message: "Banner deleted successfully"
         });
     } catch (error) {
-        logger.error({
-            error
-        }, "Error while deleting banner");
+        logger.error(error, "Error while deleting banner");
         return res.status(200).json({
             status: false,
             message: "Internal server error"
@@ -426,83 +431,91 @@ exports.deleteBanner = async (req, res) => {
 };
 exports.getCategory = (req,res,next)=>{
 
-    console.log("query---", req.query);
-    const { active } = req.query;
-    const filter = pick(req.query, ['name', 'role']) || { active: 1 }
+try {
+        logger.info({"coming req data of getCategory": req.query})
+        const { active } = req.query;
+        const filter = pick(req.query, ['name', 'role']) || { active: 1 }
+        
+        if (active) filter.active = active;
     
-    if (active) filter.active = active;
-
-    Setting.getCategory(1).then((CategoryData)=>{
-        console.log(CategoryData);
-        return res.json({status:true, message:`category returned`,categories:CategoryData});
-    })
+        Setting.getCategory(1).then((CategoryData)=>{
+            console.log(CategoryData);
+            return res.json({status:true, message:`category returned`,categories:CategoryData});
+        })
+} catch (error) {
+    logger.error(error,"Error Occured in getCategory")
+}
     
 }
 
 exports.deleteDuplicateUserWhileCheckingPreviousUser = async (req, res, next) => {
 
-    const chunk_users = await User.fetchAllUsersFromDate2("2024-04-01", "2024-04-02")
-    // res.send({data:chunk_users})
-
-    let user_phones = []
-
-    chunk_users.forEach(async user => {
-        const is_object = typeof (user.fullName)
-        if (is_object === "object") {
-
-            console.log("new op started =====");
-
-            if (user.fullName.fullName) {
-                // check user exist with number
-                if (user.fullName.phone) {
-
-                    console.log("phone exitttttt");
-
-                    let userbyphone = await User.findUsersByPhone(user.fullName.phone)
-
-
-                    if(Array.isArray(userbyphone) && userbyphone.length){
-
-                        console.log("Deleting Unstruct duplicated USER");
-                        // delete object record
-                        User.deleteUserPermanent(user._id)
-                      
-                    }else{
-                        console.log("NOT AN ARRAY or MT array");
-                        console.log("TestUser unstruct updated coz user found");
-                        // make data to the root level of user document
-
-                        if(!user_phones.includes(user.fullName.phone)){
-
-                            const fullname  = user.fullName.fullName
-                            user = { ...user, ...user.fullName }
-                            user.fullName = fullname
-                            user_phones.push(user.phone)
-                            await User.update_object(user._id, user)
-
-                        }else{
-                            console.log("Deleting redundant record from table",user.fullName.phone);
-                            // delete duplicate object record
+try {
+        const chunk_users = await User.fetchAllUsersFromDate2("2024-04-01", "2024-04-02")
+        // res.send({data:chunk_users})
+    
+        let user_phones = []
+    
+        chunk_users.forEach(async user => {
+            const is_object = typeof (user.fullName)
+            if (is_object === "object") {
+    
+                console.log("new op started =====");
+    
+                if (user.fullName.fullName) {
+                    // check user exist with number
+                    if (user.fullName.phone) {
+    
+                        console.log("phone exitttttt");
+    
+                        let userbyphone = await User.findUsersByPhone(user.fullName.phone)
+    
+    
+                        if(Array.isArray(userbyphone) && userbyphone.length){
+    
+                            console.log("Deleting Unstruct duplicated USER");
+                            // delete object record
                             User.deleteUserPermanent(user._id)
+                          
+                        }else{
+                            console.log("NOT AN ARRAY or MT array");
+                            console.log("TestUser unstruct updated coz user found");
+                            // make data to the root level of user document
+    
+                            if(!user_phones.includes(user.fullName.phone)){
+    
+                                const fullname  = user.fullName.fullName
+                                user = { ...user, ...user.fullName }
+                                user.fullName = fullname
+                                user_phones.push(user.phone)
+                                await User.update_object(user._id, user)
+    
+                            }else{
+                                console.log("Deleting redundant record from table",user.fullName.phone);
+                                // delete duplicate object record
+                                User.deleteUserPermanent(user._id)
+                            }
+                            
                         }
-                        
+    
+                    }else{
+                        console.log("phone not exittttttt");
                     }
-
-                }else{
-                    console.log("phone not exittttttt");
+                } else {
+                    console.log("TestUser unstruct blank data updated");
+                    // delete the record
+                    User.deleteUserPermanent(user._id);
                 }
+    
             } else {
-                console.log("TestUser unstruct blank data updated");
-                // delete the record
-                User.deleteUserPermanent(user._id);
+                console.log("NOt AN Object");
             }
-
-        } else {
-            console.log("NOt AN Object");
-        }
-        console.log("==== op ended =====");
-    })
-    res.send({ ack: "OKKKK" })
+            console.log("==== op ended =====");
+        })
+        res.send({ ack: "OKKKK" })
+} catch (error) {
+    logger.error(error,"Error Occured")
+}
 }
 
 
@@ -515,7 +528,7 @@ exports.addCountryCodeInBookings = (async(req,res)=>{
          message: "Country code added successfully"
        });
     } catch (error) {
-      console.log(error);
+      logger.log(error,"Error Occured");
     }
 })
 exports.addCountryFieldInStudios = (async(req,res)=>{
@@ -527,7 +540,7 @@ exports.addCountryFieldInStudios = (async(req,res)=>{
          message: "Country field added successfully in Studios",
        });
     } catch (error) {
-      console.log(error);
+        logger.log(error,"Error Occured");
     }
 })
 
@@ -548,7 +561,7 @@ exports.countryCodeBeforPhoneNo = async (req, res) => {
         res.json({ users: result });
 
     } catch (error) {
-        console.log(error);
+        logger.log(error,"Error Occured");
         res.status(500).json({ error: 'Internal server error' });
     }    
 };
@@ -599,28 +612,34 @@ exports.AddLocationFieldinallStudios = (req,res)=>{
     message:"All studios Updated with Location Field and location index created"
   })
     } catch (error) {
-        console.log(error,"Error while getting lat long");
+        logger.error(error,"Error while getting lat long");
+        console.error(error,"Error while getting lat long");
     }
 }
 
 const calculateMinPrice = (roomsDetails) => {
-    if (!roomsDetails.length) {
-      throw new Error('No rooms details provided');
+    try {
+        if (!roomsDetails.length) {
+          throw new Error('No rooms details provided');
+        }
+    
+        let minRoom = roomsDetails[0];
+    
+        roomsDetails.forEach((room) => {
+          if (room.pricePerHour < minRoom.pricePerHour) {
+            minRoom = room;
+          }
+        });
+    
+        return {
+            price: minRoom.pricePerHour,
+            basePrice: minRoom.basePrice,
+            discountPercentage:minRoom.discountPercentage
+        };
+    } catch (error) {
+        logger.error(error,"Error Occured")
+        console.error(error,"Error Occured")
     }
-
-    let minRoom = roomsDetails[0];
-
-    roomsDetails.forEach((room) => {
-      if (room.pricePerHour < minRoom.pricePerHour) {
-        minRoom = room;
-      }
-    });
-
-    return {
-        price: minRoom.pricePerHour,
-        basePrice: minRoom.basePrice,
-        discountPercentage:minRoom.discountPercentage
-    };
   };
 
 const make_user_unique_field = async () => {

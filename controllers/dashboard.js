@@ -150,14 +150,17 @@ const performWeekOperations = async (db) => {
     return days[day];
   };
 
+  // Get the current time in the 'Asia/Kolkata' timezone
   const today = moment().tz("Asia/Kolkata");
-  const currentDayOfWeek = today.day();
-  const lastSunday = moment(today).startOf('week').subtract(1, 'days'); // Start of the week (last Sunday)
-  const nextSaturday = moment(lastSunday).add(6, 'days'); // End of the week (Saturday)
 
+  // Calculate the start and end of the current week (Sunday to Saturday)
+  const lastSunday = today.clone().startOf('week'); // Start of the week (Sunday)
+  const nextSaturday = lastSunday.clone().endOf('week'); // End of the week (Saturday)
+
+  // Initialize the combinedResults object for each day of the week
   let combinedResults = {};
   for (let i = 0; i <= 6; i++) {
-    const date = moment(lastSunday).add(i, 'days');
+    const date = lastSunday.clone().add(i, 'days');
     const day = date.day();
     const key = getDayName(day);
 
@@ -169,6 +172,7 @@ const performWeekOperations = async (db) => {
     };
   }
 
+  // Define the MongoDB aggregation pipeline
   const pipeline = (type) => [
     {
       $match: {
@@ -189,7 +193,7 @@ const performWeekOperations = async (db) => {
     {
       $project: {
         _id: 0,
-        day: "$_id",
+        day: { $subtract: [{ $mod: [{ $add: ["$_id", 5] }, 7] }, 1] }, // Adjust $dayOfWeek to align with Sunday start
         total: "$totalPriceSum"
       }
     }
@@ -198,10 +202,11 @@ const performWeekOperations = async (db) => {
   const bookingsCollection = db.collection('bookings');
   const types = ["c1", "c2", "c3"];
   
+  // Aggregate data for each type and map the results to the correct day
   for (let type of types) {
     const results = await bookingsCollection.aggregate(pipeline(type)).toArray();
     results.forEach(item => {
-      const dayName = getDayName((item.day % 7 + 6) % 7); // Adjust day name indexing to start from Sunday
+      const dayName = getDayName(item.day);
       if (combinedResults[dayName]) {
         combinedResults[dayName][type === "c1" ? 'studio' : type === "c2" ? 'production' : 'mixmaster'] = item.total;
       }
@@ -210,6 +215,7 @@ const performWeekOperations = async (db) => {
 
   return Object.values(combinedResults);
 };
+
 
 const performMonthOperations = async (db) => {
   const currentDate = moment.tz('Asia/Kolkata');

@@ -147,7 +147,7 @@ exports.signupUserV2 = async (req, res, next) => {
 
     let _userData = await User.findUserByPhone(phoneNumber, 0, false);
 
-    logger.info("REGISTER USER DATA",{_userData});
+    logger.info({_userData},"REGISTER USER DATA");
 
 
     const user_data = {

@@ -19,57 +19,134 @@ const ObjectId = mongodb.ObjectId;
 exports.createNewService = async (req, res, next) => {
   // logger.info("req.body:",{req.body});
 
-  const { source, service_objs } = req.body;
-
-  if (source === "google-sheet") {
-    const addedData = [];
-    logger.info("google sheet is running");
-    Object.keys(service_objs).map((key) => {
-      const serviceData = service_objs[key];
-
-      const service_id = serviceData.service_id;
-      const fullName = serviceData.service_name;
-      const price = parseInt(serviceData.service_lowest_price);
-      const amenitiesData = serviceData.service_amenities;
-      const totalPlans = parseInt(+serviceData.service_package_count);
-
-      const servicePhotos = [serviceData.service_photo_url] || [];
-      const aboutUs = serviceData.service_about;
-      const workDetails = serviceData.workDetails || [];
-      const discographyDetails = serviceData.discography || [];
+try {
+    const { source, service_objs } = req.body;
+  
+    if (source === "google-sheet") {
+      const addedData = [];
+      logger.info("google sheet is running");
+      Object.keys(service_objs).map((key) => {
+        const serviceData = service_objs[key];
+  
+        const service_id = serviceData.service_id;
+        const fullName = serviceData.service_name;
+        const price = parseInt(serviceData.service_lowest_price);
+        const amenitiesData = serviceData.service_amenities;
+        const totalPlans = parseInt(+serviceData.service_package_count);
+  
+        const servicePhotos = [serviceData.service_photo_url] || [];
+        const aboutUs = serviceData.service_about;
+        const workDetails = serviceData.workDetails || [];
+        const discographyDetails = serviceData.discography || [];
+        const clientPhotos = req.body.userPhotos || [];
+        const reviews = req.body.userReviews || [];
+        const featuredReviews = req.body.starredReviews || [];
+        const isActive = req.body.service_status || 1;
+  
+        const type = req.body.service_type || "c2";
+  
+        const packages = serviceData.packages;      
+        packages.map((pack, index)=>{
+            const amenities = []
+            pack.amenites.split(",").map((amm, index)=>{
+                amenities.push({name:amm, id: index+1})
+            })
+            pack.amenites = amenities
+            pack.photo_url = [pack.photo_url]
+            let pack_amenites = pack.amenites;
+            logger.info("package amenities ---",{pack_amenites});
+  
+        })
+  
+  
+        const amenities = []
+        amenitiesData.split(",").map((amm, index) => {
+          amenities.push({ name: amm, id: index + 1 })
+        })
+        // logger.info("amenities ---",{amenities});
+        const serviceObj = new Service(service_id, fullName, price, amenities, totalPlans, packages,
+          servicePhotos, aboutUs, workDetails, discographyDetails, clientPhotos, reviews, featuredReviews, isActive, type);
+  
+        
+        logger.info("serviceObj---",{serviceObj});
+        serviceObj.checkBeforeSave()
+          .then((resultData) => {
+            if (resultData.status == false) {
+              return res.json({
+                status: 400,
+                message: resultData.message,
+              });
+            }
+            return res.json({
+              status: true,
+              message: "Service added successfully",
+              data: resultData["ops"],
+            });
+          })
+          .catch(err => logger.error(err));
+  
+  
+      });
+      return res.status(200).json({
+        status: true,
+        message: "New services created successfully",
+        data: addedData,
+      });
+    } else {
+      const service_id = req.body.service_id || -1;
+      const fullName = req.body.serviceName;
+      const price = parseFloat(req.body.startingPrice);
+      const amenities = req.body.offerings;
+      const totalPlans = +req.body.TotalServices;
+      const packages = req.body.packages;
+      const servicePhotos = req.body.ServicePhotos;
+      const aboutUs = req.body.description;
+      const workDetails = req.body.portfolio;
+      const discographyDetails = req.body.discography || [];
       const clientPhotos = req.body.userPhotos || [];
       const reviews = req.body.userReviews || [];
       const featuredReviews = req.body.starredReviews || [];
-      const isActive = req.body.service_status || 1;
-
-      const type = req.body.service_type || "c2";
-
-      const packages = serviceData.packages;      
-      packages.map((pack, index)=>{
-          const amenities = []
-          pack.amenites.split(",").map((amm, index)=>{
-              amenities.push({name:amm, id: index+1})
-          })
-          pack.amenites = amenities
-          pack.photo_url = [pack.photo_url]
-          let pack_amenites = pack.amenites;
-          logger.info("package amenities ---",{pack_amenites});
-
-      })
-
-
-      const amenities = []
-      amenitiesData.split(",").map((amm, index) => {
-        amenities.push({ name: amm, id: index + 1 })
-      })
-      // logger.info("amenities ---",{amenities});
-      const serviceObj = new Service(service_id, fullName, price, amenities, totalPlans, packages,
-        servicePhotos, aboutUs, workDetails, discographyDetails, clientPhotos, reviews, featuredReviews, isActive, type);
-
+      const type = req.body.type || "c2";
+      const isActive = [0, 1, 2].includes(req.body.isActive) ? req.body.isActive : 1;
+      let pricing = {};
+      console.log(packages.length);
+      if (packages.length < 1) {
+        return res.status(400).json({
+          status: false,
+          message: "Add at least one package for the service."
+        });
+      }
+  
+      logger.info("else is running");
+      logger.info(req.body);
+      logger.info("else is running", type, isActive);
+  
+      pricing = await minStartPrice(packages)
       
-      logger.info("serviceObj---",{serviceObj});
-      serviceObj.checkBeforeSave()
-        .then((resultData) => {
+      const serviceObj = new Service(
+        service_id,
+        fullName,
+        price,
+        amenities,
+        totalPlans,
+        packages,
+        servicePhotos,
+        aboutUs,
+        workDetails,
+        discographyDetails,
+        clientPhotos,
+        reviews,
+        featuredReviews,
+        isActive,
+        type,
+        pricing
+      );
+  
+      logger.info({serviceObj})
+      // saving in database
+      return serviceObj
+        .save()
+        .then(async (resultData) => {
           if (resultData.status == false) {
             return res.json({
               status: 400,
@@ -82,90 +159,18 @@ exports.createNewService = async (req, res, next) => {
             data: resultData["ops"],
           });
         })
-        .catch(err => logger.error(err));
-
-
-    });
-    return res.status(200).json({
-      status: true,
-      message: "New services created successfully",
-      data: addedData,
-    });
-  } else {
-    const service_id = req.body.service_id || -1;
-    const fullName = req.body.serviceName;
-    const price = parseFloat(req.body.startingPrice);
-    const amenities = req.body.offerings;
-    const totalPlans = +req.body.TotalServices;
-    const packages = req.body.packages;
-    const servicePhotos = req.body.ServicePhotos;
-    const aboutUs = req.body.description;
-    const workDetails = req.body.portfolio;
-    const discographyDetails = req.body.discography || [];
-    const clientPhotos = req.body.userPhotos || [];
-    const reviews = req.body.userReviews || [];
-    const featuredReviews = req.body.starredReviews || [];
-    const type = req.body.type || "c2";
-    const isActive = [0, 1, 2].includes(req.body.isActive) ? req.body.isActive : 1;
-    let pricing = {};
-    console.log(packages.length);
-    if (packages.length < 1) {
-      return res.status(400).json({
-        status: false,
-        message: "Add at least one package for the service."
-      });
-    }
-
-    logger.info("else is running");
-    logger.info(req.body);
-    logger.info("else is running", type, isActive);
-
-    pricing = await minStartPrice(packages)
-    
-    const serviceObj = new Service(
-      service_id,
-      fullName,
-      price,
-      amenities,
-      totalPlans,
-      packages,
-      servicePhotos,
-      aboutUs,
-      workDetails,
-      discographyDetails,
-      clientPhotos,
-      reviews,
-      featuredReviews,
-      isActive,
-      type,
-      pricing
-    );
-
-    logger.info({serviceObj})
-    // saving in database
-    return serviceObj
-      .save()
-      .then(async (resultData) => {
-        if (resultData.status == false) {
-          return res.json({
-            status: 400,
-            message: resultData.message,
-          });
-        }
-        return res.json({
-          status: true,
-          message: "Service added successfully",
-          data: resultData["ops"],
+        .catch((err) => {
+          logger.error(err, "Error saving service");
+          return res.status(500).json({
+            status: false,
+            message: err.message
+          })
         });
-      })
-      .catch((err) => {
-        logger.error(err, "Error saving service");
-        return res.status(500).json({
-          status: false,
-          message: err.message
-        })
-      });
-  }
+    }
+} catch (error) {
+  logger.error(error,"Error Occured")
+  console.error(error);
+}
 };
 
 
