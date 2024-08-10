@@ -11,14 +11,19 @@ const userRegisterSchema = Joi.object({
 }).unknown(true)
 
 const userRegister = (req,res,next) =>{
-    const {error} = userRegisterSchema.validate(req.body)
-    if(error){
-        return res.status(200).json({
-            status:false,
-            Message:error.details[0].message
-        })
+    if((req.body.version || req.query.version) > "2.2.7"){
+        const {error} = userRegisterSchema.validate(req.body)
+        if(error){
+            return res.status(200).json({
+                status:false,
+                Message:error.details[0].message
+            })
+        }
+        next()
+    }else{
+        next()
     }
-    next()
+
 }
 
 
@@ -31,6 +36,7 @@ const userUpdateSchema = Joi.object({
 
 
 const userUpdate = (req,res,next) =>{
+    if(req.body.version || req.params.version ==="2.3.8") next()
     const {error} = userUpdateSchema.validate(req.body)
     if(error){
         return res.status(200).json({

@@ -65,7 +65,7 @@ exports.guestLogin = async (req, res, next) => {
   }
 
   const token = jwt.sign(deviceId, secretKey);
-
+  logger.info({deviceId,token},"of Guest User")
   return res.status(200).json({ status: true, token: token });
 }
 
@@ -138,13 +138,14 @@ exports.signupUser = async (req, res, next) => {
             });
           });
         })
-        .catch((err) => logger.info(err, "Error while signiing up user"));
+        .catch((err) => logger.error(err, "Error while signiing up user"));
     });
   });
 };
 
 exports.loginUserOTP2 = (req, res, next) => {
-  logger.log("LOGIN-OTP", req.body);
+  let req_body = req.body
+  logger.log({req_body},"LOGIN-OTP", );
   return res.json({ status: true, message: "Login-OTP" });
 };
 
@@ -169,7 +170,6 @@ exports.signupUserV2 = async (req, res, next) => {
     // let phone = (phoneNumber.length > 10)? phoneNumber.slice(2) : `91${phoneNumber}`
     let phone = phoneNumber.length == 10 ? `91${phoneNumber}` : phoneNumber;
 
-    // logger.info({ fullName, dateOfBirth, email, phone, deviceId });
 
     let _userData = await User.findUserByPhone(phone, 0, false);
 
@@ -266,7 +266,7 @@ exports.signupUserV2 = async (req, res, next) => {
 
     const token = jwt.sign({ user: userObj }, "myAppSecretKey");
 
-    // logger.info({userObj},"userObj:");
+    logger.info({userObj},"response of signupUserV2");
     return res.json({
       status: true,
       message: "Signup successful",
@@ -425,6 +425,7 @@ exports.loginUserOTP = async (req, res, next) => {
         }
       }
     }
+    logger.info({statusInfo},"loginUserOTP response")
     return res.status(200).json(statusInfo);
   } catch (error) {
     logger.error(error, "Error in loginUserOTP:");
@@ -461,12 +462,22 @@ exports.registerOfflineUser = async ({
       favourites: [],
       status: 0,
     };
+    logger.info({
+      fullName,
+      userType,
+      dateOfBirth,
+      email,
+      phoneNumber,
+      deviceId,
+      role,
+    },"Register data of offline User")
     let alreadyExist = await User.findUserByPhone(phoneNumber, 0, false);
     if (alreadyExist)
       return { status: false, message: "User Already Exist by this Number" };
     const userObj = new User(user_data);
     userObj.status = 0;
     let result = await userObj.save();
+    logger.info({result},"response of registerOfflineUser")
     return {
       status: true,
       message: "User Successfully Registered(Offline)",
@@ -500,11 +511,11 @@ exports.TestloginUserOTP = async (req, res, next) => {
 
     const userData = await User.findUserByPhone(phoneNumber);
 
-    logger.info("userdata ==========>", { userData });
+    logger.info({ userData },"userdata <==========>");
 
     if (userType === "NUMBER") {
       const token = generateRandomCode(4);
-      logger.info("test mobile otp:", { token });
+      logger.info({ token },"test mobile otp:");
       statusInfo.message = "Test OTP sent successfully";
       statusInfo.otp = token;
       statusInfo.status = true;
@@ -558,7 +569,8 @@ exports.loginUser = (req, res, next) => {
   let password = req.body.password;
   const deviceId = req.body.deviceId;
   const userType = req.body.userType;
-
+  let req_body = req.body;
+  logger.info({req_body}, "request data for loginUser")
   User.findUserByEmail(email).then(async (userData) => {
     if (!userData) {
       return res
@@ -589,10 +601,12 @@ exports.loginUser = (req, res, next) => {
     userData.deviceId = deviceId;
 
     const db = getDb();
+    
     db.collection("users")
       .updateOne({ email: email }, { $set: userData })
       .then((resultData) => {
         jwt.sign({ user: userData }, "myAppSecretKey", (err, token) => {
+          logger.info({userData},"response data of LoginUser")
           res.json({
             status: true,
             message: "Successfully Logged In",
@@ -608,74 +622,79 @@ exports.loginUser = (req, res, next) => {
 exports.sendSignUpOtp = (req, res, next) => {
   const email = req.body.email;
   const phone = req.body.phone;
-
-  User.findUserByEmail(email).then((userData) => {
-    if (userData) {
-      return res
-        .status(409)
-        .json({ status: false, message: "User already exist with this email" });
-    }
-    User.findUserByPhone(phone).then((userDataPhone) => {
-      if (userDataPhone) {
-        return res.status(409).json({
-          status: false,
-          message: "User already exist with this phone",
-        });
+  let req_body = req.body;
+  logger.info({req_body},"request data of sendSignUpOtp") 
+try {
+    User.findUserByEmail(email).then((userData) => {
+      if (userData) {
+        return res
+          .status(409)
+          .json({ status: false, message: "User already exist with this email" });
       }
-      let token = generateRandomCode(4);
-      logger.info("phone token otp :", { token });
-      // let token = "123456";
-      //send OTP to both email and OTP
-      //To Phone
-      axios
-        .get(
-          "https://www.fast2sms.com/dev/bulkV2?authorization=" +
-          process.env.FAST2SMS_AUTH_KEY +
-          "&variables_values" +
-          token +
-          "&route=otp&numbers=" +
-          phone
-        )
-        .then(function (response) {
-          if (
-            response.data != undefined &&
-            response.data.return == true &&
-            response.data.message[0] == "SMS sent successfully."
-          ) {
-            // return res.json({status:true, message:"OTP sent successfully", otp:token});
-            //Send OTP to EMAIL
-            const mailOptions = {
-              from: process.env.ZOHO_USER, // sender address
-              to: email,
-              subject: "Choira Studio | Email verification OTP",
-              html: "You requested for account signup. Your Token : " + token, // plain text body
-            };
-
-            transporter.sendMail(mailOptions, function (error, info) {
-              if (error) {
-                logger.error(error);
-                return res.json({
-                  status: false,
-                  message: "Error Occured",
-                  error: error,
-                });
-              } else {
-                logger.error("Email sent: " + info.response);
-                return res.json({
-                  status: true,
-                  message: "OTP sent successfully",
-                  otp: token,
-                });
-              }
-            });
-          } else {
-            return res
-              .status(400)
-              .json({ status: false, message: "OTP not sent" });
-          }
-        });
+      User.findUserByPhone(phone).then((userDataPhone) => {
+        if (userDataPhone) {
+          return res.status(409).json({
+            status: false,
+            message: "User already exist with this phone",
+          });
+        }
+        let token = generateRandomCode(4);
+        logger.info("phone token otp :", { token });
+        // let token = "123456";
+        //send OTP to both email and OTP
+        //To Phone
+        axios
+          .get(
+            "https://www.fast2sms.com/dev/bulkV2?authorization=" +
+            process.env.FAST2SMS_AUTH_KEY +
+            "&variables_values" +
+            token +
+            "&route=otp&numbers=" +
+            phone
+          )
+          .then(function (response) {
+            if (
+              response.data != undefined &&
+              response.data.return == true &&
+              response.data.message[0] == "SMS sent successfully."
+            ) {
+              // return res.json({status:true, message:"OTP sent successfully", otp:token});
+              //Send OTP to EMAIL
+              const mailOptions = {
+                from: process.env.ZOHO_USER, // sender address
+                to: email,
+                subject: "Choira Studio | Email verification OTP",
+                html: "You requested for account signup. Your Token : " + token, // plain text body
+              };
+  
+              transporter.sendMail(mailOptions, function (error, info) {
+                if (error) {
+                  logger.error(error);
+                  return res.json({
+                    status: false,
+                    message: "Error Occured",
+                    error: error,
+                  });
+                } else {
+                  logger.error("Email sent: " + info.response);
+                  return res.json({
+                    status: true,
+                    message: "OTP sent successfully",
+                    otp: token,
+                  });
+                }
+              });
+            } else {
+              return res
+                .status(400)
+                .json({ status: false, message: "OTP not sent" });
+            }
+          });
+      });
     });
-  });
+} catch (error) {
+  logger.error(error,"Error in sending otp to User")
+}
 };
 
 exports.getAllUsers = async (req, res) => {
@@ -699,7 +718,7 @@ exports.getAllUsers = async (req, res) => {
     }
 
     let filter = pick(req.query, ["status"]);
-
+    logger.info({ searchUser, startDate, endDate, filter },"reqest data of getAllUsers ")
     let sortfield = req.query?.sortfield
       ? req.query.sortfield
       : "creationTimeStamp";
@@ -792,134 +811,153 @@ exports.getAllUsers = async (req, res) => {
 };
 
 exports.getParticularUserDetails = (req, res, next) => {
-  const userId = req.params.userId;
-
-  console.log("userId===>", req.query);
-
-  User.findUserByUserId(userId).then((userData) => {
-    if (!userData) {
-      return res
-        .status(404)
-        .json({ status: false, message: "No User with this ID exists" });
-    }
-    return res.json({ status: true, message: "User Exists", user: userData });
-  });
+try {
+    const userId = req.params.userId;
+  
+    console.log("userId===>", req.query);
+  
+    User.findUserByUserId(userId).then((userData) => {
+      if (!userData) {
+        return res
+          .status(404)
+          .json({ status: false, message: "No User with this ID exists" });
+      }
+      return res.json({ status: true, message: "User Exists", user: userData });
+    });
+} catch (error) {
+  logger.error(error,"Error in getParticularUserDetails")
+}
 };
 
 exports.addEditUserLocation = (req, res, next) => {
-  const userId = req.params.userId;
+  try {
+    const userId = req.params.userId;
+  
+    const latitude = req.body.latitude;
+    const longitude = req.body.longitude;
+    const city = req.body.city;
+    const state = req.body.state;
+    let req_body = req.body;
+    logger.info({req_body},"request data to Edit Users Details")
+    User.findUserByUserId(userId).then((userData) => {
+      if (!userData) {
+        return res
+          .status(404)
+          .json({ status: false, message: "No User with this ID exists" });
+      }
+  
+      userData.latitude = latitude;
+      userData.longitude = longitude;
+      userData.city = city;
+      userData.state = state;
+  
+      const db = getDb();
+      var o_id = new ObjectId(userId);
+  
+      db.collection("users")
+        .updateOne({ _id: o_id }, { $set: userData })
+        .then((resultData) => {
+          jwt.sign({ user: userData }, secretKey, (err, token) => {
 
-  const latitude = req.body.latitude;
-  const longitude = req.body.longitude;
-  const city = req.body.city;
-  const state = req.body.state;
-
-  User.findUserByUserId(userId).then((userData) => {
-    if (!userData) {
-      return res
-        .status(404)
-        .json({ status: false, message: "No User with this ID exists" });
-    }
-
-    userData.latitude = latitude;
-    userData.longitude = longitude;
-    userData.city = city;
-    userData.state = state;
-
-    const db = getDb();
-    var o_id = new ObjectId(userId);
-
-    db.collection("users")
-      .updateOne({ _id: o_id }, { $set: userData })
-      .then((resultData) => {
-        jwt.sign({ user: userData }, secretKey, (err, token) => {
-          return res.json({
-            status: true,
-            message: "User location updated successfully",
-            user: userData,
-            token: token,
+            return res.json({
+              status: true,
+              message: "User location updated successfully",
+              user: userData,
+              token: token,
+            });
           });
-        });
-      })
-      .catch((err) => logger.error(err));
-  });
+        })
+        .catch((err) => logger.error(err));
+    });
+  } catch (error) {
+    logger.error(error,"Error in Editing User's Location")
+  }
 };
 
 exports.editUserProfile = (req, res, next) => {
-  const userId = req.params.userId;
-  const fullName = req.body.fullName || "Artist";
-  const dateOfBirth = req.body.dateOfBirth || "2000-01-01";
-  const profileUrl = req.body.profileUrl || "";
-  const gender = req.body.gender || "male";
-
-  User.findUserByUserId(userId).then((userData) => {
-
-    if (!userData) {
-      return res
-        .status(404)
-        .json({ status: false, message: "No User with this ID exists" });
-    }
-
-    userData.fullName = fullName;
-    userData.dateOfBirth = dateOfBirth;
-    userData.profileUrl = profileUrl;
-    userData.gender = gender;
-    const db = getDb();
-    var o_id = new ObjectId(userId);
-    db.collection("users")
-      .updateOne({ _id: o_id }, { $set: userData })
-      .then((resultData) => {
-        jwt.sign({ user: userData }, secretKey, (err, token) => {
-          return res.json({
-            status: true,
-            message: "User details updated successfully",
-            user: userData,
-            token: token,
+try {
+    const userId = req.params.userId;
+    const fullName = req.body.fullName || "Artist";
+    const dateOfBirth = req.body.dateOfBirth || "2000-01-01";
+    const profileUrl = req.body.profileUrl || "";
+    const gender = req.body.gender || "male";
+    let req_body = req.body;
+    logger.ingo({req_body},"request data to Edit User Profile")
+    User.findUserByUserId(userId).then((userData) => {
+  
+      if (!userData) {
+        return res
+          .status(404)
+          .json({ status: false, message: "No User with this ID exists" });
+      }
+  
+      userData.fullName = fullName;
+      userData.dateOfBirth = dateOfBirth;
+      userData.profileUrl = profileUrl;
+      userData.gender = gender;
+      const db = getDb();
+      var o_id = new ObjectId(userId);
+      db.collection("users")
+        .updateOne({ _id: o_id }, { $set: userData })
+        .then((resultData) => {
+          jwt.sign({ user: userData }, secretKey, (err, token) => {
+            return res.json({
+              status: true,
+              message: "User details updated successfully",
+              user: userData,
+              token: token,
+            });
           });
-        });
-      }).catch((err) => logger.error(err));
-  });
+        }).catch((err) => logger.error(err));
+    });
+} catch (error) {
+  logger.error(error,"Error in Editing User Profile")
+}
 };
 
 exports.sendEmailOtpForEdit = (req, res, next) => {
-  const email = req.body.email;
-
-  let token = generateRandomCode(6);
-  // let token = "123456";
-
-  User.findUserByEmail(email).then((userData) => {
-    if (userData) {
-      return res.status(409).json({
-        status: false,
-        message: "User with this Email already exists",
-      });
-    }
-    // return res.json({status:true, message:"OTP sent successfully", otp:token});
-    const mailOptions = {
-      from: process.env.ZOHO_USER, // sender address
-      to: email,
-      subject: "Choira Studio | Email verification OTP",
-      html: "You requested for email verification. Your Token : " + token, // plain text body
-    };
-
-    transporter.sendMail(mailOptions, function (error, info) {
-      if (error) {
-        logger.error(error);
-        return res.json({
+try {
+    const email = req.body.email;
+  
+    let token = generateRandomCode(6);
+    // let token = "123456";
+  logger.info({email},"email for sendEmailOtpForEdit")
+    User.findUserByEmail(email).then((userData) => {
+      if (userData) {
+        return res.status(409).json({
           status: false,
-          message: "Error Occured",
-          error: error,
-        });
-      } else {
-        logger.error("Email sent: " + info.response);
-        return res.json({
-          status: true,
-          message: "OTP sent successfully",
-          otp: token,
+          message: "User with this Email already exists",
         });
       }
+      // return res.json({status:true, message:"OTP sent successfully", otp:token});
+      const mailOptions = {
+        from: process.env.ZOHO_USER, // sender address
+        to: email,
+        subject: "Choira Studio | Email verification OTP",
+        html: "You requested for email verification. Your Token : " + token, // plain text body
+      };
+  
+      transporter.sendMail(mailOptions, function (error, info) {
+        if (error) {
+          logger.error(error);
+          return res.json({
+            status: false,
+            message: "Error Occured",
+            error: error,
+          });
+        } else {
+          logger.error("Email sent: " + info.response);
+          return res.json({
+            status: true,
+            message: "OTP sent successfully",
+            otp: token,
+          });
+        }
+      });
     });
-  });
+} catch (error) {
+  logger.error(error,"Error in sendEmailOtpForEdit")
+}
 };
 
 function checkEmailAvailability(userId, email, _callBack) {
@@ -944,82 +982,90 @@ function checkEmailAvailability(userId, email, _callBack) {
 }
 
 exports.editUserEmail = (req, res, next) => {
-  const userId = req.params.userId;
-  const email = req.body.email;
-
-  User.findUserByUserId(userId).then((userData) => {
-    if (!userData) {
-      return res.json({
-        status: false,
-        message: "No User with this ID exists",
-      });
-    }
-    checkEmailAvailability(userId, email, (valStatus, valMsg) => {
-      if (!valStatus) {
-        return res.json({ status: false, message: valMsg });
+  try {
+    const userId = req.params.userId;
+    const email = req.body.email;
+  
+    User.findUserByUserId(userId).then((userData) => {
+      if (!userData) {
+        return res.json({
+          status: false,
+          message: "No User with this ID exists",
+        });
       }
-      userData.email = email;
-
-      const db = getDb();
-      var o_id = new ObjectId(userId);
-      db.collection("users")
-        .updateOne({ _id: o_id }, { $set: userData })
-        .then((resultData) => {
-          jwt.sign({ user: userData }, secretKey, (err, token) => {
-            res.json({
-              status: true,
-              message: "Email updated successfully",
-              user: userData,
-              token: token,
+      checkEmailAvailability(userId, email, (valStatus, valMsg) => {
+        if (!valStatus) {
+          return res.json({ status: false, message: valMsg });
+        }
+        userData.email = email;
+  
+        const db = getDb();
+        var o_id = new ObjectId(userId);
+        db.collection("users")
+          .updateOne({ _id: o_id }, { $set: userData })
+          .then((resultData) => {
+            jwt.sign({ user: userData }, secretKey, (err, token) => {
+              res.json({
+                status: true,
+                message: "Email updated successfully",
+                user: userData,
+                token: token,
+              });
             });
-          });
-        })
-        .catch((err) => logger.error(err));
+          })
+          .catch((err) => logger.error(err));
+      });
     });
-  });
+  } catch (error) {
+    logger.error(error,"Error in editUserEmail")
+  }
 };
 
 exports.sendPhoneOtpForEdit = (req, res, next) => {
-  const phone = req.body.phone;
-
-  let token = generateRandomCode(6);
-  // let token = "123456";
-
-  User.findUserByPhone(phone).then((userData) => {
-    if (userData) {
-      return res.status(409).json({
-        status: false,
-        message: "User with this Phone already exists",
-      });
-    }
-    // return res.json({status:true, message:"OTP sent successfully", otp:token});
-    axios
-      .get(
-        "https://www.fast2sms.com/dev/bulkV2?authorization=" +
-        process.env.FAST2SMS_AUTH_KEY +
-        "&variables_values" +
-        token +
-        "&route=otp&numbers=" +
-        phone
-      )
-      .then(function (response) {
-        if (
-          response.data != undefined &&
-          response.data.return == true &&
-          response.data.message[0] == "SMS sent successfully."
-        ) {
-          return res.json({
-            status: true,
-            message: "OTP sent successfully",
-            otp: token,
-          });
-        } else {
-          return res
-            .status(400)
-            .json({ status: false, message: "OTP not sent" });
-        }
-      });
-  });
+ try {
+   const phone = req.body.phone;
+ 
+   let token = generateRandomCode(6);
+   // let token = "123456";
+ 
+   User.findUserByPhone(phone).then((userData) => {
+     if (userData) {
+       return res.status(409).json({
+         status: false,
+         message: "User with this Phone already exists",
+       });
+     }
+     // return res.json({status:true, message:"OTP sent successfully", otp:token});
+     axios
+       .get(
+         "https://www.fast2sms.com/dev/bulkV2?authorization=" +
+         process.env.FAST2SMS_AUTH_KEY +
+         "&variables_values" +
+         token +
+         "&route=otp&numbers=" +
+         phone
+       )
+       .then(function (response) {
+         if (
+           response.data != undefined &&
+           response.data.return == true &&
+           response.data.message[0] == "SMS sent successfully."
+         ) {
+           return res.json({
+             status: true,
+             message: "OTP sent successfully",
+             otp: token,
+           });
+         } else {
+           return res
+             .status(400)
+             .json({ status: false, message: "OTP not sent" });
+         }
+       });
+   });
+ } catch (error) {
+  logger.error(error,"Error in sendPhoneOtpForEdit")
+ }
 };
 
 function checkPhoneAvailability(userId, phone, _callBack) {
@@ -1044,31 +1090,94 @@ function checkPhoneAvailability(userId, phone, _callBack) {
 }
 
 exports.editUserPhone = (req, res, next) => {
-  const userId = req.params.userId;
-  const phone = req.body.phone;
-
-  User.findUserByUserId(userId).then((userData) => {
-    if (!userData) {
-      return res.json({
-        status: false,
-        message: "No User with this ID exists",
-      });
-    }
-    checkPhoneAvailability(userId, phone, (valStatus, valMsg) => {
-      if (!valStatus) {
-        return res.json({ status: false, message: valMsg });
+try {
+    const userId = req.params.userId;
+    const phone = req.body.phone;
+  
+    User.findUserByUserId(userId).then((userData) => {
+      if (!userData) {
+        return res.json({
+          status: false,
+          message: "No User with this ID exists",
+        });
       }
-      userData.phone = phone;
+      checkPhoneAvailability(userId, phone, (valStatus, valMsg) => {
+        if (!valStatus) {
+          return res.json({ status: false, message: valMsg });
+        }
+        userData.phone = phone;
+  
+        const db = getDb();
+        var o_id = new ObjectId(userId);
+        db.collection("users")
+          .updateOne({ _id: o_id }, { $set: userData })
+          .then((resultData) => {
+            jwt.sign({ user: userData }, secretKey, (err, token) => {
+              res.json({
+                status: true,
+                message: "Phone updated successfully",
+                user: userData,
+                token: token,
+              });
+            });
+          })
+          .catch((err) => logger.error(err));
+      });
+    });
+} catch (error) {
+  logger.error(error,"Error in editUserPhone")
+}
+};
 
+exports.editUserPasswordDetails = (req, res, next) => {
+  try {
+    const userId = req.params.userId;
+  
+    let currentPassword = req.body.currentPassword;
+    let newPassword = req.body.newPassword;
+  logger.info({userId,currentPassword,newPassword},"request data for editUserPasswordDetails")
+    //Encrypting Password
+    var hash = crypto.createHash("sha256");
+    hash.update(currentPassword);
+    currentPassword = hash.digest("hex");
+  
+    var hash = crypto.createHash("sha256");
+    hash.update(newPassword);
+    newPassword = hash.digest("hex");
+  
+    User.findUserByUserId(userId).then((userData) => {
+      if (!userData) {
+        return res
+          .status(404)
+          .json({ status: false, message: "No User with this ID exists" });
+      }
+  
+      if (userData.password != currentPassword) {
+        return res.status(400).json({
+          status: false,
+          message: "Please enter valid current password",
+        });
+      }
+  
+      if (currentPassword == newPassword) {
+        return res.status(400).json({
+          status: false,
+          message: "New password should not be same as old password",
+        });
+      }
+  
+      userData.password = newPassword;
+  
       const db = getDb();
       var o_id = new ObjectId(userId);
+  
       db.collection("users")
         .updateOne({ _id: o_id }, { $set: userData })
         .then((resultData) => {
           jwt.sign({ user: userData }, secretKey, (err, token) => {
-            res.json({
+            return res.json({
               status: true,
-              message: "Phone updated successfully",
+              message: "Password changed successfully",
               user: userData,
               token: token,
             });
@@ -1076,64 +1185,9 @@ exports.editUserPhone = (req, res, next) => {
         })
         .catch((err) => logger.error(err));
     });
-  });
-};
-
-exports.editUserPasswordDetails = (req, res, next) => {
-  const userId = req.params.userId;
-
-  let currentPassword = req.body.currentPassword;
-  let newPassword = req.body.newPassword;
-
-  //Encrypting Password
-  var hash = crypto.createHash("sha256");
-  hash.update(currentPassword);
-  currentPassword = hash.digest("hex");
-
-  var hash = crypto.createHash("sha256");
-  hash.update(newPassword);
-  newPassword = hash.digest("hex");
-
-  User.findUserByUserId(userId).then((userData) => {
-    if (!userData) {
-      return res
-        .status(404)
-        .json({ status: false, message: "No User with this ID exists" });
-    }
-
-    if (userData.password != currentPassword) {
-      return res.status(400).json({
-        status: false,
-        message: "Please enter valid current password",
-      });
-    }
-
-    if (currentPassword == newPassword) {
-      return res.status(400).json({
-        status: false,
-        message: "New password should not be same as old password",
-      });
-    }
-
-    userData.password = newPassword;
-
-    const db = getDb();
-    var o_id = new ObjectId(userId);
-
-    db.collection("users")
-      .updateOne({ _id: o_id }, { $set: userData })
-      .then((resultData) => {
-        jwt.sign({ user: userData }, secretKey, (err, token) => {
-          return res.json({
-            status: true,
-            message: "Password changed successfully",
-            user: userData,
-            token: token,
-          });
-        });
-      })
-      .catch((err) => logger.error(err));
-  });
+  } catch (error) {
+    logger.error(error,"Error in editUserPasswordDetails")
+  }
 };
 
 exports.sendForgotPasswordOtp = (req, res, next) => {
@@ -1218,153 +1272,162 @@ exports.sendForgotPasswordOtp = (req, res, next) => {
 };
 
 exports.editUserPassword = (req, res, next) => {
-  const identity = req.body.identity;
-  const identityType = +req.body.identityType; //0-> Email, 1-> Phone
-  let newPassword = req.body.newPassword;
-
-  //Encrypting Password
-  var hash = crypto.createHash("sha256");
-  hash.update(newPassword);
-  newPassword = hash.digest("hex");
-
-  const db = getDb();
-
-  if (identityType == 0) {
-    User.findUserByEmail(identity).then((userData) => {
-      if (!userData) {
-        return res
-          .status(404)
-          .json({ status: false, message: "No User exists with this email" });
-      }
-
-      if (userData.password == newPassword) {
-        return res.status(409).json({
-          status: false,
-          message: "New password must not be same as old password",
-        });
-      }
-
-      //Update password
-      userData.password = newPassword;
-
-      db.collection("users")
-        .updateOne({ email: identity }, { $set: userData })
-        .then((resultData) => {
-          return res.json({
-            status: true,
-            message: "Password updated successfully",
-            user: userData,
-          });
-        })
-        .catch((err) => logger.error(err));
-    });
-  } else if (identityType == 1) {
-    User.findUserByPhone(identity).then((userData) => {
-      if (!userData) {
-        return res
-          .status(404)
-          .json({ status: false, message: "No User exists with this phone" });
-      }
-      //Update password
-      userData.password = newPassword;
-
-      db.collection("users")
-        .updateOne({ phone: identity }, { $set: userData })
-        .then((resultData) => {
-          return res.json({
-            status: true,
-            message: "Password updated successfully",
-            user: userData,
-          });
-        })
-        .catch((err) => logger.error(err));
-    });
-  } else {
-    return res
-      .status(400)
-      .json({ status: false, message: "Enter valid identity type" });
-  }
-};
-
-exports.addRemoveUserFavourites = (req, res, next) => {
-  const userId = req.body.userId;
-  const studioId = req.body.studioId;
-
-  User.findUserByUserId(userId).then((userData) => {
-    if (!userData) {
-      return res
-        .status(404)
-        .json({ status: false, message: "No User with this ID exists" });
-    }
-
-    if (studioId != undefined) {
-      Studio.findStudioById(studioId).then((studioData) => {
-        if (!studioData) {
+try {
+    const identity = req.body.identity;
+    const identityType = +req.body.identityType; //0-> Email, 1-> Phone
+    let newPassword = req.body.newPassword;
+    let req_body = req.body;
+    logger.info({req_body},"request for editUserPassword")
+    //Encrypting Password
+    var hash = crypto.createHash("sha256");
+    hash.update(newPassword);
+    newPassword = hash.digest("hex");
+  
+    const db = getDb();
+  
+    if (identityType == 0) {
+      User.findUserByEmail(identity).then((userData) => {
+        if (!userData) {
           return res
             .status(404)
-            .json({ status: false, message: "No Studio with this ID exists" });
+            .json({ status: false, message: "No User exists with this email" });
         }
-
-        let resMsg = "";
-        const index = userData.favourites.findIndex((i) => i == studioId);
-        if (index != -1) {
-          //remove from array
-          userData.favourites.splice(index, 1);
-          resMsg = "Studio removed from favourites";
-        } else {
-          //add to array
-          userData.favourites.push(studioId);
-          resMsg = "Studio added to favourites";
+  
+        if (userData.password == newPassword) {
+          return res.status(409).json({
+            status: false,
+            message: "New password must not be same as old password",
+          });
         }
-
-        const db = getDb();
-        var o_id = new ObjectId(userId);
-
+  
+        //Update password
+        userData.password = newPassword;
+  
         db.collection("users")
-          .updateOne({ _id: o_id }, { $set: userData })
+          .updateOne({ email: identity }, { $set: userData })
           .then((resultData) => {
-            if (userData.favourites.length == 0) {
-              return res.json({
-                status: true,
-                message: resMsg,
-                user: userData,
-                allFavourites: [],
-              });
-            } else {
-              let mappedFavourites = [];
-              let count = 0;
-              let allFavourites = userData.favourites.map(async (f) => {
-                let studioData = await Studio.findStudioById(f);
-                if (studioData != null) {
-                  mappedFavourites.push(studioData);
-                }
-                count = count + 1;
-                if (count == userData.favourites.length) {
-                  return res.json({
-                    status: true,
-                    message: resMsg,
-                    user: userData,
-                    allFavourites: mappedFavourites,
-                  });
-                }
-              });
-            }
+            return res.json({
+              status: true,
+              message: "Password updated successfully",
+              user: userData,
+            });
+          })
+          .catch((err) => logger.error(err));
+      });
+    } else if (identityType == 1) {
+      User.findUserByPhone(identity).then((userData) => {
+        if (!userData) {
+          return res
+            .status(404)
+            .json({ status: false, message: "No User exists with this phone" });
+        }
+        //Update password
+        userData.password = newPassword;
+  
+        db.collection("users")
+          .updateOne({ phone: identity }, { $set: userData })
+          .then((resultData) => {
+            return res.json({
+              status: true,
+              message: "Password updated successfully",
+              user: userData,
+            });
           })
           .catch((err) => logger.error(err));
       });
     } else {
-      return res.json({
-        status: true,
-        message: "User data returned",
-        user: userData,
-      });
+      return res
+        .status(400)
+        .json({ status: false, message: "Enter valid identity type" });
     }
-  });
+} catch (error) {
+  logger.error(error,"Error in editUserPassword")
+}
+};
+
+exports.addRemoveUserFavourites = (req, res, next) => {
+  try {
+    const userId = req.body.userId;
+    const studioId = req.body.studioId;
+  
+    User.findUserByUserId(userId).then((userData) => {
+      if (!userData) {
+        return res
+          .status(404)
+          .json({ status: false, message: "No User with this ID exists" });
+      }
+  
+      if (studioId != undefined) {
+        Studio.findStudioById(studioId).then((studioData) => {
+          if (!studioData) {
+            return res
+              .status(404)
+              .json({ status: false, message: "No Studio with this ID exists" });
+          }
+  
+          let resMsg = "";
+          const index = userData.favourites.findIndex((i) => i == studioId);
+          if (index != -1) {
+            //remove from array
+            userData.favourites.splice(index, 1);
+            resMsg = "Studio removed from favourites";
+          } else {
+            //add to array
+            userData.favourites.push(studioId);
+            resMsg = "Studio added to favourites";
+          }
+  
+          const db = getDb();
+          var o_id = new ObjectId(userId);
+  
+          db.collection("users")
+            .updateOne({ _id: o_id }, { $set: userData })
+            .then((resultData) => {
+              if (userData.favourites.length == 0) {
+                return res.json({
+                  status: true,
+                  message: resMsg,
+                  user: userData,
+                  allFavourites: [],
+                });
+              } else {
+                let mappedFavourites = [];
+                let count = 0;
+                let allFavourites = userData.favourites.map(async (f) => {
+                  let studioData = await Studio.findStudioById(f);
+                  if (studioData != null) {
+                    mappedFavourites.push(studioData);
+                  }
+                  count = count + 1;
+                  if (count == userData.favourites.length) {
+                    return res.json({
+                      status: true,
+                      message: resMsg,
+                      user: userData,
+                      allFavourites: mappedFavourites,
+                    });
+                  }
+                });
+              }
+            })
+            .catch((err) => logger.error(err));
+        });
+      } else {
+        return res.json({
+          status: true,
+          message: "User data returned",
+          user: userData,
+        });
+      }
+    });
+  } catch (error) {
+    logger.error(error,"Error in addRemoveUserFavourites")
+  }
 };
 
 exports.getAllFavourites = (req, res, next) => {
   const userId = req.params.userId;
-
+  logger.info({userId},"request Id for getAllFavourites")
   User.findUserByUserId(userId).then((userData) => {
     if (!userData) {
       return res
@@ -1400,165 +1463,177 @@ exports.getAllFavourites = (req, res, next) => {
 };
 
 exports.deleteParticularUser = (req, res, next) => {
-  const userId = req.params.userId;
-
-  User.findUserByUserId(userId).then(async (userData) => {
-    if (!userData) {
-      return res
-        .status(404)
-        .json({ status: false, message: "No User with this ID exists" });
-    }
-
-    const db = getDb();
-    var o_id = new ObjectId(userId);
-
-    await db
-      .collection("userdeleterequests")
-      .insertOne({
-        phone: userData.phone,
-        email: userData.email,
-        creationTimeStamp: new Date(),
-        userId: userData._id,
-      });
-    await db
-      .collection("users")
-      .updateOne({ _id: o_id }, { $set: { status: 0 } })
-      .then((resultData) => {
-        return res.json({ status: true, message: "User deleted successfully" });
-      })
-      .catch((err) => logger.error(err));
-  });
+  try {
+    const userId = req.params.userId;
+  logger.info({userId},"Request id for deleteParticularUser")
+    User.findUserByUserId(userId).then(async (userData) => {
+      if (!userData) {
+        return res
+          .status(404)
+          .json({ status: false, message: "No User with this ID exists" });
+      }
+  
+      const db = getDb();
+      var o_id = new ObjectId(userId);
+  
+      await db
+        .collection("userdeleterequests")
+        .insertOne({
+          phone: userData.phone,
+          email: userData.email,
+          creationTimeStamp: new Date(),
+          userId: userData._id,
+        });
+      await db
+        .collection("users")
+        .updateOne({ _id: o_id }, { $set: { status: 0 } })
+        .then((resultData) => {
+          return res.json({ status: true, message: "User deleted successfully" });
+        })
+        .catch((err) => logger.error(err));
+    });
+  } catch (error) {
+    logger.error(error,"Error in deleteParticularUser")
+  }
 };
 
 exports.getAllDashboardCount = (req, res, next) => {
-  const db = getDb();
-  db.collection("users")
-    .count()
-    .then((resData) => {
-      db.collection("studios")
-        .count()
-        .then((resData1) => {
-          db.collection("bookings")
-            .count()
-            .then((resData2) => {
-              return res.json({
-                status: true,
-                message: "All counts returned",
-                users: resData,
-                studios: resData1,
-                bookings: resData2,
+  try {
+    const db = getDb();
+    db.collection("users")
+      .count()
+      .then((resData) => {
+        db.collection("studios")
+          .count()
+          .then((resData1) => {
+            db.collection("bookings")
+              .count()
+              .then((resData2) => {
+                return res.json({
+                  status: true,
+                  message: "All counts returned",
+                  users: resData,
+                  studios: resData1,
+                  bookings: resData2,
+                });
               });
-            });
-        });
-    });
+          });
+      });
+  } catch (error) {
+    logger.error(error,"Error in getAllDashboardCount")
+  }
 };
 
 exports.getAllUsersGraphDetails = (req, res, next) => {
-  var today = new Date();
-  // var today = new Date();
-  var d;
-  var months = [];
-  var d = new Date();
-  var month;
-  var year = d.getFullYear();
-  // console.log(year)
-
-  //for last 6 months(including current month)
-  // for(var i = 5; i > -1; i -= 1) {
-  var keyData = 1;
-  //for last 6 months(excluding current month)
-  for (var i = 6; i > 0; i -= 1) {
-    d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-    //   console.log(d.getFullYear())
-
-    months.push({
-      month: d.getMonth(),
-      year: d.getFullYear(),
-      key: keyData,
-      userCount: 0,
+try {
+    var today = new Date();
+    // var today = new Date();
+    var d;
+    var months = [];
+    var d = new Date();
+    var month;
+    var year = d.getFullYear();
+    // console.log(year)
+  
+    //for last 6 months(including current month)
+    // for(var i = 5; i > -1; i -= 1) {
+    var keyData = 1;
+    //for last 6 months(excluding current month)
+    for (var i = 6; i > 0; i -= 1) {
+      d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      //   console.log(d.getFullYear())
+  
+      months.push({
+        month: d.getMonth(),
+        year: d.getFullYear(),
+        key: keyData,
+        userCount: 0,
+      });
+      keyData = keyData + 1;
+    }
+    logger.info({ months });
+  
+    User.fetchAllUsers(0, 0).then((usersData) => {
+      usersData.forEach((user) => {
+        // console.log(user.creationTimeStamp);
+        var dt1 = new Date(user.creationTimeStamp);
+        var monthOnly = dt1.getMonth();
+  
+        months.forEach((mth) => {
+          if (+mth.month == +monthOnly) {
+            mth.userCount = mth.userCount + 1;
+          }
+        });
+      });
+  
+      setTimeout(() => {
+        months.forEach((mthData) => {
+          if (mthData.month == 0) {
+            mthData.month = "January";
+          }
+          if (mthData.month == 1) {
+            mthData.month = "Febuary";
+          }
+          if (mthData.month == 2) {
+            mthData.month = "March";
+          }
+          if (mthData.month == 3) {
+            mthData.month = "April";
+          }
+          if (mthData.month == 4) {
+            mthData.month = "May";
+          }
+          if (mthData.month == 5) {
+            mthData.month = "June";
+          }
+          if (mthData.month == 6) {
+            mthData.month = "July";
+          }
+          if (mthData.month == 7) {
+            mthData.month = "August";
+          }
+          if (mthData.month == 8) {
+            mthData.month = "September";
+          }
+          if (mthData.month == 9) {
+            mthData.month = "Ocober";
+          }
+          if (mthData.month == 10) {
+            mthData.month = "November";
+          }
+          if (mthData.month == 11) {
+            mthData.month = "December";
+          }
+        });
+  
+        months.sort((a, b) => {
+          return a.key - b.key;
+        });
+  
+        //retrieving only months
+        var allMonths = [];
+        months.forEach((m) => {
+          allMonths.push(m.month);
+        });
+  
+        //retrieving only userCounts
+        var allUserCounts = [];
+        months.forEach((m) => {
+          allUserCounts.push(m.userCount);
+        });
+  
+        res.json({
+          status: true,
+          message: "All data returned",
+          allMonths: allMonths,
+          allUserCounts: allUserCounts,
+          allData: months,
+        });
+      }, 1000);
     });
-    keyData = keyData + 1;
-  }
-  logger.info({ months });
-
-  User.fetchAllUsers(0, 0).then((usersData) => {
-    usersData.forEach((user) => {
-      // console.log(user.creationTimeStamp);
-      var dt1 = new Date(user.creationTimeStamp);
-      var monthOnly = dt1.getMonth();
-
-      months.forEach((mth) => {
-        if (+mth.month == +monthOnly) {
-          mth.userCount = mth.userCount + 1;
-        }
-      });
-    });
-
-    setTimeout(() => {
-      months.forEach((mthData) => {
-        if (mthData.month == 0) {
-          mthData.month = "January";
-        }
-        if (mthData.month == 1) {
-          mthData.month = "Febuary";
-        }
-        if (mthData.month == 2) {
-          mthData.month = "March";
-        }
-        if (mthData.month == 3) {
-          mthData.month = "April";
-        }
-        if (mthData.month == 4) {
-          mthData.month = "May";
-        }
-        if (mthData.month == 5) {
-          mthData.month = "June";
-        }
-        if (mthData.month == 6) {
-          mthData.month = "July";
-        }
-        if (mthData.month == 7) {
-          mthData.month = "August";
-        }
-        if (mthData.month == 8) {
-          mthData.month = "September";
-        }
-        if (mthData.month == 9) {
-          mthData.month = "Ocober";
-        }
-        if (mthData.month == 10) {
-          mthData.month = "November";
-        }
-        if (mthData.month == 11) {
-          mthData.month = "December";
-        }
-      });
-
-      months.sort((a, b) => {
-        return a.key - b.key;
-      });
-
-      //retrieving only months
-      var allMonths = [];
-      months.forEach((m) => {
-        allMonths.push(m.month);
-      });
-
-      //retrieving only userCounts
-      var allUserCounts = [];
-      months.forEach((m) => {
-        allUserCounts.push(m.userCount);
-      });
-
-      res.json({
-        status: true,
-        message: "All data returned",
-        allMonths: allMonths,
-        allUserCounts: allUserCounts,
-        allData: months,
-      });
-    }, 1000);
-  });
+} catch (error) {
+  logger.error(error,"Error occuring in getAllUsersGraphDetails")
+}
 };
 
 exports.getUserNearyByLocations = async (req, res, next) => {
@@ -1584,8 +1659,9 @@ exports.exportUserData = async (req, res) => {
       "sortvalue",
     ]); // {}
 
-    console.log("=====================");
-    console.log(req.query);
+
+    let req_query = req.query;
+    logger.info({req_query},"Coming Request data for exportUserData")
     const pipeline = [];
 
     if (Object.keys(filter).length) {
@@ -1714,7 +1790,7 @@ exports.exportUserData = async (req, res) => {
           });
       });
   } catch (error) {
-    logger.error(error);
+    logger.error(error,"Error in exporting User Data");
     res.send({
       status: "error",
       message: "Something went wrong",
@@ -1728,6 +1804,7 @@ exports.sendOTP2 = async (req, res) => {
     const db = getDb();
     var phoneNumber = req.body.phoneNumber;
     // let otp = req.query.otp
+    logger.info({phoneNumber},"Phone no to send otp")
     let userData = await db.collection("users").findOne({ phone: phoneNumber });
     if (!userData) {
       return res.status(200).json({ status: false, message: "User not found" });
@@ -1786,7 +1863,8 @@ exports.verifyOTP = async (req, res) => {
     let phoneNumber = req.query.phoneNumber;
     let otp = req.query.otp;
     let role = req.query.role;
-
+    let req_query = req.query
+    logger.info({req_query},"Coming request data for verifying OTP")
     const response = await axios.get(
       `https://control.msg91.com/api/v5/otp/verify`,
       {

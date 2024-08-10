@@ -126,7 +126,7 @@ exports.getStudios = async (req, res, next) => {
   console.log("body---studios-all");
 
 
-  logger.info({ "body---": req.query });
+  logger.info({ "req.query of getStudios": req.query });
 
   var {
     city,
@@ -194,7 +194,10 @@ exports.getStudios = async (req, res, next) => {
   if (options.page) options.page = +page;
   if (options.limit) options.limit = +limit;
 
-  logger.info("filter", { filter });
+  logger.info({ "filter of getStudio":filter });
+
+
+
 
   console.log("filter =>", filter);
 
@@ -344,7 +347,7 @@ exports.getStudios_aggreation = async (req, res, next) => {
   try {
     let req_body = req.body;
     let req_body_longitude = parseFloat(req.body.longitude)
-    logger.info("body---", { req_body, req_body_longitude });
+    logger.info({ req_body, req_body_longitude },"body of getStudios_aggreation", );
     const db = getDb();
     const {
       city,
@@ -448,7 +451,7 @@ exports.getStudios_aggreation = async (req, res, next) => {
       });
     }
   } catch (error) {
-    logger.error(error, "Error occurred:");
+    logger.error(error, "Error occurred in getStudios_aggreation");
     return res
       .status(500)
       .json({ status: false, message: "Internal server error" });
@@ -457,7 +460,7 @@ exports.getStudios_aggreation = async (req, res, next) => {
 
 exports.getStudiosOptimized = (req, res, next) => {
   let req_body = req.body
-  logger.info("body---", { req_body });
+  logger.info({ "body of getStudiosOptimized ":req_body });
   const {
     city,
     state,
@@ -547,6 +550,7 @@ exports.getAllNearStudios = async (req, res, next) => {
   const latitude = req.body.latitude;
   const longitude = req.body.longitude;
   const range = 10;
+  logger.info({latitude,longitude},"lat & long of getAllNearStudios")
   try {
     if (
       latitude == undefined ||
@@ -571,7 +575,7 @@ exports.getAllNearStudios = async (req, res, next) => {
       forYou: [],
     });
   } catch (exception) {
-    logger.error(exception, "Exception Occured");
+    logger.error(exception, "Exception Occured in getAllNearStudios");
     return res.json({
       status: false,
       message: "Geopoint Exception Occured....Invalid Latitude",
@@ -787,7 +791,7 @@ exports.createNewStudio = async (req, res, next) => {
   const featuredReviews = [];
   let minPrice = {};
   try {
-    
+    logger.info({"req.body":req.body})
     console.log("req.body",req.body);
 
     minPrice = calculateMinPrice(roomsDetails);
@@ -858,7 +862,7 @@ exports.createNewStudio = async (req, res, next) => {
 
 
   } catch (error) {
-    logger.error(error);
+    logger.error(error,"Error occured while creating new Studio");
     return res.json({
       status: false,
       message: "Address Lat Long failed! :( contact Dev. NR",
@@ -867,118 +871,126 @@ exports.createNewStudio = async (req, res, next) => {
 };
 
 exports.getParticularStudioDetails = (req, res, next) => {
-  const studioId = req.params.studioId;
-
-  Studio.findStudioById(studioId).then((studioData) => {
-    if (!studioData) {
-      return res
-        .status(404)
-        .json({ status: false, message: "No Studio with this ID exists" });
-    }
-    studioData.reviews = {};
-    Rating.fetchAllRatingsByStudioId(studioId).then((ratingsData) => {
-      if (ratingsData.length == 0) {
-        studioData.reviews.avgService = 0;
-        studioData.reviews.avgStudio = 0;
-        studioData.reviews.avgAmenity = 0;
-        studioData.reviews.avgLocation = 0;
-        studioData.reviews.overallAvgRating = 0;
-        studioData.reviews.reviewCategory = "Poor";
-        return res.json({
-          status: true,
-          message: "Studio Exists",
-          studio: studioData,
-        });
-      } else {
-        let rCount = ratingsData.length;
-        logger.info("Ratings exists : " + rCount);
-        let serviceCount = 0;
-        let studioRatingCount = 0;
-        let amenityRatingCount = 0;
-        let locationRatingCount = 0;
-        getReviewersName(ratingsData, (resRatingData) => {
-          resRatingData.forEach((singleRating) => {
-            studioData.clientPhotos.push(...singleRating.reviewImage);
-
-            let featuredSingleAvgRating =
-              parseFloat(singleRating.rateInfo.service) +
-              parseFloat(singleRating.rateInfo.studio) +
-              parseFloat(singleRating.rateInfo.amenities) +
-              parseFloat(singleRating.rateInfo.location);
-            singleRating.avgRatingFeatured = (
-              featuredSingleAvgRating / 4
-            ).toFixed(1);
-            studioData.featuredReviews.push(singleRating);
-
-            serviceCount += parseFloat(singleRating.rateInfo.service);
-            studioRatingCount += parseFloat(singleRating.rateInfo.studio);
-            amenityRatingCount += parseFloat(singleRating.rateInfo.amenities);
-            locationRatingCount += parseFloat(singleRating.rateInfo.location);
-          });
-          studioData.reviews.avgService = parseFloat(
-            (serviceCount / rCount).toFixed(1)
-          );
-          studioData.reviews.avgStudio = parseFloat(
-            (studioRatingCount / rCount).toFixed(1)
-          );
-          studioData.reviews.avgAmenity = parseFloat(
-            (amenityRatingCount / rCount).toFixed(1)
-          );
-          studioData.reviews.avgLocation = parseFloat(
-            (locationRatingCount / rCount).toFixed(1)
-          );
-
-          let overallAvgRating =
-            parseFloat(studioData.reviews.avgService) +
-            parseFloat(studioData.reviews.avgStudio) +
-            parseFloat(studioData.reviews.avgAmenity) +
-            parseFloat(studioData.reviews.avgLocation);
-          logger.info({ overallAvgRating });
-          studioData.reviews.overallAvgRating = parseFloat(
-            (overallAvgRating / 4).toFixed(1)
-          );
-          studioData.reviews.reviewCategory = "Excellent";
-
-          //Send only first 4 reviews in "featuredReviews"
-          // studioData.featuredReviews = studioData.featuredReviews.slice(0,4);
-          //Send only first 4 photos in "clientPhotos"
-          // studioData.clientPhotos = studioData.clientPhotos.slice(0,4);
+try {
+    const studioId = req.params.studioId;
+    logger.info({"studioId of getParticularStudioDetails":studioId})
+    Studio.findStudioById(studioId).then((studioData) => {
+      if (!studioData) {
+        return res
+          .status(404)
+          .json({ status: false, message: "No Studio with this ID exists" });
+      }
+      studioData.reviews = {};
+      Rating.fetchAllRatingsByStudioId(studioId).then((ratingsData) => {
+        if (ratingsData.length == 0) {
+          studioData.reviews.avgService = 0;
+          studioData.reviews.avgStudio = 0;
+          studioData.reviews.avgAmenity = 0;
+          studioData.reviews.avgLocation = 0;
+          studioData.reviews.overallAvgRating = 0;
+          studioData.reviews.reviewCategory = "Poor";
           return res.json({
             status: true,
             message: "Studio Exists",
             studio: studioData,
           });
-        });
-      }
+        } else {
+          let rCount = ratingsData.length;
+          logger.info("Ratings exists : " + rCount);
+          let serviceCount = 0;
+          let studioRatingCount = 0;
+          let amenityRatingCount = 0;
+          let locationRatingCount = 0;
+          getReviewersName(ratingsData, (resRatingData) => {
+            resRatingData.forEach((singleRating) => {
+              studioData.clientPhotos.push(...singleRating.reviewImage);
+  
+              let featuredSingleAvgRating =
+                parseFloat(singleRating.rateInfo.service) +
+                parseFloat(singleRating.rateInfo.studio) +
+                parseFloat(singleRating.rateInfo.amenities) +
+                parseFloat(singleRating.rateInfo.location);
+              singleRating.avgRatingFeatured = (
+                featuredSingleAvgRating / 4
+              ).toFixed(1);
+              studioData.featuredReviews.push(singleRating);
+  
+              serviceCount += parseFloat(singleRating.rateInfo.service);
+              studioRatingCount += parseFloat(singleRating.rateInfo.studio);
+              amenityRatingCount += parseFloat(singleRating.rateInfo.amenities);
+              locationRatingCount += parseFloat(singleRating.rateInfo.location);
+            });
+            studioData.reviews.avgService = parseFloat(
+              (serviceCount / rCount).toFixed(1)
+            );
+            studioData.reviews.avgStudio = parseFloat(
+              (studioRatingCount / rCount).toFixed(1)
+            );
+            studioData.reviews.avgAmenity = parseFloat(
+              (amenityRatingCount / rCount).toFixed(1)
+            );
+            studioData.reviews.avgLocation = parseFloat(
+              (locationRatingCount / rCount).toFixed(1)
+            );
+  
+            let overallAvgRating =
+              parseFloat(studioData.reviews.avgService) +
+              parseFloat(studioData.reviews.avgStudio) +
+              parseFloat(studioData.reviews.avgAmenity) +
+              parseFloat(studioData.reviews.avgLocation);
+            logger.info({ overallAvgRating });
+            studioData.reviews.overallAvgRating = parseFloat(
+              (overallAvgRating / 4).toFixed(1)
+            );
+            studioData.reviews.reviewCategory = "Excellent";
+  
+            //Send only first 4 reviews in "featuredReviews"
+            // studioData.featuredReviews = studioData.featuredReviews.slice(0,4);
+            //Send only first 4 photos in "clientPhotos"
+            // studioData.clientPhotos = studioData.clientPhotos.slice(0,4);
+            return res.json({
+              status: true,
+              message: "Studio Exists",
+              studio: studioData,
+            });
+          });
+        }
+      });
     });
-  });
+} catch (error) {
+  logger.error(error,"Error occured while getting particular Studio Details")
+}
 };
 
 exports.toggleStudioActiveStatus = (req, res, next) => {
-  const studioId = req.body.studioId;
-
-  Studio.findStudioById(studioId).then((studioData) => {
-    if (!studioData) {
-      return res
-        .status(404)
-        .json({ status: false, message: "No Studio with this ID exists" });
-    }
-    studioData.isActive = studioData.isActive == 0 ? 1 : 0;
-
-    const db = getDb();
-    var o_id = new ObjectId(studioId);
-
-    db.collection("studios")
-      .updateOne({ _id: o_id }, { $set: studioData })
-      .then((resultData) => {
-        return res.json({
-          status: true,
-          message: "Studio updated successfully",
-          studio: studioData,
-        });
-      })
-      .catch((err) => logger.error(err));
-  });
+try {
+    const studioId = req.body.studioId;
+  logger.info({"studioId for toggleStudioActiveStatus":studioId})
+    Studio.findStudioById(studioId).then((studioData) => {
+      if (!studioData) {
+        return res
+          .status(404)
+          .json({ status: false, message: "No Studio with this ID exists" });
+      }
+      studioData.isActive = studioData.isActive == 0 ? 1 : 0;
+  
+      const db = getDb();
+      var o_id = new ObjectId(studioId);
+  
+      db.collection("studios")
+        .updateOne({ _id: o_id }, { $set: studioData })
+        .then((resultData) => {
+          return res.json({
+            status: true,
+            message: "Studio updated successfully",
+            studio: studioData,
+          });
+        })
+        .catch((err) => logger.error(err));
+    });
+} catch (error) {
+  logger.error(error,"Error occured while toggleStudioActiveStatus")
+}
 };
 
 exports.getDashboardStudios = (req, res, next) => {
@@ -992,7 +1004,7 @@ exports.getDashboardStudios = (req, res, next) => {
   let person = +req.body.person;
   const range = 100;
   const relevance = +req.body.relevance; // 1-> rating(high to low), 2-> cost(low to high), 3-> cost(high to low)
-
+  logger.info({"coming request data for getDashboardStudios":req.body})
   Studio.fetchAllActiveStudios(0, 0).then((studiosData) => {
     logger.info("Studios COunt : " + studiosData.length);
     //get offers mapping
@@ -1398,300 +1410,322 @@ exports.getDashboardStudios = (req, res, next) => {
 };
 
 exports.getAllStudios = (req, res, next) => {
-  let skip = +req.query.skip;
-  let limit = +req.query.limit;
-
-  if (isNaN(skip)) {
-    skip = 0;
-    limit = 0;
-  }
-
-  Studio.fetchAllStudios(skip, limit).then((studioData) => {
-    return res.json({
-      status: true,
-      message: "All studios returned",
-      studios: studioData,
+try {
+    let skip = +req.query.skip;
+    let limit = +req.query.limit;
+  
+    if (isNaN(skip)) {
+      skip = 0;
+      limit = 0;
+    }
+  
+    Studio.fetchAllStudios(skip, limit).then((studioData) => {
+      return res.json({
+        status: true,
+        message: "All studios returned",
+        studios: studioData,
+      });
     });
-  });
+} catch (error) {
+  logger.error(error,"Error occured in getAllStudios")
+}
 };
 
 exports.editStudioDetails = async (req, res, next) => {
-  const studioId = req.params.studioId;
-  const fullName = req.body.fullName;
-  let address = req.body.address;
-  const mapLink = req.body.mapLink;
-  const city = req.body.city;
-  const state = req.body.state;
-  const area = +req.body.area;
-  const pincode = req.body.pincode;
-  const pricePerHour = +req.body.pricePerHour;
-  const amenities = req.body.amenities;
-  const totalRooms = +req.body.totalRooms;
-  const roomsDetails = req.body.roomsDetails;
-  const maxGuests = req.body.maxGuests;
-  const studioPhotos = req.body.studioPhotos;
-  const aboutUs = req.body.aboutUs;
-  const teamDetails = req.body.teamDetails;
-  const country = req.body.country;
-  let latitude = "";
-  let longitude = "";
-  logger.info({studio_edit_data : req.body});
-  let studio = await Studio.findStudioById(studioId);
-  if (!studio) {
-    return res
-      .status(404)
-      .json({ status: false, message: "No Studio with this ID exists" });
-  }
-
-  roomsDetails.map(room=>{
-    room.bookingDays = updateStudioBookingDays(room.bookingDays)
-    return room;
-  })
-
-  teamDetails?.map(team=>{
-    if(!team?.imgUrl){
-      team.imgUrl = "https://sadmin.choira.io/api/v2/download/1723104357540team_profile_placeholder.jpeg"
-      return team
+try {
+    const studioId = req.params.studioId;
+    const fullName = req.body.fullName;
+    let address = req.body.address;
+    const mapLink = req.body.mapLink;
+    const city = req.body.city;
+    const state = req.body.state;
+    const area = +req.body.area;
+    const pincode = req.body.pincode;
+    const pricePerHour = +req.body.pricePerHour;
+    const amenities = req.body.amenities;
+    const totalRooms = +req.body.totalRooms;
+    const roomsDetails = req.body.roomsDetails;
+    const maxGuests = req.body.maxGuests;
+    const studioPhotos = req.body.studioPhotos;
+    const aboutUs = req.body.aboutUs;
+    const teamDetails = req.body.teamDetails;
+    const country = req.body.country;
+    let latitude = "";
+    let longitude = "";
+    logger.info({studio_edit_data : req.body});
+    let studio = await Studio.findStudioById(studioId);
+    if (!studio) {
+      return res
+        .status(404)
+        .json({ status: false, message: "No Studio with this ID exists" });
     }
-    return team
-  })
-
-  // const updatedAminities = amenities.map((a_key, j) => {
-  //   return studio.amenities.map((ame, i) => {
-  //     console.log(ame.id);
-  //     console.log(a_key.id);
-  //     if (ame.id === a_key.id) {
-  //       console.log(ame.id === a_key.id);
-  //       let upadated_ame = studio.amenities[i];
-  //       upadated_ame = { ...upadated_ame, ...amenities[j] };
-  //       console.log(upadated_ame);
-  //       return upadated_ame;
-  //     }
-  //     return ame;
-  //   });
-  // });
-
-
-  /// Amenities issue solved
-
-  // let updatedAminities = [...studio.amenities,...amenities]
-  // const uniqueUpdatedAminities =  [...new Map(updatedAminities.map(item =>[item.name, item])).values()];
-
-  // let updatedTeamDetails = [...studio.teamDetails,...teamDetails]
-  // const uniqueUpdatedTeamDetails =  [...new Map(updatedTeamDetails.map(item =>[item.name, item])).values()];
-
-
-  const minPrice = calculateMinPrice(roomsDetails);
-  address = address?.replace("&", "and");
-
-  const coordinates = await getCoordinates(address,mapLink,res)
-  latitude = coordinates[0]
-  longitude = coordinates[1]
-
-  console.log(latitude,longitude);
-
-  const location = {
-    type: "Point",
-    coordinates: [+longitude, +latitude],
-  };
-
-  let studioObj = {
-    fullName,
-    address,
-    latitude,
-    longitude,
-    mapLink,
-    city,
-    state,
-    area,
-    pincode,
-    pricePerHour,
-    amenities,
-    totalRooms,
-    roomsDetails,
-    maxGuests,
-    studioPhotos,
-    aboutUs,
-    teamDetails,
-    country,
-    minPrice,
-    location
-  };
-
-  const updated_result = await Studio.updateStudioById(studioId, studioObj);
-
-  res.send({
-    status: true,
-    message: "Studio details updated successfully",
-    studio: updated_result,
-  });
+  
+    roomsDetails.map(room=>{
+      room.bookingDays = updateStudioBookingDays(room.bookingDays)
+      return room;
+    })
+  
+    teamDetails?.map(team=>{
+      if(!team?.imgUrl){
+        team.imgUrl = "https://sadmin.choira.io/api/v2/download/1723104357540team_profile_placeholder.jpeg"
+        return team
+      }
+      return team
+    })
+  
+    // const updatedAminities = amenities.map((a_key, j) => {
+    //   return studio.amenities.map((ame, i) => {
+    //     console.log(ame.id);
+    //     console.log(a_key.id);
+    //     if (ame.id === a_key.id) {
+    //       console.log(ame.id === a_key.id);
+    //       let upadated_ame = studio.amenities[i];
+    //       upadated_ame = { ...upadated_ame, ...amenities[j] };
+    //       console.log(upadated_ame);
+    //       return upadated_ame;
+    //     }
+    //     return ame;
+    //   });
+    // });
+  
+  
+    /// Amenities issue solved
+  
+    // let updatedAminities = [...studio.amenities,...amenities]
+    // const uniqueUpdatedAminities =  [...new Map(updatedAminities.map(item =>[item.name, item])).values()];
+  
+    // let updatedTeamDetails = [...studio.teamDetails,...teamDetails]
+    // const uniqueUpdatedTeamDetails =  [...new Map(updatedTeamDetails.map(item =>[item.name, item])).values()];
+  
+  
+    const minPrice = calculateMinPrice(roomsDetails);
+    address = address?.replace("&", "and");
+  
+    const coordinates = await getCoordinates(address,mapLink,res)
+    latitude = coordinates[0]
+    longitude = coordinates[1]
+  
+    console.log(latitude,longitude);
+  
+    const location = {
+      type: "Point",
+      coordinates: [+longitude, +latitude],
+    };
+  
+    let studioObj = {
+      fullName,
+      address,
+      latitude,
+      longitude,
+      mapLink,
+      city,
+      state,
+      area,
+      pincode,
+      pricePerHour,
+      amenities,
+      totalRooms,
+      roomsDetails,
+      maxGuests,
+      studioPhotos,
+      aboutUs,
+      teamDetails,
+      country,
+      minPrice,
+      location
+    };
+  
+    const updated_result = await Studio.updateStudioById(studioId, studioObj);
+  
+    res.send({
+      status: true,
+      message: "Studio details updated successfully",
+      studio: updated_result,
+    });
+} catch (error) {
+  logger.error(error,"Error Occured in edit Studio Details")
+}
 };
 
 exports.getStudiosByDate = (req, res, next) => {
-  let creationDate = req.body.creationDate;
+try {
+    let creationDate = req.body.creationDate;
 
-  //get creationDate from timestamp
-  creationDate = new Date(creationDate);
-  var yr = creationDate.getUTCFullYear();
-  var mth = creationDate.getUTCMonth() + 1;
-  if (mth.toString().length == 1) {
-    mth = "0" + mth.toString();
-  }
-  var dt = creationDate.getUTCDate();
-  if (dt.toString().length == 1) {
-    dt = "0" + dt.toString();
-  }
-  creationDate = yr + "-" + mth + "-" + dt;
-  var sTimeStamp = new Date(creationDate).getTime();
-  logger.info("Creation Date : ", { creationDate });
+    logger.info({"creationDate data of getStudiosByDate":creationDate})
+    //get creationDate from timestamp
+    creationDate = new Date(creationDate);
+    var yr = creationDate.getUTCFullYear();
+    var mth = creationDate.getUTCMonth() + 1;
+    if (mth.toString().length == 1) {
+      mth = "0" + mth.toString();
+    }
+    var dt = creationDate.getUTCDate();
+    if (dt.toString().length == 1) {
+      dt = "0" + dt.toString();
+    }
+    creationDate = yr + "-" + mth + "-" + dt;
+    var sTimeStamp = new Date(creationDate).getTime();
+    logger.info("Creation Date : ", { creationDate });
+  
+    Studio.fetchStudiosByDate(creationDate).then((studioData) => {
+      return res.json({
+        status: true,
+        message: "All studio(s) returned",
+        studios: studioData,
+      });
+    });
+} catch (error) {
+  logger.error(error,"Error in getStudiosByDate")
+}
+};
 
-  Studio.fetchStudiosByDate(creationDate).then((studioData) => {
+exports.getStudiosFiltersData = async (req, res) => {
+try {
+    const my_lat = 19.132753831903493;
+    const my_lang = 72.91828181534228;
+    const { state, offset, per_page } = req.body;
+    logger.info({ state, offset, per_page },"data of getStudiosFiltersData")
+    const dbdata = await Studio.fetchStudioLocationDetails(
+      state,
+      offset,
+      per_page
+    );
     return res.json({
       status: true,
-      message: "All studio(s) returned",
-      studios: studioData,
+      data: {
+        data: dbdata,
+      },
     });
-  });
+} catch (error) {
+  logger.error(error,"Error Occured")
+}
 };
 
-exports.getStudiosFiltersData = async (req, res) => {
-  const my_lat = 19.132753831903493;
-  const my_lang = 72.91828181534228;
-  const { state, offset, per_page } = req.body;
-  const dbdata = await Studio.fetchStudioLocationDetails(
-    state,
-    offset,
-    per_page
-  );
-  return res.json({
-    status: true,
-    data: {
-      data: dbdata,
-    },
-  });
-};
-
-exports.getStudiosFiltersData = async (req, res) => {
-  const my_lat = 19.132753831903493;
-  const my_lang = 72.91828181534228;
-  const { state, offset, per_page } = req.body;
-  const dbdata = await Studio.fetchStudioLocationDetails(
-    state,
-    offset,
-    per_page
-  );
-  return res.json({
-    status: true,
-    data: {
-      data: dbdata,
-    },
-  });
-};
+// exports.getStudiosFiltersData = async (req, res) => {
+//   const my_lat = 19.132753831903493;
+//   const my_lang = 72.91828181534228;
+//   const { state, offset, per_page } = req.body;
+//   const dbdata = await Studio.fetchStudioLocationDetails(
+//     state,
+//     offset,
+//     per_page
+//   );
+//   return res.json({
+//     status: true,
+//     data: {
+//       data: dbdata,
+//     },
+//   });
+// };
 
 exports.getAllStudiosGraphDetails = (req, res, next) => {
-  var today = new Date();
-  // var today = new Date();
-  var d;
-  var months = [];
-  var d = new Date();
-  var month;
-  var year = d.getFullYear();
-  // console.log(year)
-
-  //for last 6 months(including current month)
-  // for(var i = 5; i > -1; i -= 1) {
-  var keyData = 1;
-  //for last 6 months(excluding current month)
-  for (var i = 6; i > 0; i -= 1) {
-    d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-    //   console.log(d.getFullYear())
-
-    months.push({
-      month: d.getMonth(),
-      year: d.getFullYear(),
-      key: keyData,
-      studioCount: 0,
+try {
+    var today = new Date();
+    // var today = new Date();
+    var d;
+    var months = [];
+    var d = new Date();
+    var month;
+    var year = d.getFullYear();
+    // console.log(year)
+  
+    //for last 6 months(including current month)
+    // for(var i = 5; i > -1; i -= 1) {
+    var keyData = 1;
+    //for last 6 months(excluding current month)
+    for (var i = 6; i > 0; i -= 1) {
+      d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      //   console.log(d.getFullYear())
+  
+      months.push({
+        month: d.getMonth(),
+        year: d.getFullYear(),
+        key: keyData,
+        studioCount: 0,
+      });
+      keyData = keyData + 1;
+    }
+    logger.info({ months });
+  
+    Studio.fetchAllStudios(0, 0).then((studiosData) => {
+      studiosData.forEach((singleStudio) => {
+        var dt1 = new Date(singleStudio.creationTimeStamp);
+        var monthOnly = dt1.getMonth();
+  
+        months.forEach((mth) => {
+          if (+mth.month == +monthOnly) {
+            mth.studioCount = mth.studioCount + 1;
+          }
+        });
+      });
+  
+      setTimeout(() => {
+        months.forEach((mthData) => {
+          if (mthData.month == 0) {
+            mthData.month = "January";
+          }
+          if (mthData.month == 1) {
+            mthData.month = "Febuary";
+          }
+          if (mthData.month == 2) {
+            mthData.month = "March";
+          }
+          if (mthData.month == 3) {
+            mthData.month = "April";
+          }
+          if (mthData.month == 4) {
+            mthData.month = "May";
+          }
+          if (mthData.month == 5) {
+            mthData.month = "June";
+          }
+          if (mthData.month == 6) {
+            mthData.month = "July";
+          }
+          if (mthData.month == 7) {
+            mthData.month = "August";
+          }
+          if (mthData.month == 8) {
+            mthData.month = "September";
+          }
+          if (mthData.month == 9) {
+            mthData.month = "Ocober";
+          }
+          if (mthData.month == 10) {
+            mthData.month = "November";
+          }
+          if (mthData.month == 11) {
+            mthData.month = "December";
+          }
+        });
+  
+        months.sort((a, b) => {
+          return a.key - b.key;
+        });
+  
+        //retrieving only months
+        var allMonths = [];
+        months.forEach((m) => {
+          allMonths.push(m.month);
+        });
+  
+        //retrieving only studioCounts
+        var allStudioCounts = [];
+        months.forEach((m) => {
+          allStudioCounts.push(m.studioCount);
+        });
+        res.json({
+          status: true,
+          message: "All data returned",
+          allMonths: allMonths,
+          allStudioCounts: allStudioCounts,
+          allData: months,
+        });
+      }, 1000);
     });
-    keyData = keyData + 1;
-  }
-  logger.info({ months });
-
-  Studio.fetchAllStudios(0, 0).then((studiosData) => {
-    studiosData.forEach((singleStudio) => {
-      var dt1 = new Date(singleStudio.creationTimeStamp);
-      var monthOnly = dt1.getMonth();
-
-      months.forEach((mth) => {
-        if (+mth.month == +monthOnly) {
-          mth.studioCount = mth.studioCount + 1;
-        }
-      });
-    });
-
-    setTimeout(() => {
-      months.forEach((mthData) => {
-        if (mthData.month == 0) {
-          mthData.month = "January";
-        }
-        if (mthData.month == 1) {
-          mthData.month = "Febuary";
-        }
-        if (mthData.month == 2) {
-          mthData.month = "March";
-        }
-        if (mthData.month == 3) {
-          mthData.month = "April";
-        }
-        if (mthData.month == 4) {
-          mthData.month = "May";
-        }
-        if (mthData.month == 5) {
-          mthData.month = "June";
-        }
-        if (mthData.month == 6) {
-          mthData.month = "July";
-        }
-        if (mthData.month == 7) {
-          mthData.month = "August";
-        }
-        if (mthData.month == 8) {
-          mthData.month = "September";
-        }
-        if (mthData.month == 9) {
-          mthData.month = "Ocober";
-        }
-        if (mthData.month == 10) {
-          mthData.month = "November";
-        }
-        if (mthData.month == 11) {
-          mthData.month = "December";
-        }
-      });
-
-      months.sort((a, b) => {
-        return a.key - b.key;
-      });
-
-      //retrieving only months
-      var allMonths = [];
-      months.forEach((m) => {
-        allMonths.push(m.month);
-      });
-
-      //retrieving only studioCounts
-      var allStudioCounts = [];
-      months.forEach((m) => {
-        allStudioCounts.push(m.studioCount);
-      });
-      res.json({
-        status: true,
-        message: "All data returned",
-        allMonths: allMonths,
-        allStudioCounts: allStudioCounts,
-        allData: months,
-      });
-    }, 1000);
-  });
+} catch (error) {
+  logger.error(error,"Error in getAllStudiosGraphDetails")
+}
 };
 
 exports.exportStudioData = async (req, res) => {
@@ -1713,7 +1747,7 @@ exports.exportStudioData = async (req, res) => {
         $match: filter,
       });
     }
-
+    logger.info({"coming request of req.query":req.query})
     logger.info("this is pipe======>", { pipeline });
     if (options.startDate && options.endDate) {
       let startDate = options.startDate;
@@ -1827,6 +1861,7 @@ exports.exportStudioData = async (req, res) => {
       });
     logger.info({ data });
   } catch (error) {
+    logger.error(error,"Error Occured while Expoting Studio Data")
     res.send({
       status: "error",
       message: "Something went wrong",
@@ -1848,7 +1883,7 @@ exports.getUnassignedStudios = async (req, res, next) => {
     console.log("unassignedStudios", unassignedStudios);
     res.status(200).json({ status: true, message: "Unassigned studios fetched successfully", studios: unassignedStudios });
   } catch (error) {
-    console.error(error);
+    logger.error(error,"Error Occured in getUnassignedStudios");
     res.status(500).json({ status: false, message: "An error occurred while fetching unassigned studios" });
   }
 };

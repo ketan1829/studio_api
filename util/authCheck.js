@@ -16,7 +16,7 @@ const verifyToken = (token) => {
 const isGuest = async (req, res, next) => {
   // console.log("authCheck2");
   try {
-    let token = req.body.guestId || req.params.guestId || req.headers.authorization.split(" ")[1];
+    let token = req.body.guestId || req.params.guestId || req.headers.authorization?.split(" ")[1];
     if (!token) {
       next()
     } else {
