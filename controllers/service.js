@@ -68,7 +68,7 @@ try {
           servicePhotos, aboutUs, workDetails, discographyDetails, clientPhotos, reviews, featuredReviews, isActive, type);
   
         
-        logger.info("serviceObj---",{serviceObj});
+        logger.info({serviceObj},"serviceObj---");
         serviceObj.checkBeforeSave()
           .then((resultData) => {
             if (resultData.status == false) {
@@ -142,7 +142,7 @@ try {
         pricing
       );
   
-      logger.info({serviceObj})
+      logger.info({serviceObj},"request Service data coming fom user")
       // saving in database
       return serviceObj
         .save()
@@ -178,105 +178,115 @@ try {
 
 exports.getServices = (req, res, next) => {
 
-
-
-  // const { serviceName, startingPrice, offerings, TotalServices, avgReview, serviceId } = req.query;
-  const filter = pick(req.query, ['serviceType', 'active', 'serviceName', 'startPrice', 'endPrice', 'planId', 'TotalServices'])
-  const options = pick(req.query, ['sortBy', 'limit', 'page']);
-  console.log("body---", req.query)
-  let mappedFilter = {}
-
-  const collectionName = homeScreen.category?.[filter.serviceType]?.coll
-
-
-  if (filter.serviceType) mappedFilter.type = filter.serviceType //: filter.catId = 1;
-  if(filter.active) mappedFilter.isActive = parseInt(filter.active)// : mappedFilter.isActive = 1;
-
-  if (filter.planId) {
-    // var o_id = new ObjectId(filter.planId);
-    // filter._id = o_id
-    mappedFilter['packages.planId'] = +filter.planId
-  }
-
-  if (filter.serviceName) mappedFilter.fullName = filter.serviceName;
-  if (filter.startPrice && filter.endPrice) {
-    mappedFilter.price = { $gte: +filter.startPrice, $lte: +filter.endPrice }
-  } else if (filter.startPrice) {
-    mappedFilter.price = { $gte: +filter.startPrice }
-  } else if (filter.endPrice) {
-    mappedFilter.price = { $lte: +filter.endPrice }
-  }
-
-  if (filter.TotalServices) mappedFilter.totalPlans = +filter.TotalServices;
-  if (filter.avgReview) mappedFilter.featuredReviews.avgService = parseFloat(filter.avgReview);
-
-  console.log("collectionName----", collectionName, mappedFilter, options);
-
-
-
-
-  paginate(collectionName, mappedFilter, options).then((ServiceData) => {
-    const paginateData =
-    {
-      page: ServiceData.page,
-      limit: ServiceData.limit,
-      totalPages: ServiceData.totalPages,
-      totalResults: ServiceData.totalResults,
-
-    }
-    return res.json({ status: true, message: `Page ${ServiceData.page} of ${ServiceData.totalPages} - ${ServiceData.totalResults} services returned`, services: ServiceData, paginate: paginateData });
+try {
+  
+  
+    // const { serviceName, startingPrice, offerings, TotalServices, avgReview, serviceId } = req.query;
+    const filter = pick(req.query, ['serviceType', 'active', 'serviceName', 'startPrice', 'endPrice', 'planId', 'TotalServices'])
+    const options = pick(req.query, ['sortBy', 'limit', 'page']);
+    console.log("body---", req.query)
+    let mappedFilter = {}
+  logger.info({
+    "req data of getServices":req.query
   })
+    const collectionName = homeScreen.category?.[filter.serviceType]?.coll
+  
+  
+    if (filter.serviceType) mappedFilter.type = filter.serviceType //: filter.catId = 1;
+    if(filter.active) mappedFilter.isActive = parseInt(filter.active)// : mappedFilter.isActive = 1;
+  
+    if (filter.planId) {
+      // var o_id = new ObjectId(filter.planId);
+      // filter._id = o_id
+      mappedFilter['packages.planId'] = +filter.planId
+    }
+  
+    if (filter.serviceName) mappedFilter.fullName = filter.serviceName;
+    if (filter.startPrice && filter.endPrice) {
+      mappedFilter.price = { $gte: +filter.startPrice, $lte: +filter.endPrice }
+    } else if (filter.startPrice) {
+      mappedFilter.price = { $gte: +filter.startPrice }
+    } else if (filter.endPrice) {
+      mappedFilter.price = { $lte: +filter.endPrice }
+    }
+  
+    if (filter.TotalServices) mappedFilter.totalPlans = +filter.TotalServices;
+    if (filter.avgReview) mappedFilter.featuredReviews.avgService = parseFloat(filter.avgReview);
+  
+    console.log("collectionName----", collectionName, mappedFilter, options);
+  
+  
+  
+  
+    paginate(collectionName, mappedFilter, options).then((ServiceData) => {
+      const paginateData =
+      {
+        page: ServiceData.page,
+        limit: ServiceData.limit,
+        totalPages: ServiceData.totalPages,
+        totalResults: ServiceData.totalResults,
+  
+      }
+      return res.json({ status: true, message: `Page ${ServiceData.page} of ${ServiceData.totalPages} - ${ServiceData.totalResults} services returned`, services: ServiceData, paginate: paginateData });
+    })
+} catch (error) {
+  logger.error(error,"Error Occured")
+  console.log(error);
+}
 
 }
 
 exports.getServiceBookings = (req, res, next) => {
-  let req_query =req.query
-  logger.info("body---",{req_query});
-
-  const {
-    bookingId,
-    userID,
-    serviceID,
-    planID,
-    price,
-    serviceType,
-    dateTime,
-    status,
-    bookingStartTime,
-    bookingEndTime,
-  } = req.query;
-
-  const options = pick(req.query, ["sortBy", "limit", "page"]);
-
-  let filter = {};
-
-  const _collectionName = collectionName.service_bookings;
-
-  if (serviceType) filter.type = serviceType;
-
-  if (bookingId) {
-    var o_id = new ObjectId(bookingId);
-    filter._id = o_id;
-  }
-  if (userID) filter.userId = userID;
-  if (serviceID) filter.serviceId = serviceID;
-  if (planID) filter.planId = planID;
-  if (price) filter.totalPrice = price;
-  if (dateTime) filter.creationTimeStamp = dateTime;
-  if (status) filter.bookingStatus = status;
-  if (bookingStartTime) filter.bookingTime.startTime = bookingStartTime;
-  if (bookingEndTime) filter.bookingTime.endTime = bookingEndTime;
-
-  logger.info("collectionName----",{_collectionName, filter, options});
-
-
-  paginate(_collectionName, filter, options).then((ServiceData) => {
-    return res.json({
-      status: true,
-      message: `Page ${ServiceData.page} of ${ServiceData.totalPages} - ${ServiceData.totalResults} service booking returned`,
-      services: ServiceData,
+try {
+    logger.info({"body---":req.query});
+  
+    const {
+      bookingId,
+      userID,
+      serviceID,
+      planID,
+      price,
+      serviceType,
+      dateTime,
+      status,
+      bookingStartTime,
+      bookingEndTime,
+    } = req.query;
+  
+    const options = pick(req.query, ["sortBy", "limit", "page"]);
+  
+    let filter = {};
+  
+    const _collectionName = collectionName.service_bookings;
+  
+    if (serviceType) filter.type = serviceType;
+  
+    if (bookingId) {
+      var o_id = new ObjectId(bookingId);
+      filter._id = o_id;
+    }
+    if (userID) filter.userId = userID;
+    if (serviceID) filter.serviceId = serviceID;
+    if (planID) filter.planId = planID;
+    if (price) filter.totalPrice = price;
+    if (dateTime) filter.creationTimeStamp = dateTime;
+    if (status) filter.bookingStatus = status;
+    if (bookingStartTime) filter.bookingTime.startTime = bookingStartTime;
+    if (bookingEndTime) filter.bookingTime.endTime = bookingEndTime;
+  
+    logger.info("collectionName----",{_collectionName, filter, options});
+  
+  
+    paginate(_collectionName, filter, options).then((ServiceData) => {
+      return res.json({
+        status: true,
+        message: `Page ${ServiceData.page} of ${ServiceData.totalPages} - ${ServiceData.totalResults} service booking returned`,
+        services: ServiceData,
+      });
     });
-  });
+} catch (error) {
+  logger.error(error,"Error Occured")
+}
 };
 
 // exports.updateService = (req, res, next) => {
@@ -293,67 +303,72 @@ exports.getServiceBookings = (req, res, next) => {
 // }
 
 exports.getServiceBookingsDetails = async (req, res) => {
-  let { last_id } = req.query || 0;
-
-  logger.info("last_id:",{last_id});
-  last_id = last_id === "0" ? 0 : last_id;
-  let typeof_last_id = typeof last_id
-  logger.info("last_id:",{typeof_last_id});
-
-  const db = getDB();
-  const pipeline = [
-    {
-      $match: {
-        _id: { $gt: ObjectId(last_id) },
-        $or: [{ type: { $eq: "c2" } }, { type: { $eq: "c3" } }],
+  try {
+    let { last_id } = req.query || 0;
+  
+    logger.info("last_id:",{last_id});
+    last_id = last_id === "0" ? 0 : last_id;
+    let typeof_last_id = typeof last_id
+    logger.info({"typeof_last_id:":typeof_last_id, "last_id": last_id});
+  
+    const db = getDB();
+    const pipeline = [
+      {
+        $match: {
+          _id: { $gt: ObjectId(last_id) },
+          $or: [{ type: { $eq: "c2" } }, { type: { $eq: "c3" } }],
+        },
       },
-    },
-    {
-      $lookup: {
-        from: "services",
-        let: { serviceIdStr: "$studioId" },
-        pipeline: [
-          {
-            $match: {
-              $expr: { $eq: ["$_id", { $toObjectId: "$$serviceIdStr" }] }, // convert string serviceId to ObjectId and match with _id
+      {
+        $lookup: {
+          from: "services",
+          let: { serviceIdStr: "$studioId" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", { $toObjectId: "$$serviceIdStr" }] }, // convert string serviceId to ObjectId and match with _id
+              },
             },
-          },
-        ],
-        as: "service",
+          ],
+          as: "service",
+        },
       },
-    },
-    {
-      $lookup: {
-        from: "users",
-        let: { userIdStr: "$userId" }, // dfine a variable to hold the string serviceId
-        pipeline: [
-          {
-            $match: {
-              $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] },
+      {
+        $lookup: {
+          from: "users",
+          let: { userIdStr: "$userId" }, // dfine a variable to hold the string serviceId
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] },
+              },
             },
-          },
-        ],
-        as: "user",
+          ],
+          as: "user",
+        },
       },
-    },
-    {
-      $project: {
-        serviceFullName: { $arrayElemAt: ["$service.fullName", 0] },
-        userFullName: { $arrayElemAt: ["$user.fullName", 0] },
-        userPhone: { $arrayElemAt: ["$user.phone", 0] },
-        userEmail: { $arrayElemAt: ["$user.email", 0] },
-        totalPrice: "$totalPrice",
+      {
+        $project: {
+          serviceFullName: { $arrayElemAt: ["$service.fullName", 0] },
+          userFullName: { $arrayElemAt: ["$user.fullName", 0] },
+          userPhone: { $arrayElemAt: ["$user.phone", 0] },
+          userEmail: { $arrayElemAt: ["$user.email", 0] },
+          totalPrice: "$totalPrice",
+        },
       },
-    },
-  ];
-
-  const data = await db.collection("bookings").aggregate(pipeline).toArray();
-
-  return res.json({ status: true, data });
+    ];
+  
+    const data = await db.collection("bookings").aggregate(pipeline).toArray();
+  
+    return res.json({ status: true, data });
+  } catch (error) {
+    logger.error(error,"Error Occured")
+  }
 };
 
 exports.deleteService = async (req, res) => {
   const sId = req.params.serviceId;
+  logger.info({sId},"sId for deleteService")
   if (!sId) {
     return res.status(400).json({
       status: false,
@@ -365,76 +380,82 @@ exports.deleteService = async (req, res) => {
 };
 
 exports.updateService = async (req, res) => {
-  const sId = req.params.serviceId;
-  const pId = req.params.packageId;
-  const service_id = req.body.service_id || -1;
-  const fullName = req.body.fullName;
-  const price = parseFloat(req.body.startingPrice);
-  const amenities = req.body.offerings;
-  const totalPlans = +req.body.TotalServices;
-  const packages = req.body.packages;
-  const servicePhotos = req.body.ServicePhotos;
-  const aboutUs = req.body.description;
-  const workDetails = req.body.portfolio;
-  const discographyDetails = req.body.discography;
-  const clientPhotos = req.body.userPhotos;
-  const reviews = req.body.userReviews;
-  const featuredReviews = req.body.starredReviews;
-  const type = req.body.type;
-  const isActive = +req.body.isActive;
-  let pricing = {}
-  const serviceData = await Service.findServiceById(sId);
-  logger.info({service_data:req.body});
-  if (!serviceData) {
-    return res.status(400).json({
-      status: false,
-      message: "Service does not exist or provide the correct service Id",
-    });
+  try {
+    const sId = req.params.serviceId;
+    const pId = req.params.packageId;
+    const service_id = req.body.service_id || -1;
+    const fullName = req.body.fullName;
+    const price = parseFloat(req.body.startingPrice);
+    const amenities = req.body.offerings;
+    const totalPlans = +req.body.TotalServices;
+    const packages = req.body.packages;
+    const servicePhotos = req.body.ServicePhotos;
+    const aboutUs = req.body.description;
+    const workDetails = req.body.portfolio;
+    const discographyDetails = req.body.discography;
+    const clientPhotos = req.body.userPhotos;
+    const reviews = req.body.userReviews;
+    const featuredReviews = req.body.starredReviews;
+    const type = req.body.type;
+    const isActive = +req.body.isActive;
+    let pricing = {}
+    logger.info({"req data of updateService":req.body})
+    const serviceData = await Service.findServiceById(sId);
+    logger.info({service_data:req.body});
+    if (!serviceData) {
+      return res.status(400).json({
+        status: false,
+        message: "Service does not exist or provide the correct service Id",
+      });
+    }
+  
+    const fiter_empty_packages = packages?.filter(pk=>pk.photo_url && pk.name)
+    // const updatedPackages = packages?.map((p_key, j) => {
+    //   return serviceData.packages.map((pkg, i) => {
+    //     if (pkg.planId === p_key.planId) {
+    //       let updata_pack = serviceData.packages[i];
+    //       updata_pack = { ...updata_pack, ...packages[j] };
+    //       return updata_pack;
+    //     }
+    //     return pkg;
+    //   });
+    // });
+    // console.log(updatedPackages);
+  
+    pricing = await minStartPrice(fiter_empty_packages)
+    let service_obj = {
+      service_id,
+      fullName,
+      price,
+      amenities,
+      totalPlans,
+      packages,
+      servicePhotos,
+      aboutUs,
+      workDetails,
+      discographyDetails,
+      clientPhotos,
+      reviews,
+      featuredReviews,
+      type,
+      isActive,
+      pricing
+    };
+  
+    let newData = Service.filterEmptyFields(service_obj);
+    // logger.info({newData},"newData===================");
+    const updated_result = await Service.updateServiceById(sId, newData);
+    // logger.info("updated_result===",updated_result)
+    res.send(updated_result);
+  } catch (error) {
+    logger.error(error,"Error Occured")
   }
-
-  const fiter_empty_packages = packages?.filter(pk=>pk.photo_url && pk.name)
-  // const updatedPackages = packages?.map((p_key, j) => {
-  //   return serviceData.packages.map((pkg, i) => {
-  //     if (pkg.planId === p_key.planId) {
-  //       let updata_pack = serviceData.packages[i];
-  //       updata_pack = { ...updata_pack, ...packages[j] };
-  //       return updata_pack;
-  //     }
-  //     return pkg;
-  //   });
-  // });
-  // console.log(updatedPackages);
-
-  pricing = await minStartPrice(fiter_empty_packages)
-  let service_obj = {
-    service_id,
-    fullName,
-    price,
-    amenities,
-    totalPlans,
-    packages,
-    servicePhotos,
-    aboutUs,
-    workDetails,
-    discographyDetails,
-    clientPhotos,
-    reviews,
-    featuredReviews,
-    type,
-    isActive,
-    pricing
-  };
-
-  let newData = Service.filterEmptyFields(service_obj);
-  // logger.info({newData},"newData===================");
-  const updated_result = await Service.updateServiceById(sId, newData);
-  // logger.info("updated_result===",updated_result)
-  res.send(updated_result);
 };
 
 exports.editPackageDetails = async (req, res) => {
   try {
     const { service_id, plan_id, package_data } = req.body;
+    logger.info({"req data of editPackageDetails":req.body})
     const db = getDB();
     const serviceObjectId = new ObjectId(service_id);
     const service = await db.collection('services').findOne({ _id: serviceObjectId });
@@ -457,6 +478,7 @@ exports.editPackageDetails = async (req, res) => {
     console.log("Details updated for package in service with id:", service_id);
     return res.send({ status: true, message: "Package updated" });
   } catch (error) {
+    logger.error(error,"Error Occured :")
     console.log("Error updating package details:", error);
     return res.send({ status: false, message: "Package update failed" });
   }
@@ -484,8 +506,8 @@ exports.exportServicesData = async (req, res) => {
         $match: filter,
       });
     }
-
-    logger.info("this is pipe======>",{pipeline});
+    logger.info({"req data of exportServiceData":req.query})
+    logger.info({pipeline},"this is pipe======>");
     if (options.startDate && options.endDate) {
       let startDate = options.startDate;
       let endDate = options.endDate;
@@ -581,6 +603,7 @@ exports.exportServicesData = async (req, res) => {
         })
       });
   } catch (error) {
+    logger.error(error,"Error Occured :")
     res.send({
       status: "error",
       message: "Something went wrong",
@@ -629,12 +652,7 @@ async function minStartPrice(packages) {
     };
 
   } catch (error) {
-    logger.error(error,"Error in calculating nin price")
+    logger.error(error,"Error in calculating min price")
     console.error("Error in calculating minimum start price", error);
-    // return {
-    //   "USA": { price: 0, basePrice: 0, discountPercentage: 0 },
-    //   "IN": { price: 0, basePrice: 0, discountPercentage: 0 },
-    //   "JP": { price: 0, basePrice: 0, discountPercentage: 0 }
-    // };
   }
 }

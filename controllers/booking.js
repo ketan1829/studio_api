@@ -322,149 +322,153 @@ async function getSingleBooking(bookingId) {
 }
 
 exports.createNewBooking2 = async (req, res, next) => {
-  const userId = req.body.userId;
-  const studioId = req.body.studioId;
-  const roomId = req.body.roomId;
-  const bookingDate = req.body.bookingDate;
-  const bookingTime = req.body.bookingTime;
-  const totalPrice = parseFloat(req.body.totalPrice);
-  const bookingStatus = 0; //Initially active
-
-  // if(bookingTime.endTime.split(' ')[1]=='PM')
-  // {
-  //     bookingTime.startTime = bookingTime.startTime + ' PM'
-  // }
-  // else{
-  //     bookingTime.startTime = bookingTime.startTime + ' AM'
-  // }
-  // logger.info({bookingTime});
-  bookingTime.startTime = convertTo24HourFormat(bookingTime.startTime);
-  bookingTime.endTime = convertTo24HourFormat(bookingTime.endTime);
-  logger.info({ bookingTime });
-
-  let userDeviceId = "";
-
-  User.findUserByUserId(userId).then(async (userData) => {
-    if (!userData) {
-      // return res.status(404).json({ status: false, message: "No User with this ID exists" });
-      let adminData = await Admin.findAdminById(userId);
-      if (!adminData) {
-        let subAdminData = await SubAdmin.findSubAdminById(userId);
-        if (!subAdminData) {
-          let ownerData = await Owner.findOwnerByOwnerId(userId);
-          if (!ownerData) {
-            return res
-              .status(404)
-              .json({ status: false, message: "Enter valid ID" });
+  try {
+    const userId = req.body.userId;
+    const studioId = req.body.studioId;
+    const roomId = req.body.roomId;
+    const bookingDate = req.body.bookingDate;
+    const bookingTime = req.body.bookingTime;
+    const totalPrice = parseFloat(req.body.totalPrice);
+    const bookingStatus = 0; //Initially active
+  
+    // if(bookingTime.endTime.split(' ')[1]=='PM')
+    // {
+    //     bookingTime.startTime = bookingTime.startTime + ' PM'
+    // }
+    // else{
+    //     bookingTime.startTime = bookingTime.startTime + ' AM'
+    // }
+    // logger.info({bookingTime});
+    bookingTime.startTime = convertTo24HourFormat(bookingTime.startTime);
+    bookingTime.endTime = convertTo24HourFormat(bookingTime.endTime);
+    logger.info({ bookingTime });
+  
+    let userDeviceId = "";
+  
+    User.findUserByUserId(userId).then(async (userData) => {
+      if (!userData) {
+        // return res.status(404).json({ status: false, message: "No User with this ID exists" });
+        let adminData = await Admin.findAdminById(userId);
+        if (!adminData) {
+          let subAdminData = await SubAdmin.findSubAdminById(userId);
+          if (!subAdminData) {
+            let ownerData = await Owner.findOwnerByOwnerId(userId);
+            if (!ownerData) {
+              return res
+                .status(404)
+                .json({ status: false, message: "Enter valid ID" });
+            } else {
+              userData = ownerData;
+            }
           } else {
-            userData = ownerData;
+            userData = subAdminData;
           }
         } else {
-          userData = subAdminData;
+          userData = adminData;
         }
-      } else {
-        userData = adminData;
+        userDeviceId = "";
       }
-      userDeviceId = "";
-    }
-    if (userData.deviceId == null || userData.deviceId == undefined) {
-      userDeviceId = "";
-    }
-    Studio.findStudioById(studioId).then((studioData) => {
-      if (!studioData) {
-        return res
-          .status(404)
-          .json({ status: false, message: "No studio with this ID exists" });
+      if (userData.deviceId == null || userData.deviceId == undefined) {
+        userDeviceId = "";
       }
-
-      const bookingObj = new Booking(
-        userId,
-        studioId,
-        roomId,
-        bookingDate,
-        bookingTime,
-        totalPrice,
-        bookingStatus,
-        "c1"
-      );
-
-      //saving new booking in database
-      return bookingObj.save().then((resultData) => {
-        let bookingData = resultData["ops"][0];
-        logger.info({ bookingData });
-        bookingData.totalPrice = bookingData.totalPrice.toString();
-        if (bookingData.totalPrice.split(".")[1] == undefined) {
-          bookingData.totalPrice = bookingData.totalPrice + ".0";
+      Studio.findStudioById(studioId).then((studioData) => {
+        if (!studioData) {
+          return res
+            .status(404)
+            .json({ status: false, message: "No studio with this ID exists" });
         }
-        const title = "Congratulations!!";
-        const message =
-          "Your booking with '" + studioData.fullName + "' is confirmed";
-        var myJSONObject = {
-          app_id: process.env.ONE_SIGNAL_APP_ID,
-          include_player_ids: [userData.deviceId],
-          data: {},
-          contents: { en: title + "\n" + message },
-        };
-
-        axios({
-          method: "post",
-          url: "https://onesignal.com/api/v1/notifications",
-          data: myJSONObject,
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: process.env.ONE_SIGNAL_AUTH,
-          },
-        })
-          .then(async (result) => {
-            if (result.data.recipients == 1) {
-              const notification = new Notifications(userId, title, message);
-
-              //saving in database
-              return notification.save().then((resultData) => {
-                // return res.json({ status: true, message: "Booking created successfully", booking: bookingData });
-                const adminNotificationObj = new AdminNotifications(
-                  userId,
-                  studioId,
-                  bookingData._id.toString(),
-                  "Booking created",
-                  userData.fullName +
-                  " created new booking with Studio : " +
-                  studioData.fullName
-                );
+  
+        const bookingObj = new Booking(
+          userId,
+          studioId,
+          roomId,
+          bookingDate,
+          bookingTime,
+          totalPrice,
+          bookingStatus,
+          "c1"
+        );
+        logger.info({"req data of createNewBooking2":bookingObj})
+  
+        //saving new booking in database
+        return bookingObj.save().then((resultData) => {
+          let bookingData = resultData["ops"][0];
+          logger.info({ bookingData });
+          bookingData.totalPrice = bookingData.totalPrice.toString();
+          if (bookingData.totalPrice.split(".")[1] == undefined) {
+            bookingData.totalPrice = bookingData.totalPrice + ".0";
+          }
+          const title = "Congratulations!!";
+          const message =
+            "Your booking with '" + studioData.fullName + "' is confirmed";
+          var myJSONObject = {
+            app_id: process.env.ONE_SIGNAL_APP_ID,
+            include_player_ids: [userData.deviceId],
+            data: {},
+            contents: { en: title + "\n" + message },
+          };
+  
+          axios({
+            method: "post",
+            url: "https://onesignal.com/api/v1/notifications",
+            data: myJSONObject,
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: process.env.ONE_SIGNAL_AUTH,
+            },
+          })
+            .then(async (result) => {
+              if (result.data.recipients == 1) {
+                const notification = new Notifications(userId, title, message);
+  
                 //saving in database
-                return adminNotificationObj.save().then((resultData1) => {
-                  return res.json({
-                    status: true,
-                    message: "Booking created successfully",
-                    booking: bookingData,
+                return notification.save().then((resultData) => {
+                  // return res.json({ status: true, message: "Booking created successfully", booking: bookingData });
+                  const adminNotificationObj = new AdminNotifications(
+                    userId,
+                    studioId,
+                    bookingData._id.toString(),
+                    "Booking created",
+                    userData.fullName +
+                    " created new booking with Studio : " +
+                    studioData.fullName
+                  );
+                  //saving in database
+                  return adminNotificationObj.save().then((resultData1) => {
+                    return res.json({
+                      status: true,
+                      message: "Booking created successfully",
+                      booking: bookingData,
+                    });
                   });
                 });
-              });
-            } else {
+              } else {
+                return res.json({
+                  status: true,
+                  message: "Booking created successfully(Notification not sent)",
+                  booking: bookingData,
+                });
+              }
+            })
+            .catch((err) => {
+              logger.error(err);
               return res.json({
                 status: true,
                 message: "Booking created successfully(Notification not sent)",
                 booking: bookingData,
               });
-            }
-          })
-          .catch((err) => {
-            logger.error(err);
-            return res.json({
-              status: true,
-              message: "Booking created successfully(Notification not sent)",
-              booking: bookingData,
             });
-          });
+        });
       });
     });
-  });
+  } catch (error) {
+    logger.error(error,"Error Occured :")
+  }
 };
 
 exports.createNewBooking = async (req, res, next) => {
   try {
-    const req_body = req.body;
-    logger.info("req.body |", { req_body });
+    logger.info({"req.body of createNewBooking": req.body });
 
 
 
@@ -615,7 +619,7 @@ exports.createServiceBooking = async (req, res, next) => {
       countryCode,
     } = req.body;
     const bookingStatus = 0;
-
+    logger.info({"req data of createServiceBooking":req.body})
     bookingTime.startTime = convertTo24HourFormat(bookingTime.startTime);
     bookingTime.endTime = convertTo24HourFormat(bookingTime.endTime);
 
@@ -746,290 +750,295 @@ exports.createServiceBooking = async (req, res, next) => {
 };
 
 exports.getStudioAvailabilities = async (req, res, next) => {
-  const studioId = req.body.studioId;
-  const roomId = req.body.roomId;
-  let bookingDate = req.body.bookingDate;
-  const bookingHours = +req.body.bookingHours; //Slots will be created based on this
-  const bufferTime = 15;
-  const interval = bookingHours * 60;
+ try {
+   const studioId = req.body.studioId;
+   const roomId = req.body.roomId;
+   let bookingDate = req.body.bookingDate;
+   const bookingHours = +req.body.bookingHours; //Slots will be created based on this
+   const bufferTime = 15;
+   const interval = bookingHours * 60;
 
-  console.log("slot req data:", req.body);
-
-  //get bookingDate from timestamp
-  bookingDate = new Date(bookingDate);
-  var yr = bookingDate.getUTCFullYear();
-  var mth = bookingDate.getUTCMonth() + 1;
-  if (mth.toString().length == 1) {
-    mth = "0" + mth.toString();
-  }
-  var dt = bookingDate.getUTCDate();
-  if (dt.toString().length == 1) {
-    dt = "0" + dt.toString();
-  }
-  bookingDate = yr + "-" + mth + "-" + dt;
-  var bTimeStamp = new Date(bookingDate).getTime();
-  logger.info("Booking Date :--> ", { bookingDate });
-
-  //get Current Date from timestamp
-  // let currDate = new Date();
-  let currDate = moment.tz("Asia/Kolkata");
-  let studioData = await Studio.findStudioById(studioId);
-  if (!studioData) {
-    return res
-      .status(404)
-      .json({ status: false, message: "No studio with this ID exists" });
-  }
-  if (studioData?.timeZone) {
-    currDate = moment.tz(studioData.timeZone);
-  } else {
-    currDate = moment.tz("Asia/Kolkata");
-    console.log("object");
-  }
-  console.log("currDate=>", currDate);
-
-  console.log(
-    "Current IST Date and Time:",
-    currDate.format("YYYY-MM-DD HH:mm:ss")
-  );
-  // var yr = currDate.getUTCFullYear();
-  // var mth = currDate.getUTCMonth() + 1;
-  var yr = currDate.year();
-  var mth = currDate.month() + 1;
-
-  if (mth.toString().length == 1) {
-    mth = "0" + mth.toString();
-  }
-  var dt = currDate.date();
-  // var dt = currDate.getUTCDate();
-  if (dt.toString().length == 1) {
-    dt = "0" + dt.toString();
-  }
-  // currDate = yr + "-" + mth + "-" + dt;
-  var cTimeStamp = currDate.valueOf();
-  console.log("Current Date : ", currDate);
-  console.log("cTimeStamp", cTimeStamp);
-  var currHr = currDate.hours();
-  var currMin = currDate.minutes();
-  var currTime = currHr * 60 + currMin;
-  logger.info("Current Time : " + currTime);
-
-  Studio.findStudioById(studioId).then((studioData) => {
-    if (!studioData) {
-      return res
-        .status(404)
-        .json({ status: false, message: "No studio with this ID exists" });
-    }
-
-    if (studioData.roomsDetails == undefined) {
-      studioData.roomsDetails = [];
-    }
-    const roomIndex = studioData.roomsDetails.findIndex(
-      (i) => i.roomId == roomId
-    );
-    if (roomIndex == -1) {
-      return res
-        .status(404)
-        .json({ status: false, message: "No room with this ID exists" });
-    }
-    let roomTotalAvailability =
-      studioData.roomsDetails[roomIndex].availabilities;
-    // roomTotalAvailability = [{startTime:"09:00",endTime:"13:00"},{startTime:"15:00",endTime:"19:00"}];
-    logger.info("Rooms Hours : ", { roomTotalAvailability });
-
-    //Getting all slots first
-    let allSlots = [];
-    roomTotalAvailability.forEach((singleAvail) => {
-      // logger.info({singleAvail});
-      var startTime = singleAvail.startTime;
-      var endTime = singleAvail.endTime;
-
-      var start_time = parseTime(startTime),
-        end_time = parseTime(endTime);
-      // interval = bookingHours * 60;
-
-      var timeslots = calculate_time_slot(start_time, end_time, interval);
-
-      //Creating range for slots
-      for (let s = 0; s < timeslots.length - 1; s++) {
-        timeslots[s] = { startTime: timeslots[s], endTime: timeslots[s + 1] };
-      }
-      //removing last extra element of "allSlots"
-      timeslots.splice(timeslots.length - 1, 1);
-      // logger.info({timeslots});
-      allSlots = allSlots.concat(timeslots);
-    });
-    // logger.info("All Slots : ",{allSlots});
-
-    Booking.fetchBookingsByStudioIdAndBookingDate(studioId,roomId, bookingDate).then(
-      (bookingsData) => {
-        // logger.info({bookingsData});
-
-        let availSlotsNew = allSlots;
-        //Filtering to remove past slots for current date
-        if (cTimeStamp >= bTimeStamp) {
-          console.log("cTimeStamp == bTimeStamp 1");
-          availSlotsNew = availSlotsNew.filter((i) => {
-            var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
-            var sMin =
-              +i.startTime.split(":")[0] * 60 + +i.startTime.split(":")[1];
-            logger.info(sMin, eMin, currTime);
-            if (eMin < currTime || sMin < currTime) {
-              return false;
-            } else {
-              return true;
-            }
-          });
-        }
-        console.log("availSlotsNew:", availSlotsNew);
-
-        if (bookingsData.length == 0) {
-          //convert to 12 hour format
-          availSlotsNew.forEach((singleSlot) => {
-            singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
-            singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
-          });
-          return res.json({
-            status: true,
-            message: "Availability returned",
-            allSlots: allSlots,
-            availableSlots: availSlotsNew,
-            bookedSlots: [],
-          });
-        }
-        let bookedSlots = [];
-        bookingsData.forEach((singleBooking) => {
-          bookedSlots.push(singleBooking.bookingTime);
-        });
-
-        let availableSlots = [];
-        let allSplitSlots = [];
-        // allSlots.forEach(singleSlot=>{
-        //     let startMin = (+singleSlot.startTime.split(':')[0] * 60) + (+singleSlot.startTime.split(':')[1]);
-        //     let endMin = (+singleSlot.endTime.split(':')[0] * 60) + (+singleSlot.endTime.split(':')[1]);
-        //     // logger.info(startMin,endMin);
-        bookedSlots.forEach((singleBookedSlot) => {
-          let startMinBooked =
-            +singleBookedSlot.startTime.split(":")[0] * 60 +
-            +singleBookedSlot.startTime.split(":")[1];
-          let endMinBooked =
-            +singleBookedSlot.endTime.split(":")[0] * 60 +
-            +singleBookedSlot.endTime.split(":")[1];
-
-          roomTotalAvailability.forEach((singleRoomAvail) => {
-            let startMinRoom =
-              +singleRoomAvail.startTime.split(":")[0] * 60 +
-              +singleRoomAvail.startTime.split(":")[1];
-            let endMinRoom =
-              +singleRoomAvail.endTime.split(":")[0] * 60 +
-              +singleRoomAvail.endTime.split(":")[1];
-            if (startMinBooked >= startMinRoom && endMinBooked <= endMinRoom) {
-              // logger.info("Single Room Avail : ",singleRoomAvail);
-              //remove this booked slot from total room slot
-              let splitSlot1 = {
-                startTime: singleRoomAvail.startTime,
-                endTime: singleBookedSlot.startTime,
-              };
-              let splitSlot2 = {
-                startTime: singleBookedSlot.endTime,
-                endTime: singleRoomAvail.endTime,
-              };
-              logger.info("Split Slot : ", { splitSlot1, splitSlot2 });
-              roomTotalAvailability.push(splitSlot1);
-              roomTotalAvailability.push(splitSlot2);
-
-              //Also, before next iteration, remove this availablitiy slot from room (since updated is added)
-              const availIndex1 = roomTotalAvailability.findIndex(
-                (a) =>
-                  a.startTime == singleRoomAvail.startTime &&
-                  a.endTime == singleRoomAvail.endTime
-              );
-              if (availIndex1 != -1) {
-                roomTotalAvailability.splice(availIndex1, 1);
-              }
-            }
-          });
-        });
-        // });
-        logger.info("Availability Sets : ", { roomTotalAvailability });
-        //add 30 min interval before starting next slot
-        for (let i = 1; i < roomTotalAvailability.length; i++) {
-          const index = bookedSlots.findIndex((s) =>
-            s.endTime
-              .split(":")[0]
-              .startsWith(roomTotalAvailability[i].startTime.split(":")[0])
-          );
-          if (index != -1) {
-            roomTotalAvailability[i].startTime = addMinToTime(
-              roomTotalAvailability[i].startTime,
-              bufferTime
-            );
-          }
-        }
-        logger.info("Availability Sets : ", { roomTotalAvailability });
-        let allAvailSlots = [];
-        //Now split these based on SLOT timing
-        roomTotalAvailability.forEach((singleAvail) => {
-          // logger.info({singleAvail});
-          var startTime = singleAvail.startTime;
-          var endTime = singleAvail.endTime;
-
-          var start_time = parseTime(startTime),
-            end_time = parseTime(endTime),
-            interval = bookingHours * 60;
-
-          var timeslots = calculate_time_slot(start_time, end_time, interval);
-
-          //Creating range for slots
-          for (let s = 0; s < timeslots.length - 1; s++) {
-            timeslots[s] = {
-              startTime: timeslots[s],
-              endTime: timeslots[s + 1],
-            };
-          }
-          //removing last extra element of "allSlots"
-          timeslots.splice(timeslots.length - 1, 1);
-          // logger.info({timeslots});
-          allAvailSlots = allAvailSlots.concat(timeslots);
-        });
-        //Filtering to remove past slots for current date
-        if (cTimeStamp == bTimeStamp) {
-          allAvailSlots = allAvailSlots.filter((i) => {
-            var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
-            var sMin =
-              +i.startTime.split(":")[0] * 60 + +i.startTime.split(":")[1];
-            if (eMin < currTime || sMin < currTime) {
-              return false;
-            } else {
-              return true;
-            }
-          });
-        }
-        //sorting
-        allAvailSlots.sort((a, b) => (a.startTime >= b.startTime ? 1 : -1));
-        //convert to 12 hour format
-        allAvailSlots.forEach((singleSlot) => {
-          singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
-          singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
-        });
-
-        allSlots.forEach((singleSlot) => {
-          singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
-          singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
-        });
-        bookedSlots.forEach((singleSlot) => {
-          singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
-          singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
-        });
-        return res.json({
-          status: true,
-          message: "Availability returned",
-          allSlots: allSlots,
-          availableSlots: allAvailSlots,
-          bookedSlots: bookedSlots,
-        });
-      }
-    );
-  });
+   logger.info({"req data of getStudioAvailabilities":req.body})
+   console.log("slot req data:", req.body);
+ 
+   //get bookingDate from timestamp
+   bookingDate = new Date(bookingDate);
+   var yr = bookingDate.getUTCFullYear();
+   var mth = bookingDate.getUTCMonth() + 1;
+   if (mth.toString().length == 1) {
+     mth = "0" + mth.toString();
+   }
+   var dt = bookingDate.getUTCDate();
+   if (dt.toString().length == 1) {
+     dt = "0" + dt.toString();
+   }
+   bookingDate = yr + "-" + mth + "-" + dt;
+   var bTimeStamp = new Date(bookingDate).getTime();
+   logger.info("Booking Date :--> ", { bookingDate });
+ 
+   //get Current Date from timestamp
+   // let currDate = new Date();
+   let currDate = moment.tz("Asia/Kolkata");
+   let studioData = await Studio.findStudioById(studioId);
+   if (!studioData) {
+     return res
+       .status(404)
+       .json({ status: false, message: "No studio with this ID exists" });
+   }
+   if (studioData?.timeZone) {
+     currDate = moment.tz(studioData.timeZone);
+   } else {
+     currDate = moment.tz("Asia/Kolkata");
+     console.log("object");
+   }
+   console.log("currDate=>", currDate);
+ 
+   console.log(
+     "Current IST Date and Time:",
+     currDate.format("YYYY-MM-DD HH:mm:ss")
+   );
+   // var yr = currDate.getUTCFullYear();
+   // var mth = currDate.getUTCMonth() + 1;
+   var yr = currDate.year();
+   var mth = currDate.month() + 1;
+ 
+   if (mth.toString().length == 1) {
+     mth = "0" + mth.toString();
+   }
+   var dt = currDate.date();
+   // var dt = currDate.getUTCDate();
+   if (dt.toString().length == 1) {
+     dt = "0" + dt.toString();
+   }
+   // currDate = yr + "-" + mth + "-" + dt;
+   var cTimeStamp = currDate.valueOf();
+   console.log("Current Date : ", currDate);
+   console.log("cTimeStamp", cTimeStamp);
+   var currHr = currDate.hours();
+   var currMin = currDate.minutes();
+   var currTime = currHr * 60 + currMin;
+   logger.info("Current Time : " + currTime);
+ 
+   Studio.findStudioById(studioId).then((studioData) => {
+     if (!studioData) {
+       return res
+         .status(404)
+         .json({ status: false, message: "No studio with this ID exists" });
+     }
+ 
+     if (studioData.roomsDetails == undefined) {
+       studioData.roomsDetails = [];
+     }
+     const roomIndex = studioData.roomsDetails.findIndex(
+       (i) => i.roomId == roomId
+     );
+     if (roomIndex == -1) {
+       return res
+         .status(404)
+         .json({ status: false, message: "No room with this ID exists" });
+     }
+     let roomTotalAvailability =
+       studioData.roomsDetails[roomIndex].availabilities;
+     // roomTotalAvailability = [{startTime:"09:00",endTime:"13:00"},{startTime:"15:00",endTime:"19:00"}];
+     logger.info("Rooms Hours : ", { roomTotalAvailability });
+ 
+     //Getting all slots first
+     let allSlots = [];
+     roomTotalAvailability.forEach((singleAvail) => {
+       // logger.info({singleAvail});
+       var startTime = singleAvail.startTime;
+       var endTime = singleAvail.endTime;
+ 
+       var start_time = parseTime(startTime),
+         end_time = parseTime(endTime);
+       // interval = bookingHours * 60;
+ 
+       var timeslots = calculate_time_slot(start_time, end_time, interval);
+ 
+       //Creating range for slots
+       for (let s = 0; s < timeslots.length - 1; s++) {
+         timeslots[s] = { startTime: timeslots[s], endTime: timeslots[s + 1] };
+       }
+       //removing last extra element of "allSlots"
+       timeslots.splice(timeslots.length - 1, 1);
+       // logger.info({timeslots});
+       allSlots = allSlots.concat(timeslots);
+     });
+     // logger.info("All Slots : ",{allSlots});
+ 
+     Booking.fetchBookingsByStudioIdAndBookingDate(studioId,roomId, bookingDate).then(
+       (bookingsData) => {
+         // logger.info({bookingsData});
+ 
+         let availSlotsNew = allSlots;
+         //Filtering to remove past slots for current date
+         if (cTimeStamp >= bTimeStamp) {
+           console.log("cTimeStamp == bTimeStamp 1");
+           availSlotsNew = availSlotsNew.filter((i) => {
+             var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
+             var sMin =
+               +i.startTime.split(":")[0] * 60 + +i.startTime.split(":")[1];
+             logger.info(sMin, eMin, currTime);
+             if (eMin < currTime || sMin < currTime) {
+               return false;
+             } else {
+               return true;
+             }
+           });
+         }
+         console.log("availSlotsNew:", availSlotsNew);
+ 
+         if (bookingsData.length == 0) {
+           //convert to 12 hour format
+           availSlotsNew.forEach((singleSlot) => {
+             singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
+             singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
+           });
+           return res.json({
+             status: true,
+             message: "Availability returned",
+             allSlots: allSlots,
+             availableSlots: availSlotsNew,
+             bookedSlots: [],
+           });
+         }
+         let bookedSlots = [];
+         bookingsData.forEach((singleBooking) => {
+           bookedSlots.push(singleBooking.bookingTime);
+         });
+ 
+         let availableSlots = [];
+         let allSplitSlots = [];
+         // allSlots.forEach(singleSlot=>{
+         //     let startMin = (+singleSlot.startTime.split(':')[0] * 60) + (+singleSlot.startTime.split(':')[1]);
+         //     let endMin = (+singleSlot.endTime.split(':')[0] * 60) + (+singleSlot.endTime.split(':')[1]);
+         //     // logger.info(startMin,endMin);
+         bookedSlots.forEach((singleBookedSlot) => {
+           let startMinBooked =
+             +singleBookedSlot.startTime.split(":")[0] * 60 +
+             +singleBookedSlot.startTime.split(":")[1];
+           let endMinBooked =
+             +singleBookedSlot.endTime.split(":")[0] * 60 +
+             +singleBookedSlot.endTime.split(":")[1];
+ 
+           roomTotalAvailability.forEach((singleRoomAvail) => {
+             let startMinRoom =
+               +singleRoomAvail.startTime.split(":")[0] * 60 +
+               +singleRoomAvail.startTime.split(":")[1];
+             let endMinRoom =
+               +singleRoomAvail.endTime.split(":")[0] * 60 +
+               +singleRoomAvail.endTime.split(":")[1];
+             if (startMinBooked >= startMinRoom && endMinBooked <= endMinRoom) {
+               // logger.info("Single Room Avail : ",singleRoomAvail);
+               //remove this booked slot from total room slot
+               let splitSlot1 = {
+                 startTime: singleRoomAvail.startTime,
+                 endTime: singleBookedSlot.startTime,
+               };
+               let splitSlot2 = {
+                 startTime: singleBookedSlot.endTime,
+                 endTime: singleRoomAvail.endTime,
+               };
+               logger.info("Split Slot : ", { splitSlot1, splitSlot2 });
+               roomTotalAvailability.push(splitSlot1);
+               roomTotalAvailability.push(splitSlot2);
+ 
+               //Also, before next iteration, remove this availablitiy slot from room (since updated is added)
+               const availIndex1 = roomTotalAvailability.findIndex(
+                 (a) =>
+                   a.startTime == singleRoomAvail.startTime &&
+                   a.endTime == singleRoomAvail.endTime
+               );
+               if (availIndex1 != -1) {
+                 roomTotalAvailability.splice(availIndex1, 1);
+               }
+             }
+           });
+         });
+         // });
+         logger.info("Availability Sets : ", { roomTotalAvailability });
+         //add 30 min interval before starting next slot
+         for (let i = 1; i < roomTotalAvailability.length; i++) {
+           const index = bookedSlots.findIndex((s) =>
+             s.endTime
+               .split(":")[0]
+               .startsWith(roomTotalAvailability[i].startTime.split(":")[0])
+           );
+           if (index != -1) {
+             roomTotalAvailability[i].startTime = addMinToTime(
+               roomTotalAvailability[i].startTime,
+               bufferTime
+             );
+           }
+         }
+         logger.info("Availability Sets : ", { roomTotalAvailability });
+         let allAvailSlots = [];
+         //Now split these based on SLOT timing
+         roomTotalAvailability.forEach((singleAvail) => {
+           // logger.info({singleAvail});
+           var startTime = singleAvail.startTime;
+           var endTime = singleAvail.endTime;
+ 
+           var start_time = parseTime(startTime),
+             end_time = parseTime(endTime),
+             interval = bookingHours * 60;
+ 
+           var timeslots = calculate_time_slot(start_time, end_time, interval);
+ 
+           //Creating range for slots
+           for (let s = 0; s < timeslots.length - 1; s++) {
+             timeslots[s] = {
+               startTime: timeslots[s],
+               endTime: timeslots[s + 1],
+             };
+           }
+           //removing last extra element of "allSlots"
+           timeslots.splice(timeslots.length - 1, 1);
+           // logger.info({timeslots});
+           allAvailSlots = allAvailSlots.concat(timeslots);
+         });
+         //Filtering to remove past slots for current date
+         if (cTimeStamp == bTimeStamp) {
+           allAvailSlots = allAvailSlots.filter((i) => {
+             var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
+             var sMin =
+               +i.startTime.split(":")[0] * 60 + +i.startTime.split(":")[1];
+             if (eMin < currTime || sMin < currTime) {
+               return false;
+             } else {
+               return true;
+             }
+           });
+         }
+         //sorting
+         allAvailSlots.sort((a, b) => (a.startTime >= b.startTime ? 1 : -1));
+         //convert to 12 hour format
+         allAvailSlots.forEach((singleSlot) => {
+           singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
+           singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
+         });
+ 
+         allSlots.forEach((singleSlot) => {
+           singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
+           singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
+         });
+         bookedSlots.forEach((singleSlot) => {
+           singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
+           singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
+         });
+         return res.json({
+           status: true,
+           message: "Availability returned",
+           allSlots: allSlots,
+           availableSlots: allAvailSlots,
+           bookedSlots: bookedSlots,
+         });
+       }
+     );
+   });
+ } catch (error) {
+  logger.error(error,"Error Occured :")
+ }
 };
 
 // exports.getStudioAvailabilitiesWorkingBackup = (req, res, next) => {
@@ -1283,716 +1292,724 @@ exports.getStudioAvailabilities = async (req, res, next) => {
 // };
 
 exports.getStudioAvailabilitiesLate = (req, res, next) => {
-  const req_body = req.body;
-  logger.info("req.body | ", { req_body });
-
-  const studioId = req.body.studioId;
-  const roomId = req.body.roomId;
-  let bookingDate = req.body.bookingDate;
-  const bookingHours = +req.body.bookingHours; //Slots will be created based on this
-
-  const interval = 1.5 * 60;
-  const bufferTime = 30; // adjust the buffer time as needed
-  const afterBufferTime = 30;
-
-  //get bookingDate from timestamp
-  bookingDate = new Date(bookingDate);
-  var yr = bookingDate.getUTCFullYear();
-  var mth = bookingDate.getUTCMonth() + 1;
-  if (mth.toString().length == 1) {
-    mth = "0" + mth.toString();
-  }
-  var dt = bookingDate.getUTCDate();
-  if (dt.toString().length == 1) {
-    dt = "0" + dt.toString();
-  }
-  bookingDate = yr + "-" + mth + "-" + dt;
-  var bTimeStamp = new Date(bookingDate).getTime();
-  logger.info("Booking Date : ", { bookingDate });
-
-  //get Current Date from timestamp
-  let currDate = new Date();
-  var yr = currDate.getUTCFullYear();
-  var mth = currDate.getUTCMonth() + 1;
-  if (mth.toString().length == 1) {
-    mth = "0" + mth.toString();
-  }
-  var dt = currDate.getUTCDate();
-  if (dt.toString().length == 1) {
-    dt = "0" + dt.toString();
-  }
-  currDate = yr + "-" + mth + "-" + dt;
-  var cTimeStamp = new Date(currDate).getTime();
-  logger.info("Current Date : ", { currDate });
-  var currHr = new Date().getHours();
-  var currMin = new Date().getMinutes();
-  var currTime = currHr * 60 + currMin;
-  logger.info("Current Time : " + currTime);
-
-  Studio.findStudioById(studioId).then((studioData) => {
-    if (!studioData) {
-      return res
-        .status(404)
-        .json({ status: false, message: "No studio with this ID exists" });
+  try {
+    const req_body = req.body;
+    logger.info({"req data of getStudioAvailabilitiesLate":req.body})
+  
+    const studioId = req.body.studioId;
+    const roomId = req.body.roomId;
+    let bookingDate = req.body.bookingDate;
+    const bookingHours = +req.body.bookingHours; //Slots will be created based on this
+  
+    const interval = 1.5 * 60;
+    const bufferTime = 30; // adjust the buffer time as needed
+    const afterBufferTime = 30;
+  
+    //get bookingDate from timestamp
+    bookingDate = new Date(bookingDate);
+    var yr = bookingDate.getUTCFullYear();
+    var mth = bookingDate.getUTCMonth() + 1;
+    if (mth.toString().length == 1) {
+      mth = "0" + mth.toString();
     }
-
-    if (studioData.roomsDetails == undefined) {
-      studioData.roomsDetails = [];
+    var dt = bookingDate.getUTCDate();
+    if (dt.toString().length == 1) {
+      dt = "0" + dt.toString();
     }
-    const roomIndex = studioData.roomsDetails.findIndex(
-      (i) => i.roomId == roomId
-    );
-    if (roomIndex == -1) {
-      return res
-        .status(404)
-        .json({ status: false, message: "No room with this ID exists" });
+    bookingDate = yr + "-" + mth + "-" + dt;
+    var bTimeStamp = new Date(bookingDate).getTime();
+    logger.info("Booking Date : ", { bookingDate });
+  
+    //get Current Date from timestamp
+    let currDate = new Date();
+    var yr = currDate.getUTCFullYear();
+    var mth = currDate.getUTCMonth() + 1;
+    if (mth.toString().length == 1) {
+      mth = "0" + mth.toString();
     }
-    let roomTotalAvailability =
-      studioData.roomsDetails[roomIndex].availabilities;
-    // roomTotalAvailability = [{startTime:"09:00",endTime:"13:00"},{startTime:"15:00",endTime:"19:00"}];
-    logger.info("Rooms Hours : ", { roomTotalAvailability });
-
-    //Getting all slots first
-    let allSlots = [];
-    roomTotalAvailability.forEach((singleAvail) => {
-      logger.info("singleAvail:::", { singleAvail });
-      var startTime = singleAvail.startTime;
-      var endTime = singleAvail.endTime;
-
-      var start_time = parseTime(startTime),
-        end_time = parseTime(endTime),
-        interval = bookingHours * 60;
-
-      var timeslots = calculate_time_slot(start_time, end_time, interval);
-
-      logger.info("|||timeslots --", { timeslots });
-
-      //Creating range for slots
-      for (let s = 0; s < timeslots.length - 1; s++) {
-        timeslots[s] = { startTime: timeslots[s], endTime: timeslots[s + 1] };
+    var dt = currDate.getUTCDate();
+    if (dt.toString().length == 1) {
+      dt = "0" + dt.toString();
+    }
+    currDate = yr + "-" + mth + "-" + dt;
+    var cTimeStamp = new Date(currDate).getTime();
+    logger.info("Current Date : ", { currDate });
+    var currHr = new Date().getHours();
+    var currMin = new Date().getMinutes();
+    var currTime = currHr * 60 + currMin;
+    logger.info("Current Time : " + currTime);
+  
+    Studio.findStudioById(studioId).then((studioData) => {
+      if (!studioData) {
+        return res
+          .status(404)
+          .json({ status: false, message: "No studio with this ID exists" });
       }
-      //removing last extra element of "allSlots"
-      timeslots.splice(timeslots.length - 1, 1);
-      // logger.info({timeslots});
-      allSlots = allSlots.concat(timeslots);
-    });
-    logger.info("\n\n----All Slots : ", { allSlots });
-
-    Booking.fetchBookingsByStudioIdAndBookingDate(studioId,roomId, bookingDate).then(
-      (bookingsData) => {
-        // logger.info({bookingsData});
-
-        let availSlotsNew = allSlots;
-        //Filtering to remove past slots for current date
-        logger.info(
-          "\nRemove Filtered Past slots---",
-          cTimeStamp == bTimeStamp
-        );
-        if (cTimeStamp == bTimeStamp) {
-          availSlotsNew = availSlotsNew.filter((i) => {
-            var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
-            var sMin =
-              +i.startTime.split(":")[0] * 60 + +i.startTime.split(":")[1];
-            logger.info("-------", { sMin, eMin, currTime });
-            if (eMin < currTime || sMin < currTime) {
-              return false;
-            } else {
-              return true;
-            }
-          });
+  
+      if (studioData.roomsDetails == undefined) {
+        studioData.roomsDetails = [];
+      }
+      const roomIndex = studioData.roomsDetails.findIndex(
+        (i) => i.roomId == roomId
+      );
+      if (roomIndex == -1) {
+        return res
+          .status(404)
+          .json({ status: false, message: "No room with this ID exists" });
+      }
+      let roomTotalAvailability =
+        studioData.roomsDetails[roomIndex].availabilities;
+      // roomTotalAvailability = [{startTime:"09:00",endTime:"13:00"},{startTime:"15:00",endTime:"19:00"}];
+      logger.info("Rooms Hours : ", { roomTotalAvailability });
+  
+      //Getting all slots first
+      let allSlots = [];
+      roomTotalAvailability.forEach((singleAvail) => {
+        logger.info("singleAvail:::", { singleAvail });
+        var startTime = singleAvail.startTime;
+        var endTime = singleAvail.endTime;
+  
+        var start_time = parseTime(startTime),
+          end_time = parseTime(endTime),
+          interval = bookingHours * 60;
+  
+        var timeslots = calculate_time_slot(start_time, end_time, interval);
+  
+        logger.info("|||timeslots --", { timeslots });
+  
+        //Creating range for slots
+        for (let s = 0; s < timeslots.length - 1; s++) {
+          timeslots[s] = { startTime: timeslots[s], endTime: timeslots[s + 1] };
         }
-
-        if (bookingsData.length == 0) {
+        //removing last extra element of "allSlots"
+        timeslots.splice(timeslots.length - 1, 1);
+        // logger.info({timeslots});
+        allSlots = allSlots.concat(timeslots);
+      });
+      logger.info("\n\n----All Slots : ", { allSlots });
+  
+      Booking.fetchBookingsByStudioIdAndBookingDate(studioId,roomId, bookingDate).then(
+        (bookingsData) => {
+          // logger.info({bookingsData});
+  
+          let availSlotsNew = allSlots;
+          //Filtering to remove past slots for current date
+          logger.info(
+            "\nRemove Filtered Past slots---",
+            cTimeStamp == bTimeStamp
+          );
+          if (cTimeStamp == bTimeStamp) {
+            availSlotsNew = availSlotsNew.filter((i) => {
+              var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
+              var sMin =
+                +i.startTime.split(":")[0] * 60 + +i.startTime.split(":")[1];
+              logger.info("-------", { sMin, eMin, currTime });
+              if (eMin < currTime || sMin < currTime) {
+                return false;
+              } else {
+                return true;
+              }
+            });
+          }
+  
+          if (bookingsData.length == 0) {
+            //convert to 12 hour format
+            availSlotsNew.forEach((singleSlot) => {
+              singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
+              singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
+            });
+            logger.info("allSlots", { allSlots }, "availableSlots", {
+              availSlotsNew,
+            });
+            return res.json({
+              status: true,
+              message: "Availability returned",
+              allSlots: allSlots,
+              availableSlots: availSlotsNew,
+              bookedSlots: [],
+            });
+          }
+  
+          let bookedSlots = [];
+          bookingsData.forEach((singleBooking) => {
+            logger.info("singleBooking.bookingTime:::", { singleBooking });
+            bookedSlots.push(singleBooking.bookingTime);
+          });
+  
+          let availableSlots = [];
+          let allSplitSlots = [];
+          // allSlots.forEach(singleSlot=>{
+          //     let startMin = (+singleSlot.startTime.split(':')[0] * 60) + (+singleSlot.startTime.split(':')[1]);
+          //     let endMin = (+singleSlot.endTime.split(':')[0] * 60) + (+singleSlot.endTime.split(':')[1]);
+          //     // logger.info(startMin,endMin);
+          bookedSlots.forEach((singleBookedSlot) => {
+            let startMinBooked =
+              +singleBookedSlot.startTime.split(":")[0] * 60 +
+              +singleBookedSlot.startTime.split(":")[1];
+            let endMinBooked =
+              +singleBookedSlot.endTime.split(":")[0] * 60 +
+              +singleBookedSlot.endTime.split(":")[1];
+            logger.info(
+              "\n\nstartMinBooked:",
+              startMinBooked,
+              "endMinBooked:",
+              endMinBooked,
+              "singleBookedSlot:",
+              singleBookedSlot,
+              "\n\n"
+            );
+  
+            roomTotalAvailability.forEach((singleRoomAvail) => {
+              logger.info("roomTotalAvailability:", { roomTotalAvailability });
+              let startMinRoom =
+                +singleRoomAvail.startTime.split(":")[0] * 60 +
+                +singleRoomAvail.startTime.split(":")[1];
+              let endMinRoom =
+                +singleRoomAvail.endTime.split(":")[0] * 60 +
+                +singleRoomAvail.endTime.split(":")[1];
+              logger.info(
+                "\n-----------------------------------\nstartMinRoom",
+                startMinRoom,
+                "endMinRoom",
+                endMinRoom,
+                "singleRoomAvail:",
+                singleRoomAvail,
+                "\n-----------------------------------"
+              );
+              logger.info(
+                "CHECK:::",
+                startMinBooked >= startMinRoom && endMinBooked <= endMinRoom
+              );
+              // check if the Slots Booked from available slots
+              if (startMinBooked >= startMinRoom && endMinBooked <= endMinRoom) {
+                // logger.info("Single Room Avail : ",singleRoomAvail);
+                //remove this booked slot from total room slot
+  
+                const newSingleBookedSlotEnd = addMinToTime(
+                  singleBookedSlot.endTime,
+                  bufferTime + afterBufferTime
+                );
+                // const newSingleRoomAvailEnd = addMinToTime(singleRoomAvail.endTime,interval) // new - halted
+  
+                let splitSlot1 = {
+                  startTime: singleRoomAvail.startTime,
+                  endTime: singleBookedSlot.startTime,
+                };
+                // let splitSlot2 = {startTime:singleBookedSlot.endTime,endTime:singleRoomAvail.endTime}; // base
+                let splitSlot2 = {
+                  startTime: newSingleBookedSlotEnd,
+                  endTime: singleRoomAvail.endTime,
+                };
+                logger.info(
+                  "\nnewSingleBookedSlotEnd",
+                  newSingleBookedSlotEnd,
+                  "\nSplit Slot : ",
+                  splitSlot1,
+                  splitSlot2
+                );
+                roomTotalAvailability.push(splitSlot1);
+                roomTotalAvailability.push(splitSlot2);
+  
+                //Also, before next iteration, remove this availablitiy slot from room (since updated is added)
+                const availIndex1 = roomTotalAvailability.findIndex(
+                  (a) =>
+                    a.startTime == singleRoomAvail.startTime &&
+                    a.endTime == singleRoomAvail.endTime
+                );
+  
+                if (availIndex1 != -1) {
+                  roomTotalAvailability.splice(availIndex1, 1);
+                }
+              }
+            });
+          });
+          // });
+          // const updatedAvailabilitySets = removeBookedSlots(roomTotalAvailability, bookedSlots);
+          // roomTotalAvailability = updatedAvailabilitySets
+          logger.info("Availability Sets : ", { roomTotalAvailability });
+          //add 30 min interval before starting next slot
+          // for(let i=1;i<roomTotalAvailability.length;i++)
+          // {
+          //     const index = bookedSlots.findIndex(s=>s.endTime.split(':')[0].startsWith(roomTotalAvailability[i].startTime.split(':')[0]));
+          //     if(index!=-1)
+          //     {
+          //         roomTotalAvailability[i].startTime = addMinToTime(roomTotalAvailability[i].startTime,30);
+          //     }
+          // }
+  
+          // NEW
+  
+          // dynamically adjust the start time of the next slot based on the end time of the booked slot
+          for (let i = 1; i < roomTotalAvailability.length; i++) {
+            // const newSingleBookedSlotEnd = addMinToTime(singleBookedSlot.endTime,bufferTime+afterBufferTime)
+            // const newSingleRoomAvailEnd = addMinToTime(singleRoomAvail.endTime,interval)
+            // const index = bookedSlots.findIndex(s => s.endTime.split(':')[0].startsWith(roomTotalAvailability[i].startTime.split(':')[0])); // base
+            const index = bookedSlots.findIndex((s) =>
+              s.endTime
+                .split(":")[0]
+                .startsWith(
+                  removeMinFromTime(
+                    roomTotalAvailability[i].startTime,
+                    interval
+                  ).split(":")[0]
+                )
+            ); // new
+  
+            bookedSlots.forEach((s, index) => {
+              // Calculate the adjusted end time
+              const adjustedEndTime = addMinToTime(
+                s.endTime,
+                bufferTime + afterBufferTime
+              );
+  
+              // Print the adjusted end time
+              logger.info(
+                `Adjusted End Time for Slot ${index + 1}: ${adjustedEndTime}`
+              );
+  
+              // Find the index based on conditions
+              const matchIndex = roomTotalAvailability.findIndex(
+                (availableSlot) =>
+                  addMinToTime(availableSlot.startTime, interval)
+                    .split(":")[0]
+                    .startsWith(adjustedEndTime.split(":")[0])
+              );
+  
+              // Print the match index
+              logger.info(`Match Index for Slot ${index + 1}: ${matchIndex}`);
+              // return index
+            });
+  
+            logger.info("bookedSlots Index:", { index });
+            if (index !== -1) {
+              const bufferStart = addMinToTime(
+                bookedSlots[index].endTime,
+                bufferTime
+              );
+              // const bufferEnd = roomTotalAvailability[i].endTime; // base
+              const bufferEnd = addMinToTime(bufferStart, interval);
+              // const bufferEnd = bookedSlots[index].startTime;
+              // roomTotalAvailability.push({ startTime: bufferStart, endTime: bufferEnd });
+  
+              if (bufferStart < bufferEnd) {
+                // Only adjust if the bufferStart is before bufferEnd
+                logger.info(
+                  "bufferStart",
+                  bufferStart,
+                  "bufferEnd",
+                  bufferEnd,
+                  "push:",
+                  addMinToTime(bookedSlots[index].endTime, interval)
+                );
+                // logger.info("pushed",{({ startTime: bufferStart, endTime: bufferEnd }}));
+                // roomTotalAvailability.push({ startTime: bufferStart, endTime: bufferEnd }); // pushed { startTime: '14:30', endTime: '15:30' }
+                // logger.info("pop",bookedSlots[index]); // pop { startTime: '13:00', endTime: '14:00' }
+                // roomTotalAvailability.pop(bookedSlots[index]);
+                // logger.info("splice",{ startTime: bufferStart, endTime: bufferEnd }, "IND:0,",i);
+                // roomTotalAvailability.splice(i, 0, { startTime: bufferStart, endTime: bufferEnd }); // splice { startTime: '14:30', endTime: '15:30' } IND:0, 1
+                roomTotalAvailability.push({
+                  startTime: bufferStart,
+                  endTime: bufferEnd,
+                });
+  
+                i++; // skip the next iteration to avoid re-adjusting the same slot
+              }
+            }
+          }
+  
+          logger.info("Availability Sets : ", { roomTotalAvailability });
+          let allAvailSlots = [];
+          //Now split these based on SLOT timing
+          roomTotalAvailability.forEach((singleAvail) => {
+            // logger.info({singleAvail});
+            var startTime = singleAvail.startTime;
+            var endTime = singleAvail.endTime;
+  
+            var start_time = parseTime(startTime),
+              end_time = parseTime(endTime),
+              interval = bookingHours * 60;
+  
+            var timeslots = calculate_time_slot(start_time, end_time, interval);
+  
+            logger.info("Timeslots:", { timeslots });
+            //Creating range for slots
+            for (let s = 0; s < timeslots.length - 1; s++) {
+              timeslots[s] = {
+                startTime: timeslots[s],
+                endTime: timeslots[s + 1],
+              };
+            }
+            //removing last extra element of "allSlots"
+            timeslots.splice(timeslots.length - 1, 1);
+            // logger.info({timeslots});
+            allAvailSlots = allAvailSlots.concat(timeslots);
+          });
+          //Filtering to remove past slots for current date
+          if (cTimeStamp == bTimeStamp) {
+            allAvailSlots = allAvailSlots.filter((i) => {
+              var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
+              var sMin =
+                +i.startTime.split(":")[0] * 60 + +i.startTime.split(":")[1];
+              if (eMin < currTime || sMin < currTime) {
+                return false;
+              } else {
+                return true;
+              }
+            });
+          }
+          //sorting
+          allAvailSlots.sort((a, b) => (a.startTime >= b.startTime ? 1 : -1));
           //convert to 12 hour format
-          availSlotsNew.forEach((singleSlot) => {
+          allAvailSlots.forEach((singleSlot) => {
             singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
             singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
           });
-          logger.info("allSlots", { allSlots }, "availableSlots", {
-            availSlotsNew,
-          });
+          logger.info(
+            "availableSlots",
+            allAvailSlots,
+            "bookedSlots",
+            bookedSlots
+          );
           return res.json({
             status: true,
             message: "Availability returned",
             allSlots: allSlots,
-            availableSlots: availSlotsNew,
-            bookedSlots: [],
+            availableSlots: allAvailSlots,
+            bookedSlots: bookedSlots,
           });
         }
-
-        let bookedSlots = [];
-        bookingsData.forEach((singleBooking) => {
-          logger.info("singleBooking.bookingTime:::", { singleBooking });
-          bookedSlots.push(singleBooking.bookingTime);
-        });
-
-        let availableSlots = [];
-        let allSplitSlots = [];
-        // allSlots.forEach(singleSlot=>{
-        //     let startMin = (+singleSlot.startTime.split(':')[0] * 60) + (+singleSlot.startTime.split(':')[1]);
-        //     let endMin = (+singleSlot.endTime.split(':')[0] * 60) + (+singleSlot.endTime.split(':')[1]);
-        //     // logger.info(startMin,endMin);
-        bookedSlots.forEach((singleBookedSlot) => {
-          let startMinBooked =
-            +singleBookedSlot.startTime.split(":")[0] * 60 +
-            +singleBookedSlot.startTime.split(":")[1];
-          let endMinBooked =
-            +singleBookedSlot.endTime.split(":")[0] * 60 +
-            +singleBookedSlot.endTime.split(":")[1];
-          logger.info(
-            "\n\nstartMinBooked:",
-            startMinBooked,
-            "endMinBooked:",
-            endMinBooked,
-            "singleBookedSlot:",
-            singleBookedSlot,
-            "\n\n"
-          );
-
-          roomTotalAvailability.forEach((singleRoomAvail) => {
-            logger.info("roomTotalAvailability:", { roomTotalAvailability });
-            let startMinRoom =
-              +singleRoomAvail.startTime.split(":")[0] * 60 +
-              +singleRoomAvail.startTime.split(":")[1];
-            let endMinRoom =
-              +singleRoomAvail.endTime.split(":")[0] * 60 +
-              +singleRoomAvail.endTime.split(":")[1];
-            logger.info(
-              "\n-----------------------------------\nstartMinRoom",
-              startMinRoom,
-              "endMinRoom",
-              endMinRoom,
-              "singleRoomAvail:",
-              singleRoomAvail,
-              "\n-----------------------------------"
-            );
-            logger.info(
-              "CHECK:::",
-              startMinBooked >= startMinRoom && endMinBooked <= endMinRoom
-            );
-            // check if the Slots Booked from available slots
-            if (startMinBooked >= startMinRoom && endMinBooked <= endMinRoom) {
-              // logger.info("Single Room Avail : ",singleRoomAvail);
-              //remove this booked slot from total room slot
-
-              const newSingleBookedSlotEnd = addMinToTime(
-                singleBookedSlot.endTime,
-                bufferTime + afterBufferTime
-              );
-              // const newSingleRoomAvailEnd = addMinToTime(singleRoomAvail.endTime,interval) // new - halted
-
-              let splitSlot1 = {
-                startTime: singleRoomAvail.startTime,
-                endTime: singleBookedSlot.startTime,
-              };
-              // let splitSlot2 = {startTime:singleBookedSlot.endTime,endTime:singleRoomAvail.endTime}; // base
-              let splitSlot2 = {
-                startTime: newSingleBookedSlotEnd,
-                endTime: singleRoomAvail.endTime,
-              };
-              logger.info(
-                "\nnewSingleBookedSlotEnd",
-                newSingleBookedSlotEnd,
-                "\nSplit Slot : ",
-                splitSlot1,
-                splitSlot2
-              );
-              roomTotalAvailability.push(splitSlot1);
-              roomTotalAvailability.push(splitSlot2);
-
-              //Also, before next iteration, remove this availablitiy slot from room (since updated is added)
-              const availIndex1 = roomTotalAvailability.findIndex(
-                (a) =>
-                  a.startTime == singleRoomAvail.startTime &&
-                  a.endTime == singleRoomAvail.endTime
-              );
-
-              if (availIndex1 != -1) {
-                roomTotalAvailability.splice(availIndex1, 1);
-              }
-            }
-          });
-        });
-        // });
-        // const updatedAvailabilitySets = removeBookedSlots(roomTotalAvailability, bookedSlots);
-        // roomTotalAvailability = updatedAvailabilitySets
-        logger.info("Availability Sets : ", { roomTotalAvailability });
-        //add 30 min interval before starting next slot
-        // for(let i=1;i<roomTotalAvailability.length;i++)
-        // {
-        //     const index = bookedSlots.findIndex(s=>s.endTime.split(':')[0].startsWith(roomTotalAvailability[i].startTime.split(':')[0]));
-        //     if(index!=-1)
-        //     {
-        //         roomTotalAvailability[i].startTime = addMinToTime(roomTotalAvailability[i].startTime,30);
-        //     }
-        // }
-
-        // NEW
-
-        // dynamically adjust the start time of the next slot based on the end time of the booked slot
-        for (let i = 1; i < roomTotalAvailability.length; i++) {
-          // const newSingleBookedSlotEnd = addMinToTime(singleBookedSlot.endTime,bufferTime+afterBufferTime)
-          // const newSingleRoomAvailEnd = addMinToTime(singleRoomAvail.endTime,interval)
-          // const index = bookedSlots.findIndex(s => s.endTime.split(':')[0].startsWith(roomTotalAvailability[i].startTime.split(':')[0])); // base
-          const index = bookedSlots.findIndex((s) =>
-            s.endTime
-              .split(":")[0]
-              .startsWith(
-                removeMinFromTime(
-                  roomTotalAvailability[i].startTime,
-                  interval
-                ).split(":")[0]
-              )
-          ); // new
-
-          bookedSlots.forEach((s, index) => {
-            // Calculate the adjusted end time
-            const adjustedEndTime = addMinToTime(
-              s.endTime,
-              bufferTime + afterBufferTime
-            );
-
-            // Print the adjusted end time
-            logger.info(
-              `Adjusted End Time for Slot ${index + 1}: ${adjustedEndTime}`
-            );
-
-            // Find the index based on conditions
-            const matchIndex = roomTotalAvailability.findIndex(
-              (availableSlot) =>
-                addMinToTime(availableSlot.startTime, interval)
-                  .split(":")[0]
-                  .startsWith(adjustedEndTime.split(":")[0])
-            );
-
-            // Print the match index
-            logger.info(`Match Index for Slot ${index + 1}: ${matchIndex}`);
-            // return index
-          });
-
-          logger.info("bookedSlots Index:", { index });
-          if (index !== -1) {
-            const bufferStart = addMinToTime(
-              bookedSlots[index].endTime,
-              bufferTime
-            );
-            // const bufferEnd = roomTotalAvailability[i].endTime; // base
-            const bufferEnd = addMinToTime(bufferStart, interval);
-            // const bufferEnd = bookedSlots[index].startTime;
-            // roomTotalAvailability.push({ startTime: bufferStart, endTime: bufferEnd });
-
-            if (bufferStart < bufferEnd) {
-              // Only adjust if the bufferStart is before bufferEnd
-              logger.info(
-                "bufferStart",
-                bufferStart,
-                "bufferEnd",
-                bufferEnd,
-                "push:",
-                addMinToTime(bookedSlots[index].endTime, interval)
-              );
-              // logger.info("pushed",{({ startTime: bufferStart, endTime: bufferEnd }}));
-              // roomTotalAvailability.push({ startTime: bufferStart, endTime: bufferEnd }); // pushed { startTime: '14:30', endTime: '15:30' }
-              // logger.info("pop",bookedSlots[index]); // pop { startTime: '13:00', endTime: '14:00' }
-              // roomTotalAvailability.pop(bookedSlots[index]);
-              // logger.info("splice",{ startTime: bufferStart, endTime: bufferEnd }, "IND:0,",i);
-              // roomTotalAvailability.splice(i, 0, { startTime: bufferStart, endTime: bufferEnd }); // splice { startTime: '14:30', endTime: '15:30' } IND:0, 1
-              roomTotalAvailability.push({
-                startTime: bufferStart,
-                endTime: bufferEnd,
-              });
-
-              i++; // skip the next iteration to avoid re-adjusting the same slot
-            }
-          }
-        }
-
-        logger.info("Availability Sets : ", { roomTotalAvailability });
-        let allAvailSlots = [];
-        //Now split these based on SLOT timing
-        roomTotalAvailability.forEach((singleAvail) => {
-          // logger.info({singleAvail});
-          var startTime = singleAvail.startTime;
-          var endTime = singleAvail.endTime;
-
-          var start_time = parseTime(startTime),
-            end_time = parseTime(endTime),
-            interval = bookingHours * 60;
-
-          var timeslots = calculate_time_slot(start_time, end_time, interval);
-
-          logger.info("Timeslots:", { timeslots });
-          //Creating range for slots
-          for (let s = 0; s < timeslots.length - 1; s++) {
-            timeslots[s] = {
-              startTime: timeslots[s],
-              endTime: timeslots[s + 1],
-            };
-          }
-          //removing last extra element of "allSlots"
-          timeslots.splice(timeslots.length - 1, 1);
-          // logger.info({timeslots});
-          allAvailSlots = allAvailSlots.concat(timeslots);
-        });
-        //Filtering to remove past slots for current date
-        if (cTimeStamp == bTimeStamp) {
-          allAvailSlots = allAvailSlots.filter((i) => {
-            var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
-            var sMin =
-              +i.startTime.split(":")[0] * 60 + +i.startTime.split(":")[1];
-            if (eMin < currTime || sMin < currTime) {
-              return false;
-            } else {
-              return true;
-            }
-          });
-        }
-        //sorting
-        allAvailSlots.sort((a, b) => (a.startTime >= b.startTime ? 1 : -1));
-        //convert to 12 hour format
-        allAvailSlots.forEach((singleSlot) => {
-          singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
-          singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
-        });
-        logger.info(
-          "availableSlots",
-          allAvailSlots,
-          "bookedSlots",
-          bookedSlots
-        );
-        return res.json({
-          status: true,
-          message: "Availability returned",
-          allSlots: allSlots,
-          availableSlots: allAvailSlots,
-          bookedSlots: bookedSlots,
-        });
-      }
-    );
-  });
+      );
+    });
+  } catch (error) {
+    logger.error(error,"Error Occured :")
+  }
 };
 
 exports.getStudioAvailabilitiesbackup = (req, res, next) => {
-  const studioId = req.body.studioId;
-  const roomId = req.body.roomId;
-  let bookingDate = req.body.bookingDate;
-  const bookingHours = +req.body.bookingHours; //Slots will be created based on this
-
-  //get bookingDate from timestamp
-  bookingDate = new Date(bookingDate);
-  var yr = bookingDate.getUTCFullYear();
-  var mth = bookingDate.getUTCMonth() + 1;
-  if (mth.toString().length == 1) {
-    mth = "0" + mth.toString();
-  }
-  var dt = bookingDate.getUTCDate();
-  if (dt.toString().length == 1) {
-    dt = "0" + dt.toString();
-  }
-  bookingDate = yr + "-" + mth + "-" + dt;
-  var bTimeStamp = new Date(bookingDate).getTime();
-  logger.info("Booking Date : ", { bookingDate });
-
-  //get Current Date from timestamp
-  let currDate = new Date();
-  var yr = currDate.getUTCFullYear();
-  var mth = currDate.getUTCMonth() + 1;
-  if (mth.toString().length == 1) {
-    mth = "0" + mth.toString();
-  }
-  var dt = currDate.getUTCDate();
-  if (dt.toString().length == 1) {
-    dt = "0" + dt.toString();
-  }
-  currDate = yr + "-" + mth + "-" + dt;
-  var cTimeStamp = new Date(currDate).getTime();
-  logger.info("Current Date : ", { currDate });
-  var currHr = new Date().getHours();
-  var currMin = new Date().getMinutes();
-  var currTime = currHr * 60 + currMin;
-  logger.info("Current Time : " + currTime);
-
-  Studio.findStudioById(studioId).then((studioData) => {
-    if (!studioData) {
-      return res
-        .status(404)
-        .json({ status: false, message: "No studio with this ID exists" });
-    }
-
-    if (studioData.roomsDetails == undefined) {
-      studioData.roomsDetails = [];
-    }
-    const roomIndex = studioData.roomsDetails.findIndex(
-      (i) => i.roomId == roomId
-    );
-    if (roomIndex == -1) {
-      return res
-        .status(404)
-        .json({ status: false, message: "No room with this ID exists" });
-    }
-    let roomTotalAvailability =
-      studioData.roomsDetails[roomIndex].availabilities;
-    // roomTotalAvailability = [{startTime:"09:00",endTime:"13:00"},{startTime:"15:00",endTime:"19:00"}];
-    logger.info("Rooms Hours : ", { roomTotalAvailability });
-
-    //Getting all slots first
-    let allSlots = [];
-    roomTotalAvailability.forEach((singleAvail) => {
-      // logger.info({singleAvail});
-      var startTime = singleAvail.startTime;
-      var endTime = singleAvail.endTime;
-
-      var start_time = parseTime(startTime),
-        end_time = parseTime(endTime),
-        interval = bookingHours * 60;
-
-      var timeslots = calculate_time_slot(start_time, end_time, interval);
-
-      //Creating range for slots
-      for (let s = 0; s < timeslots.length - 1; s++) {
-        timeslots[s] = { startTime: timeslots[s], endTime: timeslots[s + 1] };
-      }
-      //removing last extra element of "allSlots"
-      timeslots.splice(timeslots.length - 1, 1);
-      // logger.info({timeslots});
-      allSlots = allSlots.concat(timeslots);
-    });
-    // logger.info("All Slots : ",{allSlots});
-
-    Booking.fetchBookingsByStudioIdAndBookingDate(studioId,roomId, bookingDate).then(
-      (bookingsData) => {
-        // logger.info({bookingsData});
-
-        let availSlotsNew = allSlots;
-        //Filtering to remove past slots for current date
-        if (cTimeStamp == bTimeStamp) {
-          availSlotsNew = availSlotsNew.filter((i) => {
-            var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
-            var sMin =
-              +i.startTime.split(":")[0] * 60 + +i.startTime.split(":")[1];
-            logger.info(sMin, eMin, currTime);
-            if (eMin < currTime || sMin < currTime) {
-              return false;
-            } else {
-              return true;
-            }
-          });
-        }
-
-        if (bookingsData.length == 0) {
-          //convert to 12 hour format
-          availSlotsNew.forEach((singleSlot) => {
-            singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
-            singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
-          });
-          return res.json({
-            status: true,
-            message: "Availability returned",
-            allSlots: allSlots,
-            availableSlots: availSlotsNew,
-            bookedSlots: [],
-          });
-        }
-        let bookedSlots = [];
-        bookingsData.forEach((singleBooking) => {
-          bookedSlots.push(singleBooking.bookingTime);
-        });
-
-        let availableSlots = [];
-        let allSplitSlots = [];
-        // allSlots.forEach(singleSlot=>{
-        //     let startMin = (+singleSlot.startTime.split(':')[0] * 60) + (+singleSlot.startTime.split(':')[1]);
-        //     let endMin = (+singleSlot.endTime.split(':')[0] * 60) + (+singleSlot.endTime.split(':')[1]);
-        //     // logger.info(startMin,endMin);
-        bookedSlots.forEach((singleBookedSlot) => {
-          let startMinBooked =
-            +singleBookedSlot.startTime.split(":")[0] * 60 +
-            +singleBookedSlot.startTime.split(":")[1];
-          let endMinBooked =
-            +singleBookedSlot.endTime.split(":")[0] * 60 +
-            +singleBookedSlot.endTime.split(":")[1];
-
-          roomTotalAvailability.forEach((singleRoomAvail) => {
-            let startMinRoom =
-              +singleRoomAvail.startTime.split(":")[0] * 60 +
-              +singleRoomAvail.startTime.split(":")[1];
-            let endMinRoom =
-              +singleRoomAvail.endTime.split(":")[0] * 60 +
-              +singleRoomAvail.endTime.split(":")[1];
-            if (startMinBooked >= startMinRoom && endMinBooked <= endMinRoom) {
-              // logger.info("Single Room Avail : ",singleRoomAvail);
-              //remove this booked slot from total room slot
-              let splitSlot1 = {
-                startTime: singleRoomAvail.startTime,
-                endTime: singleBookedSlot.startTime,
-              };
-              let splitSlot2 = {
-                startTime: singleBookedSlot.endTime,
-                endTime: singleRoomAvail.endTime,
-              };
-              logger.info("Split Slot : ", { splitSlot1, splitSlot2 });
-              roomTotalAvailability.push(splitSlot1);
-              roomTotalAvailability.push(splitSlot2);
-
-              //Also, before next iteration, remove this availablitiy slot from room (since updated is added)
-              const availIndex1 = roomTotalAvailability.findIndex(
-                (a) =>
-                  a.startTime == singleRoomAvail.startTime &&
-                  a.endTime == singleRoomAvail.endTime
-              );
-              if (availIndex1 != -1) {
-                roomTotalAvailability.splice(availIndex1, 1);
-              }
-              // logger.info({roomTotalAvailability});
-
-              // //For Split SLOT 1
-              // var startTime1 = splitSlot1.startTime;
-              // var endTime1 = splitSlot1.endTime;
-
-              // var start_time1 = parseTime(startTime1),
-              //     end_time1 = parseTime(endTime1),
-              //     interval = bookingHours*60;
-
-              // var timeslots1 = calculate_time_slot( start_time1, end_time1, interval );
-
-              // //Creating range for slots
-              // for(let s=0;s<timeslots1.length-1;s++)
-              // {
-              //     timeslots1[s] = {startTime:timeslots1[s],endTime:timeslots1[s+1]};
-              // }
-              // //removing last extra element of "allSlots"
-              // timeslots1.splice((timeslots1.length-1),1);
-              // // timeslots1.forEach(singleTimeSlot=>{
-              // //     const index2 = availableSlots.findIndex(q=>q.startTime.split(':')[0].startsWith(singleTimeSlot.startTime.split(':')[0]));
-              // //     // logger.info("Index : ",index2);
-              // //     if(index2==-1)
-              // //     {
-              // //         availableSlots.push(singleTimeSlot);
-              // //     }
-              // // })
-              // availableSlots = availableSlots.concat(timeslots1);
-
-              // //For Split SLOT 2
-              // var startTime2 = addMinToTime(splitSlot2.startTime,30);
-              // var endTime2 = splitSlot2.endTime;
-
-              // var start_time2 = parseTime(startTime2),
-              //     end_time2 = parseTime(endTime2),
-              //     interval = bookingHours*60;
-
-              // var timeslots2 = calculate_time_slot( start_time2, end_time2, interval );
-
-              // //Creating range for slots
-              // for(let s=0;s<timeslots2.length-1;s++)
-              // {
-              //     timeslots2[s] = {startTime:timeslots2[s],endTime:timeslots2[s+1]};
-              // }
-              // //removing last extra element of "allSlots"
-              // timeslots2.splice((timeslots2.length-1),1);
-              // // timeslots2.forEach(singleTimeSlot=>{
-              // //     const index2 = availableSlots.findIndex(q=>q.startTime.split(':')[0].startsWith(singleTimeSlot.startTime.split(':')[0]));
-              // //     // logger.info("Index : ",index2);
-              // //     if(index2==-1)
-              // //     {
-              // //         availableSlots.push(singleTimeSlot);
-              // //     }
-              // // })
-              // availableSlots = availableSlots.concat(timeslots2);
-            }
-            // else{
-            //     // logger.info("Other Slot: ",singleRoomAvail);
-            //     var startTimeOther = singleRoomAvail.startTime;
-            //     var endTimeOther = singleRoomAvail.endTime;
-
-            //     var start_timeOther = parseTime(startTimeOther),
-            //         end_timeOther = parseTime(endTimeOther),
-            //         interval = bookingHours*60;
-
-            //     var timeslotsOther = calculate_time_slot( start_timeOther, end_timeOther, interval );
-
-            //     //Creating range for slots
-            //     for(let s=0;s<timeslotsOther.length-1;s++)
-            //     {
-            //         timeslotsOther[s] = {startTime:timeslotsOther[s],endTime:timeslotsOther[s+1]};
-            //     }
-            //     //removing last extra element of "allSlots"
-            //     timeslotsOther.splice((timeslotsOther.length-1),1);
-            //     availableSlots = availableSlots.concat(timeslotsOther);
-            // }
-          });
-        });
-        // });
-        logger.info("Availability Sets : ", { roomTotalAvailability });
-        //add 30 min interval before starting next slot
-        for (let i = 1; i < roomTotalAvailability.length; i++) {
-          const index = bookedSlots.findIndex((s) =>
-            s.endTime
-              .split(":")[0]
-              .startsWith(roomTotalAvailability[i].startTime.split(":")[0])
-          );
-          if (index != -1) {
-            roomTotalAvailability[i].startTime = addMinToTime(
-              roomTotalAvailability[i].startTime,
-              30
-            );
-          }
-        }
-        logger.info("Availability Sets : ", { roomTotalAvailability });
-        let allAvailSlots = [];
-        //Now split these based on SLOT timing
-        roomTotalAvailability.forEach((singleAvail) => {
-          // logger.info({singleAvail});
-          var startTime = singleAvail.startTime;
-          var endTime = singleAvail.endTime;
-
-          var start_time = parseTime(startTime),
-            end_time = parseTime(endTime),
-            interval = bookingHours * 60;
-
-          var timeslots = calculate_time_slot(start_time, end_time, interval);
-
-          //Creating range for slots
-          for (let s = 0; s < timeslots.length - 1; s++) {
-            timeslots[s] = {
-              startTime: timeslots[s],
-              endTime: timeslots[s + 1],
-            };
-          }
-          //removing last extra element of "allSlots"
-          timeslots.splice(timeslots.length - 1, 1);
-          // logger.info({timeslots});
-          allAvailSlots = allAvailSlots.concat(timeslots);
-        });
-        //Filtering to remove past slots for current date
-        if (cTimeStamp == bTimeStamp) {
-          allAvailSlots = allAvailSlots.filter((i) => {
-            var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
-            var sMin =
-              +i.startTime.split(":")[0] * 60 + +i.startTime.split(":")[1];
-            if (eMin < currTime || sMin < currTime) {
-              return false;
-            } else {
-              return true;
-            }
-          });
-        }
-        //sorting
-        allAvailSlots.sort((a, b) => (a.startTime >= b.startTime ? 1 : -1));
-        //convert to 12 hour format
-        allAvailSlots.forEach((singleSlot) => {
-          singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
-          singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
-        });
-        return res.json({
-          status: true,
-          message: "Availability returned",
-          allSlots: allSlots,
-          availableSlots: allAvailSlots,
-          bookedSlots: bookedSlots,
-        });
-      }
-    );
-  });
+ try {
+   const studioId = req.body.studioId;
+   const roomId = req.body.roomId;
+   let bookingDate = req.body.bookingDate;
+   const bookingHours = +req.body.bookingHours; //Slots will be created based on this
+   logger.info({"req data of getStudioAvailabilitiesbackup":req.body})
+   //get bookingDate from timestamp
+   bookingDate = new Date(bookingDate);
+   var yr = bookingDate.getUTCFullYear();
+   var mth = bookingDate.getUTCMonth() + 1;
+   if (mth.toString().length == 1) {
+     mth = "0" + mth.toString();
+   }
+   var dt = bookingDate.getUTCDate();
+   if (dt.toString().length == 1) {
+     dt = "0" + dt.toString();
+   }
+   bookingDate = yr + "-" + mth + "-" + dt;
+   var bTimeStamp = new Date(bookingDate).getTime();
+   logger.info("Booking Date : ", { bookingDate });
+ 
+   //get Current Date from timestamp
+   let currDate = new Date();
+   var yr = currDate.getUTCFullYear();
+   var mth = currDate.getUTCMonth() + 1;
+   if (mth.toString().length == 1) {
+     mth = "0" + mth.toString();
+   }
+   var dt = currDate.getUTCDate();
+   if (dt.toString().length == 1) {
+     dt = "0" + dt.toString();
+   }
+   currDate = yr + "-" + mth + "-" + dt;
+   var cTimeStamp = new Date(currDate).getTime();
+   logger.info("Current Date : ", { currDate });
+   var currHr = new Date().getHours();
+   var currMin = new Date().getMinutes();
+   var currTime = currHr * 60 + currMin;
+   logger.info("Current Time : " + currTime);
+ 
+   Studio.findStudioById(studioId).then((studioData) => {
+     if (!studioData) {
+       return res
+         .status(404)
+         .json({ status: false, message: "No studio with this ID exists" });
+     }
+ 
+     if (studioData.roomsDetails == undefined) {
+       studioData.roomsDetails = [];
+     }
+     const roomIndex = studioData.roomsDetails.findIndex(
+       (i) => i.roomId == roomId
+     );
+     if (roomIndex == -1) {
+       return res
+         .status(404)
+         .json({ status: false, message: "No room with this ID exists" });
+     }
+     let roomTotalAvailability =
+       studioData.roomsDetails[roomIndex].availabilities;
+     // roomTotalAvailability = [{startTime:"09:00",endTime:"13:00"},{startTime:"15:00",endTime:"19:00"}];
+     logger.info("Rooms Hours : ", { roomTotalAvailability });
+ 
+     //Getting all slots first
+     let allSlots = [];
+     roomTotalAvailability.forEach((singleAvail) => {
+       // logger.info({singleAvail});
+       var startTime = singleAvail.startTime;
+       var endTime = singleAvail.endTime;
+ 
+       var start_time = parseTime(startTime),
+         end_time = parseTime(endTime),
+         interval = bookingHours * 60;
+ 
+       var timeslots = calculate_time_slot(start_time, end_time, interval);
+ 
+       //Creating range for slots
+       for (let s = 0; s < timeslots.length - 1; s++) {
+         timeslots[s] = { startTime: timeslots[s], endTime: timeslots[s + 1] };
+       }
+       //removing last extra element of "allSlots"
+       timeslots.splice(timeslots.length - 1, 1);
+       // logger.info({timeslots});
+       allSlots = allSlots.concat(timeslots);
+     });
+     // logger.info("All Slots : ",{allSlots});
+ 
+     Booking.fetchBookingsByStudioIdAndBookingDate(studioId,roomId, bookingDate).then(
+       (bookingsData) => {
+         // logger.info({bookingsData});
+ 
+         let availSlotsNew = allSlots;
+         //Filtering to remove past slots for current date
+         if (cTimeStamp == bTimeStamp) {
+           availSlotsNew = availSlotsNew.filter((i) => {
+             var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
+             var sMin =
+               +i.startTime.split(":")[0] * 60 + +i.startTime.split(":")[1];
+             logger.info(sMin, eMin, currTime);
+             if (eMin < currTime || sMin < currTime) {
+               return false;
+             } else {
+               return true;
+             }
+           });
+         }
+ 
+         if (bookingsData.length == 0) {
+           //convert to 12 hour format
+           availSlotsNew.forEach((singleSlot) => {
+             singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
+             singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
+           });
+           return res.json({
+             status: true,
+             message: "Availability returned",
+             allSlots: allSlots,
+             availableSlots: availSlotsNew,
+             bookedSlots: [],
+           });
+         }
+         let bookedSlots = [];
+         bookingsData.forEach((singleBooking) => {
+           bookedSlots.push(singleBooking.bookingTime);
+         });
+ 
+         let availableSlots = [];
+         let allSplitSlots = [];
+         // allSlots.forEach(singleSlot=>{
+         //     let startMin = (+singleSlot.startTime.split(':')[0] * 60) + (+singleSlot.startTime.split(':')[1]);
+         //     let endMin = (+singleSlot.endTime.split(':')[0] * 60) + (+singleSlot.endTime.split(':')[1]);
+         //     // logger.info(startMin,endMin);
+         bookedSlots.forEach((singleBookedSlot) => {
+           let startMinBooked =
+             +singleBookedSlot.startTime.split(":")[0] * 60 +
+             +singleBookedSlot.startTime.split(":")[1];
+           let endMinBooked =
+             +singleBookedSlot.endTime.split(":")[0] * 60 +
+             +singleBookedSlot.endTime.split(":")[1];
+ 
+           roomTotalAvailability.forEach((singleRoomAvail) => {
+             let startMinRoom =
+               +singleRoomAvail.startTime.split(":")[0] * 60 +
+               +singleRoomAvail.startTime.split(":")[1];
+             let endMinRoom =
+               +singleRoomAvail.endTime.split(":")[0] * 60 +
+               +singleRoomAvail.endTime.split(":")[1];
+             if (startMinBooked >= startMinRoom && endMinBooked <= endMinRoom) {
+               // logger.info("Single Room Avail : ",singleRoomAvail);
+               //remove this booked slot from total room slot
+               let splitSlot1 = {
+                 startTime: singleRoomAvail.startTime,
+                 endTime: singleBookedSlot.startTime,
+               };
+               let splitSlot2 = {
+                 startTime: singleBookedSlot.endTime,
+                 endTime: singleRoomAvail.endTime,
+               };
+               logger.info("Split Slot : ", { splitSlot1, splitSlot2 });
+               roomTotalAvailability.push(splitSlot1);
+               roomTotalAvailability.push(splitSlot2);
+ 
+               //Also, before next iteration, remove this availablitiy slot from room (since updated is added)
+               const availIndex1 = roomTotalAvailability.findIndex(
+                 (a) =>
+                   a.startTime == singleRoomAvail.startTime &&
+                   a.endTime == singleRoomAvail.endTime
+               );
+               if (availIndex1 != -1) {
+                 roomTotalAvailability.splice(availIndex1, 1);
+               }
+               // logger.info({roomTotalAvailability});
+ 
+               // //For Split SLOT 1
+               // var startTime1 = splitSlot1.startTime;
+               // var endTime1 = splitSlot1.endTime;
+ 
+               // var start_time1 = parseTime(startTime1),
+               //     end_time1 = parseTime(endTime1),
+               //     interval = bookingHours*60;
+ 
+               // var timeslots1 = calculate_time_slot( start_time1, end_time1, interval );
+ 
+               // //Creating range for slots
+               // for(let s=0;s<timeslots1.length-1;s++)
+               // {
+               //     timeslots1[s] = {startTime:timeslots1[s],endTime:timeslots1[s+1]};
+               // }
+               // //removing last extra element of "allSlots"
+               // timeslots1.splice((timeslots1.length-1),1);
+               // // timeslots1.forEach(singleTimeSlot=>{
+               // //     const index2 = availableSlots.findIndex(q=>q.startTime.split(':')[0].startsWith(singleTimeSlot.startTime.split(':')[0]));
+               // //     // logger.info("Index : ",index2);
+               // //     if(index2==-1)
+               // //     {
+               // //         availableSlots.push(singleTimeSlot);
+               // //     }
+               // // })
+               // availableSlots = availableSlots.concat(timeslots1);
+ 
+               // //For Split SLOT 2
+               // var startTime2 = addMinToTime(splitSlot2.startTime,30);
+               // var endTime2 = splitSlot2.endTime;
+ 
+               // var start_time2 = parseTime(startTime2),
+               //     end_time2 = parseTime(endTime2),
+               //     interval = bookingHours*60;
+ 
+               // var timeslots2 = calculate_time_slot( start_time2, end_time2, interval );
+ 
+               // //Creating range for slots
+               // for(let s=0;s<timeslots2.length-1;s++)
+               // {
+               //     timeslots2[s] = {startTime:timeslots2[s],endTime:timeslots2[s+1]};
+               // }
+               // //removing last extra element of "allSlots"
+               // timeslots2.splice((timeslots2.length-1),1);
+               // // timeslots2.forEach(singleTimeSlot=>{
+               // //     const index2 = availableSlots.findIndex(q=>q.startTime.split(':')[0].startsWith(singleTimeSlot.startTime.split(':')[0]));
+               // //     // logger.info("Index : ",index2);
+               // //     if(index2==-1)
+               // //     {
+               // //         availableSlots.push(singleTimeSlot);
+               // //     }
+               // // })
+               // availableSlots = availableSlots.concat(timeslots2);
+             }
+             // else{
+             //     // logger.info("Other Slot: ",singleRoomAvail);
+             //     var startTimeOther = singleRoomAvail.startTime;
+             //     var endTimeOther = singleRoomAvail.endTime;
+ 
+             //     var start_timeOther = parseTime(startTimeOther),
+             //         end_timeOther = parseTime(endTimeOther),
+             //         interval = bookingHours*60;
+ 
+             //     var timeslotsOther = calculate_time_slot( start_timeOther, end_timeOther, interval );
+ 
+             //     //Creating range for slots
+             //     for(let s=0;s<timeslotsOther.length-1;s++)
+             //     {
+             //         timeslotsOther[s] = {startTime:timeslotsOther[s],endTime:timeslotsOther[s+1]};
+             //     }
+             //     //removing last extra element of "allSlots"
+             //     timeslotsOther.splice((timeslotsOther.length-1),1);
+             //     availableSlots = availableSlots.concat(timeslotsOther);
+             // }
+           });
+         });
+         // });
+         logger.info("Availability Sets : ", { roomTotalAvailability });
+         //add 30 min interval before starting next slot
+         for (let i = 1; i < roomTotalAvailability.length; i++) {
+           const index = bookedSlots.findIndex((s) =>
+             s.endTime
+               .split(":")[0]
+               .startsWith(roomTotalAvailability[i].startTime.split(":")[0])
+           );
+           if (index != -1) {
+             roomTotalAvailability[i].startTime = addMinToTime(
+               roomTotalAvailability[i].startTime,
+               30
+             );
+           }
+         }
+         logger.info("Availability Sets : ", { roomTotalAvailability });
+         let allAvailSlots = [];
+         //Now split these based on SLOT timing
+         roomTotalAvailability.forEach((singleAvail) => {
+           // logger.info({singleAvail});
+           var startTime = singleAvail.startTime;
+           var endTime = singleAvail.endTime;
+ 
+           var start_time = parseTime(startTime),
+             end_time = parseTime(endTime),
+             interval = bookingHours * 60;
+ 
+           var timeslots = calculate_time_slot(start_time, end_time, interval);
+ 
+           //Creating range for slots
+           for (let s = 0; s < timeslots.length - 1; s++) {
+             timeslots[s] = {
+               startTime: timeslots[s],
+               endTime: timeslots[s + 1],
+             };
+           }
+           //removing last extra element of "allSlots"
+           timeslots.splice(timeslots.length - 1, 1);
+           // logger.info({timeslots});
+           allAvailSlots = allAvailSlots.concat(timeslots);
+         });
+         //Filtering to remove past slots for current date
+         if (cTimeStamp == bTimeStamp) {
+           allAvailSlots = allAvailSlots.filter((i) => {
+             var eMin = +i.endTime.split(":")[0] * 60 + +i.endTime.split(":")[1];
+             var sMin =
+               +i.startTime.split(":")[0] * 60 + +i.startTime.split(":")[1];
+             if (eMin < currTime || sMin < currTime) {
+               return false;
+             } else {
+               return true;
+             }
+           });
+         }
+         //sorting
+         allAvailSlots.sort((a, b) => (a.startTime >= b.startTime ? 1 : -1));
+         //convert to 12 hour format
+         allAvailSlots.forEach((singleSlot) => {
+           singleSlot.startTime = convertTo12HourFormat(singleSlot.startTime);
+           singleSlot.endTime = convertTo12HourFormat(singleSlot.endTime);
+         });
+         return res.json({
+           status: true,
+           message: "Availability returned",
+           allSlots: allSlots,
+           availableSlots: allAvailSlots,
+           bookedSlots: bookedSlots,
+         });
+       }
+     );
+   });
+ } catch (error) {
+  logger.error(error,"Error Occured :")
+ }
 };
 
 exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
@@ -2285,81 +2302,89 @@ exports.getStudioAvailabilitiesWork2 = (req, res, next) => {
 // TEST_SLOTS
 
 exports.getStudioAvailabilitiesTEST = async (req, res, next) => {
-  const studioId = req.body.studioId;
-  const roomId = req.body.roomId;
-  let bookingDate = req.body.bookingDate;
-  const bookingHours = +req.body.bookingHours; //Slots will be created based on this
-  const bufferTime = 15;
-  const interval = bookingHours * 60;
-
-  const start_and_end_times = [];
-
-  Studio.findStudioById(studioId).then((studioData) => {
-    // console.log(studioData);
-    studioData.roomsDetails.forEach((room) => {
-      room.availabilities.map((avail) => {
-        start_and_end_times.push(avail);
-      });
-    });
-    return res.send({ avails: start_and_end_times });
-  });
+ try {
+   const studioId = req.body.studioId;
+   const roomId = req.body.roomId;
+   let bookingDate = req.body.bookingDate;
+   const bookingHours = +req.body.bookingHours; //Slots will be created based on this
+   const bufferTime = 15;
+   const interval = bookingHours * 60;
+   logger.info({"req data of getStudioAvailabilitiesTEST":req.body})
+   const start_and_end_times = [];
+ 
+   Studio.findStudioById(studioId).then((studioData) => {
+     // console.log(studioData);
+     studioData.roomsDetails.forEach((room) => {
+       room.availabilities.map((avail) => {
+         start_and_end_times.push(avail);
+       });
+     });
+     return res.send({ avails: start_and_end_times });
+   });
+ } catch (error) {
+  logger.error(error,"Error Occured :")
+ }
 };
 //
 
 function getCompletedBookings(allBookings, _callback) {
-  var currDate = new Date();
-  var mth = currDate.getMonth() + 1;
-  if (mth.toString().length == 1) {
-    mth = "0" + mth.toString();
-  }
-  var dt = currDate.getDate();
-  if (dt.toString().length == 1) {
-    dt = "0" + dt.toString();
-  }
-  var fullDate = currDate.getFullYear() + "-" + mth + "-" + dt;
-  fullDate = new Date(fullDate).getTime();
-  // logger.info({fullDate});
-
-  var currTotalMin = currDate.getHours() * 60 + currDate.getMinutes();
-  logger.info({ currTotalMin });
-
-  if (allBookings.length == 0) {
-    return _callback([], []);
-  } else {
-    let count = 0;
-    let completedBookings = [];
-    let activeBookings = [];
-    allBookings = allBookings.filter((i) => i.bookingStatus != 2);
+try {
+    var currDate = new Date();
+    var mth = currDate.getMonth() + 1;
+    if (mth.toString().length == 1) {
+      mth = "0" + mth.toString();
+    }
+    var dt = currDate.getDate();
+    if (dt.toString().length == 1) {
+      dt = "0" + dt.toString();
+    }
+    var fullDate = currDate.getFullYear() + "-" + mth + "-" + dt;
+    fullDate = new Date(fullDate).getTime();
+    // logger.info({fullDate});
+  
+    var currTotalMin = currDate.getHours() * 60 + currDate.getMinutes();
+    logger.info({ currTotalMin });
+  
     if (allBookings.length == 0) {
       return _callback([], []);
-    }
-    allBookings.forEach((singleBooking) => {
-      count++;
-      var onlyDate = singleBooking.bookingDate.split("T")[0];
-      var bDate = new Date(onlyDate).getTime();
-      if (bDate < fullDate) {
-        completedBookings.push(singleBooking);
-      } else if (bDate == fullDate) {
-        logger.info("Same");
-        var bTotalMin =
-          +singleBooking.bookingTime.endTime.split(":")[0] * 60 +
-          +singleBooking.bookingTime.endTime.split(":")[1];
-        logger.info({ bTotalMin });
-        if (bTotalMin < currTotalMin) {
+    } else {
+      let count = 0;
+      let completedBookings = [];
+      let activeBookings = [];
+      allBookings = allBookings.filter((i) => i.bookingStatus != 2);
+      if (allBookings.length == 0) {
+        return _callback([], []);
+      }
+      allBookings.forEach((singleBooking) => {
+        count++;
+        var onlyDate = singleBooking.bookingDate.split("T")[0];
+        var bDate = new Date(onlyDate).getTime();
+        if (bDate < fullDate) {
           completedBookings.push(singleBooking);
+        } else if (bDate == fullDate) {
+          logger.info("Same");
+          var bTotalMin =
+            +singleBooking.bookingTime.endTime.split(":")[0] * 60 +
+            +singleBooking.bookingTime.endTime.split(":")[1];
+          logger.info({ bTotalMin });
+          if (bTotalMin < currTotalMin) {
+            completedBookings.push(singleBooking);
+          } else {
+            activeBookings.push(singleBooking);
+          }
         } else {
           activeBookings.push(singleBooking);
         }
-      } else {
-        activeBookings.push(singleBooking);
-      }
-
-      if (count == allBookings.length) {
-        logger.info(activeBookings.length, completedBookings.length);
-        return _callback(activeBookings, completedBookings);
-      }
-    });
-  }
+  
+        if (count == allBookings.length) {
+          logger.info(activeBookings.length, completedBookings.length);
+          return _callback(activeBookings, completedBookings);
+        }
+      });
+    }
+} catch (error) {
+  logger.error(error,"Error Occured :")
+}
 }
 
 function checkBookingRating(completedBookings, _callback) {
@@ -2387,557 +2412,571 @@ function checkBookingRating(completedBookings, _callback) {
 }
 
 exports.getBookingsOfParticularUser = (req, res, next) => {
-  console.log("req.params", req.params);
-  console.log("req.query", req.query);
-  const userId = req.params.userId;
-  const source = req.query.source;
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 10;
-
-  User.findUserByUserId(userId).then(async (userData) => {
-    if (!userData) {
-      return res
-        .status(404)
-        .json({ status: false, message: "No User with this ID exists" });
-    }
-
-    else if (source === "website") {
-      console.log("this runnnn");
-      const skip = (page - 1) * limit;
-      const pipelineForStudio = [
-        {
-          $match: { type: "c1", userId: userId },
-        },
-        {
-          $lookup: {
-            from: "studios",
-            let: { studioIdStr: "$studioId" },
-            pipeline: [
-              {
-                $match: {
-                  $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] },
-                },
-              },
-            ],
-            as: "studioInfo",
-          },
-        },
-        {
-          $addFields: {
-            studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
-          },
-        },
-        {
-          $match: {
-            $or: [{ studioName: { $exists: true, $ne: null } }],
-          },
-        },
-        {
-          $skip: skip,
-        },
-        {
-          $limit: limit,
-        },
-        {
-          $project: {
-            studioInfo: 0,
-          },
-        },
-      ];
-
-      const pipelineForStudioCount = [
-        {
-          $match: { type: "c1", userId: userId },
-        },
-        {
-          $lookup: {
-            from: "studios",
-            let: { studioIdStr: "$studioId" },
-            pipeline: [
-              {
-                $match: {
-                  $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] },
-                },
-              },
-            ],
-            as: "studioInfo",
-          },
-        },
-        {
-          $addFields: {
-            studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
-          },
-        },
-        {
-          $match: {
-            $or: [{ studioName: { $exists: true, $ne: null } }],
-          },
-        },
-        {
-          $count: "totalcount",
-        },
-      ];
-
-      let allStudioBooking = await Booking.aggregate(pipelineForStudio)
-      const countResult = await Booking.aggregate(pipelineForStudioCount)
-      const totalRecords = countResult[0] ? countResult[0].totalcount : 0;
-      const totalPages = Math.ceil(totalRecords / limit);
-
-      let diff = allStudioBooking.map((booking, i) => {
-        let { startTime, endTime } = booking.bookingTime
-        let result = parseInt(endTime) - parseInt(startTime)
-        booking.no_of_hours = result
-        allStudioBooking[i] = booking
-      })
-
-      return res.json({
-        status: true,
-        message: "All booking(s) returned",
-        allStudioBooking,
-        NoOfHours: diff,
-        paginate: {
-          page,
-          limit,
-          totalPages,
-          totalRecords,
-        },
-      });
-    } else {
-      Booking.fetchAllBookingsByUserId(userId).then((bookingsData) => {
-
-        if (bookingsData.length == 0) {
-          return res.json({
-            status: true,
-            message: "All booking(s) returned",
-            activeBookings: [],
-            completedBookings: [],
-            cancelledBookings: [],
-          });
-        } else {
-          let mappedBookings = [];
-          let allBookings = bookingsData.map(async (i) => {
-            i.studioData = null;
-            let studioInfo = await Studio.findStudioById(i.studioId);
-            if (studioInfo != null) {
-              i.studioData = studioInfo;
-            }
-            mappedBookings.push(i);
-            if (mappedBookings.length == bookingsData.length) {
-              //Filter non-null studios
-              mappedBookings = mappedBookings.filter(
-                (i) => i.studioData != null
-              );
-
-              let cancelledBookings = mappedBookings.filter(
-                (i) => i.bookingStatus == 2
-              );
-              // let activeBookings = mappedBookings.filter(i=>i.bookingStatus==undefined || i.bookingStatus==0);
-              // let completedBookings = mappedBookings.filter(i=>i.bookingStatus==1);
-              getCompletedBookings(mappedBookings, (resActive, resComplete) => {
-                checkBookingRating(resComplete, (resCheckData) => {
-                  resActive.sort((a, b) => {
-                    if (
-                      new Date(a.bookingDate).toString() ==
-                      new Date(b.bookingDate).toString()
-                    ) {
-                      logger.info("Same startTime");
-                      let startTime =
-                        +a.bookingTime.startTime.split(":")[0] * 60 +
-                        +a.bookingTime.startTime.split(":")[1];
-                      let endTime =
-                        +b.bookingTime.startTime.split(":")[0] * 60 +
-                        +b.bookingTime.startTime.split(":")[1];
-                      return startTime - endTime;
-                    } else {
-                      return new Date(a.bookingDate) - new Date(b.bookingDate);
-                    }
-                  });
-
-                  resActive.forEach((singleBooking) => {
-                    singleBooking.bookingTime.startTime = convertTo12HourFormat(
-                      singleBooking.bookingTime.startTime
-                    );
-                    singleBooking.bookingTime.endTime = convertTo12HourFormat(
-                      singleBooking.bookingTime.endTime
-                    );
-                  });
-                  resCheckData.forEach((singleBooking) => {
-                    singleBooking.bookingTime.startTime = convertTo12HourFormat(
-                      singleBooking.bookingTime.startTime
-                    );
-                    singleBooking.bookingTime.endTime = convertTo12HourFormat(
-                      singleBooking.bookingTime.endTime
-                    );
-                  });
-                  cancelledBookings.forEach((singleBooking) => {
-                    singleBooking.bookingTime.startTime = convertTo12HourFormat(
-                      singleBooking.bookingTime.startTime
-                    );
-                    singleBooking.bookingTime.endTime = convertTo12HourFormat(
-                      singleBooking.bookingTime.endTime
-                    );
-                  });
-                  //  else {
-                  return res.json({
-                    status: true,
-                    message: "All booking(s) returned",
-                    activeBookings: resActive,
-                    completedBookings: resCheckData,
-                    cancelledBookings: cancelledBookings,
-                  });
-                  // }
-                });
-              });
-            }
-          });
-        }
-      })
-    }
-
-  });
+ try {
+   console.log("req.params", req.params);
+   console.log("req.query", req.query);
+   logger.info({"req data of getBookingsOfParticularUser params":req.params})
+   logger.info({"req data of getBookingsOfParticularUser query":req.query})
+   const userId = req.params.userId;
+   const source = req.query.source;
+   const page = parseInt(req.query.page) || 1;
+   const limit = parseInt(req.query.limit) || 10;
+ 
+   User.findUserByUserId(userId).then(async (userData) => {
+     if (!userData) {
+       return res
+         .status(404)
+         .json({ status: false, message: "No User with this ID exists" });
+     }
+ 
+     else if (source === "website") {
+       console.log("this runnnn");
+       const skip = (page - 1) * limit;
+       const pipelineForStudio = [
+         {
+           $match: { type: "c1", userId: userId },
+         },
+         {
+           $lookup: {
+             from: "studios",
+             let: { studioIdStr: "$studioId" },
+             pipeline: [
+               {
+                 $match: {
+                   $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] },
+                 },
+               },
+             ],
+             as: "studioInfo",
+           },
+         },
+         {
+           $addFields: {
+             studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
+           },
+         },
+         {
+           $match: {
+             $or: [{ studioName: { $exists: true, $ne: null } }],
+           },
+         },
+         {
+           $skip: skip,
+         },
+         {
+           $limit: limit,
+         },
+         {
+           $project: {
+             studioInfo: 0,
+           },
+         },
+       ];
+ 
+       const pipelineForStudioCount = [
+         {
+           $match: { type: "c1", userId: userId },
+         },
+         {
+           $lookup: {
+             from: "studios",
+             let: { studioIdStr: "$studioId" },
+             pipeline: [
+               {
+                 $match: {
+                   $expr: { $eq: ["$_id", { $toObjectId: "$$studioIdStr" }] },
+                 },
+               },
+             ],
+             as: "studioInfo",
+           },
+         },
+         {
+           $addFields: {
+             studioName: { $arrayElemAt: ["$studioInfo.fullName", 0] },
+           },
+         },
+         {
+           $match: {
+             $or: [{ studioName: { $exists: true, $ne: null } }],
+           },
+         },
+         {
+           $count: "totalcount",
+         },
+       ];
+ 
+       let allStudioBooking = await Booking.aggregate(pipelineForStudio)
+       const countResult = await Booking.aggregate(pipelineForStudioCount)
+       const totalRecords = countResult[0] ? countResult[0].totalcount : 0;
+       const totalPages = Math.ceil(totalRecords / limit);
+ 
+       let diff = allStudioBooking.map((booking, i) => {
+         let { startTime, endTime } = booking.bookingTime
+         let result = parseInt(endTime) - parseInt(startTime)
+         booking.no_of_hours = result
+         allStudioBooking[i] = booking
+       })
+ 
+       return res.json({
+         status: true,
+         message: "All booking(s) returned",
+         allStudioBooking,
+         NoOfHours: diff,
+         paginate: {
+           page,
+           limit,
+           totalPages,
+           totalRecords,
+         },
+       });
+     } else {
+       Booking.fetchAllBookingsByUserId(userId).then((bookingsData) => {
+ 
+         if (bookingsData.length == 0) {
+           return res.json({
+             status: true,
+             message: "All booking(s) returned",
+             activeBookings: [],
+             completedBookings: [],
+             cancelledBookings: [],
+           });
+         } else {
+           let mappedBookings = [];
+           let allBookings = bookingsData.map(async (i) => {
+             i.studioData = null;
+             let studioInfo = await Studio.findStudioById(i.studioId);
+             if (studioInfo != null) {
+               i.studioData = studioInfo;
+             }
+             mappedBookings.push(i);
+             if (mappedBookings.length == bookingsData.length) {
+               //Filter non-null studios
+               mappedBookings = mappedBookings.filter(
+                 (i) => i.studioData != null
+               );
+ 
+               let cancelledBookings = mappedBookings.filter(
+                 (i) => i.bookingStatus == 2
+               );
+               // let activeBookings = mappedBookings.filter(i=>i.bookingStatus==undefined || i.bookingStatus==0);
+               // let completedBookings = mappedBookings.filter(i=>i.bookingStatus==1);
+               getCompletedBookings(mappedBookings, (resActive, resComplete) => {
+                 checkBookingRating(resComplete, (resCheckData) => {
+                   resActive.sort((a, b) => {
+                     if (
+                       new Date(a.bookingDate).toString() ==
+                       new Date(b.bookingDate).toString()
+                     ) {
+                       logger.info("Same startTime");
+                       let startTime =
+                         +a.bookingTime.startTime.split(":")[0] * 60 +
+                         +a.bookingTime.startTime.split(":")[1];
+                       let endTime =
+                         +b.bookingTime.startTime.split(":")[0] * 60 +
+                         +b.bookingTime.startTime.split(":")[1];
+                       return startTime - endTime;
+                     } else {
+                       return new Date(a.bookingDate) - new Date(b.bookingDate);
+                     }
+                   });
+ 
+                   resActive.forEach((singleBooking) => {
+                     singleBooking.bookingTime.startTime = convertTo12HourFormat(
+                       singleBooking.bookingTime.startTime
+                     );
+                     singleBooking.bookingTime.endTime = convertTo12HourFormat(
+                       singleBooking.bookingTime.endTime
+                     );
+                   });
+                   resCheckData.forEach((singleBooking) => {
+                     singleBooking.bookingTime.startTime = convertTo12HourFormat(
+                       singleBooking.bookingTime.startTime
+                     );
+                     singleBooking.bookingTime.endTime = convertTo12HourFormat(
+                       singleBooking.bookingTime.endTime
+                     );
+                   });
+                   cancelledBookings.forEach((singleBooking) => {
+                     singleBooking.bookingTime.startTime = convertTo12HourFormat(
+                       singleBooking.bookingTime.startTime
+                     );
+                     singleBooking.bookingTime.endTime = convertTo12HourFormat(
+                       singleBooking.bookingTime.endTime
+                     );
+                   });
+                   //  else {
+                   return res.json({
+                     status: true,
+                     message: "All booking(s) returned",
+                     activeBookings: resActive,
+                     completedBookings: resCheckData,
+                     cancelledBookings: cancelledBookings,
+                   });
+                   // }
+                 });
+               });
+             }
+           });
+         }
+       })
+     }
+ 
+   });
+ } catch (error) {
+  logger.error(error,"Error Occured :")
+ }
 };
 
 exports.cancelParticularBooking = (req, res, next) => {
-  const bookingId = req.params.bookingId;
-
-  Booking.findBookingById(bookingId).then((bookingData) => {
-    if (!bookingData) {
-      return res
-        .status(404)
-        .json({ status: false, message: "No Booking with this ID exists" });
-    }
-    bookingData.bookingStatus = 2;
-
-    const db = getDb();
-    var o_id = new ObjectId(bookingId);
-
-    db.collection("bookings")
-      .updateOne({ _id: o_id }, { $set: bookingData })
-      .then((resultData) => {
-        User.findUserByUserId(bookingData.userId).then((userData) => {
-          const title = "Cancelled!!";
-          const message = "Your booking has been cancelled";
-          var myJSONObject = {
-            app_id: process.env.ONE_SIGNAL_APP_ID,
-            include_player_ids: [userData.deviceId],
-            data: {},
-            contents: { en: title + "\n" + message },
-          };
-
-          axios({
-            method: "post",
-            url: "https://onesignal.com/api/v1/notifications",
-            data: myJSONObject,
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: process.env.ONE_SIGNAL_AUTH,
-            },
-          })
-            .then(async (result) => {
-              let result_data = result.data;
-              logger.info("Success : ", { result_data });
-              if (result.data.recipients == 1) {
-                const notification = new Notifications(
-                  userData._id.toString(),
-                  title,
-                  message
-                );
-
-                //saving in database
-                return notification.save().then((resultData) => {
-                  // return res.json({ status: true, message: "Booking created successfully", booking: bookingData });
-                  const adminNotificationObj = new AdminNotifications(
+  try {
+    const bookingId = req.params.bookingId;
+    logger.info({"req data of bookingId":bookingId})
+    Booking.findBookingById(bookingId).then((bookingData) => {
+      if (!bookingData) {
+        return res
+          .status(404)
+          .json({ status: false, message: "No Booking with this ID exists" });
+      }
+      bookingData.bookingStatus = 2;
+  
+      const db = getDb();
+      var o_id = new ObjectId(bookingId);
+  
+      db.collection("bookings")
+        .updateOne({ _id: o_id }, { $set: bookingData })
+        .then((resultData) => {
+          User.findUserByUserId(bookingData.userId).then((userData) => {
+            const title = "Cancelled!!";
+            const message = "Your booking has been cancelled";
+            var myJSONObject = {
+              app_id: process.env.ONE_SIGNAL_APP_ID,
+              include_player_ids: [userData.deviceId],
+              data: {},
+              contents: { en: title + "\n" + message },
+            };
+  
+            axios({
+              method: "post",
+              url: "https://onesignal.com/api/v1/notifications",
+              data: myJSONObject,
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: process.env.ONE_SIGNAL_AUTH,
+              },
+            })
+              .then(async (result) => {
+                let result_data = result.data;
+                logger.info("Success : ", { result_data });
+                if (result.data.recipients == 1) {
+                  const notification = new Notifications(
                     userData._id.toString(),
-                    bookingData.studioId.toString(),
-                    bookingData._id.toString(),
-                    "Booking Cancelled",
-                    userData.fullName + " cancelled booking"
+                    title,
+                    message
                   );
+  
                   //saving in database
-                  return adminNotificationObj.save().then((resultData1) => {
-                    return res.json({
-                      status: true,
-                      message: "Booking cancelled successfully",
-                      booking: bookingData,
+                  return notification.save().then((resultData) => {
+                    // return res.json({ status: true, message: "Booking created successfully", booking: bookingData });
+                    const adminNotificationObj = new AdminNotifications(
+                      userData._id.toString(),
+                      bookingData.studioId.toString(),
+                      bookingData._id.toString(),
+                      "Booking Cancelled",
+                      userData.fullName + " cancelled booking"
+                    );
+                    //saving in database
+                    return adminNotificationObj.save().then((resultData1) => {
+                      return res.json({
+                        status: true,
+                        message: "Booking cancelled successfully",
+                        booking: bookingData,
+                      });
                     });
                   });
-                });
-              } else {
-                logger.info(result.data);
+                } else {
+                  logger.info(result.data);
+                  return res.json({
+                    status: true,
+                    message:
+                      "Booking cancelled successfully(Notification not sent)",
+                    booking: bookingData,
+                  });
+                }
+              })
+              .catch((err) => {
+                logger.error(err);
                 return res.json({
                   status: true,
                   message:
                     "Booking cancelled successfully(Notification not sent)",
                   booking: bookingData,
                 });
-              }
-            })
-            .catch((err) => {
-              logger.error(err);
-              return res.json({
-                status: true,
-                message:
-                  "Booking cancelled successfully(Notification not sent)",
-                booking: bookingData,
               });
-            });
+          });
         });
-      });
-  });
+    });
+  } catch (error) {
+    logger.error(error,"Error Occured :")
+  }
 };
 
 // get Studio Bookings v2.0.0
 exports.getAllBookings2 = (req, res, next) => {
-  let skip = +req.query.skip;
-  let limit = +req.query.limit;
-  let bookingType = +req.query.bookingType;
-
-  if (isNaN(skip)) {
-    skip = 0;
-    limit = 0;
-  }
-
-  if (isNaN(bookingType)) {
-    bookingType = -1;
-  }
-
-  const db = getDb();
-
-  if (bookingType == -1) {
-    Booking.fetchAllBookings(skip, limit).then((bookingsData) => {
-      let mappedBookings = [];
-      let allBookings = bookingsData.map(async (i) => {
-        i.studioName = "";
-        let studioInfo = await Studio.findStudioById(i.studioId);
-        if (studioInfo != null) {
-          i.studioName = studioInfo.fullName;
-        }
-        i.userName = "";
-        i.userEmail = "NA";
-        i.userPhone = "NA";
-        i.userType = "";
-        let userData = await User.findUserByUserId(i.userId);
-        if (userData != null) {
-          i.userName = userData.fullName;
-          i.userEmail = userData.email;
-          i.userPhone = userData.phone;
-          i.userType = "USER";
-        } else {
-          let adminData = await Admin.findAdminById(i.userId);
-          if (adminData != null) {
-            i.userName = adminData.firstName + " " + adminData.lastName;
-            i.userEmail = adminData.email;
-            i.userType = "ADMIN";
+  try {
+    let skip = +req.query.skip;
+    let limit = +req.query.limit;
+    let bookingType = +req.query.bookingType;
+    logger.info({"req data of getAllBookings2":req.query})
+    if (isNaN(skip)) {
+      skip = 0;
+      limit = 0;
+    }
+  
+    if (isNaN(bookingType)) {
+      bookingType = -1;
+    }
+  
+    const db = getDb();
+  
+    if (bookingType == -1) {
+      Booking.fetchAllBookings(skip, limit).then((bookingsData) => {
+        let mappedBookings = [];
+        let allBookings = bookingsData.map(async (i) => {
+          i.studioName = "";
+          let studioInfo = await Studio.findStudioById(i.studioId);
+          if (studioInfo != null) {
+            i.studioName = studioInfo.fullName;
+          }
+          i.userName = "";
+          i.userEmail = "NA";
+          i.userPhone = "NA";
+          i.userType = "";
+          let userData = await User.findUserByUserId(i.userId);
+          if (userData != null) {
+            i.userName = userData.fullName;
+            i.userEmail = userData.email;
+            i.userPhone = userData.phone;
+            i.userType = "USER";
           } else {
-            let subAdminData = await SubAdmin.findSubAdminById(i.userId);
-            if (subAdminData != null) {
-              i.userName = subAdminData.firstName + " " + subAdminData.lastName;
-              i.userEmail = subAdminData.email;
+            let adminData = await Admin.findAdminById(i.userId);
+            if (adminData != null) {
+              i.userName = adminData.firstName + " " + adminData.lastName;
+              i.userEmail = adminData.email;
               i.userType = "ADMIN";
             } else {
-              let ownerData = await Owner.findOwnerByOwnerId(i.userId);
-              if (ownerData != null) {
-                i.userName = ownerData.firstName + " " + ownerData.lastName;
-                i.userEmail = ownerData.email;
-                i.userType = "OWNER";
+              let subAdminData = await SubAdmin.findSubAdminById(i.userId);
+              if (subAdminData != null) {
+                i.userName = subAdminData.firstName + " " + subAdminData.lastName;
+                i.userEmail = subAdminData.email;
+                i.userType = "ADMIN";
+              } else {
+                let ownerData = await Owner.findOwnerByOwnerId(i.userId);
+                if (ownerData != null) {
+                  i.userName = ownerData.firstName + " " + ownerData.lastName;
+                  i.userEmail = ownerData.email;
+                  i.userType = "OWNER";
+                }
               }
             }
           }
-        }
-        mappedBookings.push(i);
-        if (mappedBookings.length == bookingsData.length) {
-          let cancelledBookings = mappedBookings.filter(
-            (i) => i.bookingStatus == 2
-          );
-          getCompletedBookings(mappedBookings, (resActive, resComplete) => {
-            return res.json({
-              status: true,
-              message: "All booking(s) returned",
-              activeBookings: resActive,
-              completedBookings: resComplete,
-              cancelledBookings: cancelledBookings,
-            });
-          });
-        }
-      });
-    });
-  } else if (bookingType == 2) {
-    //Get all cancelled bookings
-    Booking.fetchAllBookingsByType(skip, limit, 2).then((bookingsData) => {
-      let mappedBookings = [];
-      let allBookings = bookingsData.map(async (i) => {
-        i.studioName = "";
-        let studioInfo = await Studio.findStudioById(i.studioId);
-        if (studioInfo != null) {
-          i.studioName = studioInfo.fullName;
-        }
-        i.userName = "";
-        i.userEmail = "NA";
-        i.userPhone = "NA";
-        i.userType = "";
-        let userData = await User.findUserByUserId(i.userId);
-        if (userData != null) {
-          i.userName = userData.fullName;
-          i.userEmail = userData.email;
-          i.userPhone = userData.phone;
-          i.userType = "USER";
-        } else {
-          let adminData = await Admin.findAdminById(i.userId);
-          if (adminData != null) {
-            i.userName = adminData.firstName + " " + adminData.lastName;
-            i.userEmail = adminData.email;
-            i.userType = "ADMIN";
-          } else {
-            let subAdminData = await SubAdmin.findSubAdminById(i.userId);
-            if (subAdminData != null) {
-              i.userName = subAdminData.firstName + " " + subAdminData.lastName;
-              i.userEmail = subAdminData.email;
-              i.userType = "ADMIN";
-            } else {
-              let ownerData = await Owner.findOwnerByOwnerId(i.userId);
-              if (ownerData != null) {
-                i.userName = ownerData.firstName + " " + ownerData.lastName;
-                i.userEmail = ownerData.email;
-                i.userType = "OWNER";
-              }
-            }
-          }
-        }
-        mappedBookings.push(i);
-        if (mappedBookings.length == bookingsData.length) {
-          let cancelledBookings = mappedBookings.filter(
-            (i) => i.bookingStatus == 2
-          );
-          db.collection("bookings")
-            .find({ bookingStatus: 2 })
-            .count()
-            .then((resData2) => {
+          mappedBookings.push(i);
+          if (mappedBookings.length == bookingsData.length) {
+            let cancelledBookings = mappedBookings.filter(
+              (i) => i.bookingStatus == 2
+            );
+            getCompletedBookings(mappedBookings, (resActive, resComplete) => {
               return res.json({
                 status: true,
                 message: "All booking(s) returned",
-                data: cancelledBookings,
-                totalBookings: resData2,
+                activeBookings: resActive,
+                completedBookings: resComplete,
+                cancelledBookings: cancelledBookings,
               });
             });
-        }
+          }
+        });
       });
-    });
-  } else if (bookingType == 0) {
-    //Get all active bookings
-    Booking.fetchAllBookingsByType(skip, limit, 0).then((bookingsData) => {
-      let mappedBookings = [];
-      let allBookings = bookingsData.map(async (i) => {
-        i.studioName = "";
-        let studioInfo = await Studio.findStudioById(i.studioId);
-        if (studioInfo != null) {
-          i.studioName = studioInfo.fullName;
-        }
-        i.userName = "";
-        i.userEmail = "NA";
-        i.userPhone = "NA";
-        i.userType = "";
-        let userData = await User.findUserByUserId(i.userId);
-        if (userData != null) {
-          i.userName = userData.fullName;
-          i.userEmail = userData.email;
-          i.userPhone = userData.phone;
-          i.userType = "USER";
-        } else {
-          let adminData = await Admin.findAdminById(i.userId);
-          if (adminData != null) {
-            i.userName = adminData.firstName + " " + adminData.lastName;
-            i.userEmail = adminData.email;
-            i.userType = "ADMIN";
+    } else if (bookingType == 2) {
+      //Get all cancelled bookings
+      Booking.fetchAllBookingsByType(skip, limit, 2).then((bookingsData) => {
+        let mappedBookings = [];
+        let allBookings = bookingsData.map(async (i) => {
+          i.studioName = "";
+          let studioInfo = await Studio.findStudioById(i.studioId);
+          if (studioInfo != null) {
+            i.studioName = studioInfo.fullName;
+          }
+          i.userName = "";
+          i.userEmail = "NA";
+          i.userPhone = "NA";
+          i.userType = "";
+          let userData = await User.findUserByUserId(i.userId);
+          if (userData != null) {
+            i.userName = userData.fullName;
+            i.userEmail = userData.email;
+            i.userPhone = userData.phone;
+            i.userType = "USER";
           } else {
-            let subAdminData = await SubAdmin.findSubAdminById(i.userId);
-            if (subAdminData != null) {
-              i.userName = subAdminData.firstName + " " + subAdminData.lastName;
-              i.userEmail = subAdminData.email;
+            let adminData = await Admin.findAdminById(i.userId);
+            if (adminData != null) {
+              i.userName = adminData.firstName + " " + adminData.lastName;
+              i.userEmail = adminData.email;
               i.userType = "ADMIN";
             } else {
-              let ownerData = await Owner.findOwnerByOwnerId(i.userId);
-              if (ownerData != null) {
-                i.userName = ownerData.firstName + " " + ownerData.lastName;
-                i.userEmail = ownerData.email;
-                i.userType = "OWNER";
+              let subAdminData = await SubAdmin.findSubAdminById(i.userId);
+              if (subAdminData != null) {
+                i.userName = subAdminData.firstName + " " + subAdminData.lastName;
+                i.userEmail = subAdminData.email;
+                i.userType = "ADMIN";
+              } else {
+                let ownerData = await Owner.findOwnerByOwnerId(i.userId);
+                if (ownerData != null) {
+                  i.userName = ownerData.firstName + " " + ownerData.lastName;
+                  i.userEmail = ownerData.email;
+                  i.userType = "OWNER";
+                }
               }
             }
           }
-        }
-        mappedBookings.push(i);
-        if (mappedBookings.length == bookingsData.length) {
-          db.collection("bookings")
-            .find({ bookingStatus: 0 })
-            .count()
-            .then((resData2) => {
-              return res.json({
-                status: true,
-                message: "All booking(s) returned",
-                data: mappedBookings,
-                totalBookings: resData2,
+          mappedBookings.push(i);
+          if (mappedBookings.length == bookingsData.length) {
+            let cancelledBookings = mappedBookings.filter(
+              (i) => i.bookingStatus == 2
+            );
+            db.collection("bookings")
+              .find({ bookingStatus: 2 })
+              .count()
+              .then((resData2) => {
+                return res.json({
+                  status: true,
+                  message: "All booking(s) returned",
+                  data: cancelledBookings,
+                  totalBookings: resData2,
+                });
               });
-            });
-        }
+          }
+        });
       });
-    });
-  } else if (bookingType == 1) {
-    //Get all completed bookings
-    Booking.fetchAllBookingsByType(skip, limit, 1).then((bookingsData) => {
-      let mappedBookings = [];
-      let allBookings = bookingsData.map(async (i) => {
-        i.studioName = "";
-        let studioInfo = await Studio.findStudioById(i.studioId);
-        if (studioInfo != null) {
-          i.studioName = studioInfo.fullName;
-        }
-        i.userName = "";
-        i.userEmail = "NA";
-        i.userPhone = "NA";
-        i.userType = "";
-        let userData = await User.findUserByUserId(i.userId);
-        if (userData != null) {
-          i.userName = userData.fullName;
-          i.userEmail = userData.email;
-          i.userPhone = userData.phone;
-          i.userType = "USER";
-        } else {
-          let adminData = await Admin.findAdminById(i.userId);
-          if (adminData != null) {
-            i.userName = adminData.firstName + " " + adminData.lastName;
-            i.userEmail = adminData.email;
-            i.userType = "ADMIN";
+    } else if (bookingType == 0) {
+      //Get all active bookings
+      Booking.fetchAllBookingsByType(skip, limit, 0).then((bookingsData) => {
+        let mappedBookings = [];
+        let allBookings = bookingsData.map(async (i) => {
+          i.studioName = "";
+          let studioInfo = await Studio.findStudioById(i.studioId);
+          if (studioInfo != null) {
+            i.studioName = studioInfo.fullName;
+          }
+          i.userName = "";
+          i.userEmail = "NA";
+          i.userPhone = "NA";
+          i.userType = "";
+          let userData = await User.findUserByUserId(i.userId);
+          if (userData != null) {
+            i.userName = userData.fullName;
+            i.userEmail = userData.email;
+            i.userPhone = userData.phone;
+            i.userType = "USER";
           } else {
-            let subAdminData = await SubAdmin.findSubAdminById(i.userId);
-            if (subAdminData != null) {
-              i.userName = subAdminData.firstName + " " + subAdminData.lastName;
-              i.userEmail = subAdminData.email;
+            let adminData = await Admin.findAdminById(i.userId);
+            if (adminData != null) {
+              i.userName = adminData.firstName + " " + adminData.lastName;
+              i.userEmail = adminData.email;
               i.userType = "ADMIN";
             } else {
-              let ownerData = await Owner.findOwnerByOwnerId(i.userId);
-              if (ownerData != null) {
-                i.userName = ownerData.firstName + " " + ownerData.lastName;
-                i.userEmail = ownerData.email;
-                i.userType = "OWNER";
+              let subAdminData = await SubAdmin.findSubAdminById(i.userId);
+              if (subAdminData != null) {
+                i.userName = subAdminData.firstName + " " + subAdminData.lastName;
+                i.userEmail = subAdminData.email;
+                i.userType = "ADMIN";
+              } else {
+                let ownerData = await Owner.findOwnerByOwnerId(i.userId);
+                if (ownerData != null) {
+                  i.userName = ownerData.firstName + " " + ownerData.lastName;
+                  i.userEmail = ownerData.email;
+                  i.userType = "OWNER";
+                }
               }
             }
           }
-        }
-        mappedBookings.push(i);
-        if (mappedBookings.length == bookingsData.length) {
-          db.collection("bookings")
-            .find({ bookingStatus: 1 })
-            .count()
-            .then((resData2) => {
-              return res.json({
-                status: true,
-                message: "All booking(s) returned",
-                data: mappedBookings,
-                totalBookings: resData2,
+          mappedBookings.push(i);
+          if (mappedBookings.length == bookingsData.length) {
+            db.collection("bookings")
+              .find({ bookingStatus: 0 })
+              .count()
+              .then((resData2) => {
+                return res.json({
+                  status: true,
+                  message: "All booking(s) returned",
+                  data: mappedBookings,
+                  totalBookings: resData2,
+                });
               });
-            });
-        }
+          }
+        });
       });
-    });
+    } else if (bookingType == 1) {
+      //Get all completed bookings
+      Booking.fetchAllBookingsByType(skip, limit, 1).then((bookingsData) => {
+        let mappedBookings = [];
+        let allBookings = bookingsData.map(async (i) => {
+          i.studioName = "";
+          let studioInfo = await Studio.findStudioById(i.studioId);
+          if (studioInfo != null) {
+            i.studioName = studioInfo.fullName;
+          }
+          i.userName = "";
+          i.userEmail = "NA";
+          i.userPhone = "NA";
+          i.userType = "";
+          let userData = await User.findUserByUserId(i.userId);
+          if (userData != null) {
+            i.userName = userData.fullName;
+            i.userEmail = userData.email;
+            i.userPhone = userData.phone;
+            i.userType = "USER";
+          } else {
+            let adminData = await Admin.findAdminById(i.userId);
+            if (adminData != null) {
+              i.userName = adminData.firstName + " " + adminData.lastName;
+              i.userEmail = adminData.email;
+              i.userType = "ADMIN";
+            } else {
+              let subAdminData = await SubAdmin.findSubAdminById(i.userId);
+              if (subAdminData != null) {
+                i.userName = subAdminData.firstName + " " + subAdminData.lastName;
+                i.userEmail = subAdminData.email;
+                i.userType = "ADMIN";
+              } else {
+                let ownerData = await Owner.findOwnerByOwnerId(i.userId);
+                if (ownerData != null) {
+                  i.userName = ownerData.firstName + " " + ownerData.lastName;
+                  i.userEmail = ownerData.email;
+                  i.userType = "OWNER";
+                }
+              }
+            }
+          }
+          mappedBookings.push(i);
+          if (mappedBookings.length == bookingsData.length) {
+            db.collection("bookings")
+              .find({ bookingStatus: 1 })
+              .count()
+              .then((resData2) => {
+                return res.json({
+                  status: true,
+                  message: "All booking(s) returned",
+                  data: mappedBookings,
+                  totalBookings: resData2,
+                });
+              });
+          }
+        });
+      });
+    }
+  } catch (error) {
+    logger.error(error,"Error Occured :")
   }
 };
 
@@ -2951,7 +2990,7 @@ exports.getAllBookings3 = async (req, res, next) => {
 
     const filters = buildFilters(req.query);
     const sort = buildSort(req.query);
-
+    logger.info({"req data of getAllBookings3":req.query})
     logger.info("oprions----", { filters, sort });
 
     let bookingsData;
@@ -3051,7 +3090,7 @@ exports.getAllBookings3 = async (req, res, next) => {
       },
     });
   } catch (error) {
-    logger.error(error, "Internal server error:");
+    logger.error(error, "Error Occured:");
     return res
       .status(500)
       .json({ status: false, message: "Internal server error" });
@@ -3286,7 +3325,7 @@ exports.getAllBookings = async (req, res, next) => {
       },
     });
   } catch (error) {
-    logger.error(error, "Internal server error:");
+    logger.error(error,"Error Occured :")
     return res
       .status(500)
       .json({ status: false, message: "Internal server error" });
@@ -3295,164 +3334,174 @@ exports.getAllBookings = async (req, res, next) => {
 
 // get All Packages/Service Bookings
 exports.getServiceBookings = async (req, res) => {
-  let { bookingType, userId, active, page, limit, startDate, endDate, searchField } = req.query;
-  page = +page || 1;
-  limit = +limit || 10;
-  // console.log("req.query |", req.query);
-  const matchStage = {};
-  let lastMatchStage = {}
-  if (bookingType) {
-    matchStage.type = bookingType;
-  } else {
-    matchStage.type = { $in: ["c2", "c3"] };
-  }
-  if (userId) matchStage.userId = userId;
-  if (active) matchStage.bookingStatus = parseInt(active);
-  // if (phoneNumber) {
-  //   matchStage["user.phone"] = phoneNumber;
-  // }
-  if (startDate && endDate) {
-        matchStage.creationTimeStamp= {
-          $gte: new Date(startDate + "T00:00:00"),
-          $lt: new Date(endDate + "T23:59:59"),
-        }
-  }
-  if (searchField) {
-    lastMatchStage.$or = [
-          { serviceFullName: { $regex: searchField, $options: "i" } },
-          { userFullName: { $regex: searchField, $options: "i" } },
-          { userPhone: { $regex: searchField, $options: "i" } },
-        ]
-  }
-  // matchStage.bookingStatus = 0;
-  const db = getDb();
-  const pipeline = [
-    {
-      $match: matchStage, // filters
-    },
-    {
-      $sort: { _id: -1 },
-    },
-    {
-      $lookup: {
-        from: "services",
-        let: { serviceIdStr: "$studioId", roomIdint: "$roomId" },
-        pipeline: [
-          {
-            $match: {
-              $expr: { $eq: ["$_id", { $toObjectId: "$$serviceIdStr" }] },
-            },
-          },
-          {
-            $unwind: "$packages", // Unwind the packages array
-          },
-          {
-            $match: {
-              $expr: {
-                $eq: ["$$roomIdint", "$packages.planId"], // Match bookings.roomId with services.packages.planId
+  try {
+    let { bookingType, userId, active, page, limit, startDate, endDate, searchField } = req.query;
+    page = +page || 1;
+    limit = +limit || 10;
+    // console.log("req.query |", req.query);
+    logger.info({"req data of getServiceBookings":req.query})
+    const matchStage = {};
+    let lastMatchStage = {}
+    if (bookingType) {
+      matchStage.type = bookingType;
+    } else {
+      matchStage.type = { $in: ["c2", "c3"] };
+    }
+    if (userId) matchStage.userId = userId;
+    if (active) matchStage.bookingStatus = parseInt(active);
+    // if (phoneNumber) {
+    //   matchStage["user.phone"] = phoneNumber;
+    // }
+    if (startDate && endDate) {
+          matchStage.creationTimeStamp= {
+            $gte: new Date(startDate + "T00:00:00"),
+            $lt: new Date(endDate + "T23:59:59"),
+          }
+    }
+    if (searchField) {
+      lastMatchStage.$or = [
+            { serviceFullName: { $regex: searchField, $options: "i" } },
+            { userFullName: { $regex: searchField, $options: "i" } },
+            { userPhone: { $regex: searchField, $options: "i" } },
+          ]
+    }
+    // matchStage.bookingStatus = 0;
+    const db = getDb();
+    const pipeline = [
+      {
+        $match: matchStage, // filters
+      },
+      {
+        $sort: { _id: -1 },
+      },
+      {
+        $lookup: {
+          from: "services",
+          let: { serviceIdStr: "$studioId", roomIdint: "$roomId" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", { $toObjectId: "$$serviceIdStr" }] },
               },
             },
-          },
-        ],
-        as: "service",
-      },
-    },
-    {
-      $lookup: {
-        from: "users",
-        let: { userIdStr: "$userId" }, // define a variable to hold the string serviceId
-        pipeline: [
-          {
-            $match: {
-              $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] },
+            {
+              $unwind: "$packages", // Unwind the packages array
             },
-          },
-        ],
-        as: "user",
+            {
+              $match: {
+                $expr: {
+                  $eq: ["$$roomIdint", "$packages.planId"], // Match bookings.roomId with services.packages.planId
+                },
+              },
+            },
+          ],
+          as: "service",
+        },
       },
-    },
-    {
-      $project: {
-        serviceId: { $arrayElemAt: ["$service._id", 0] },
-        service_id: { $arrayElemAt: ["$service.service_id", 0] },
-        planId: "$roomId",
-        serviceFullName: { $arrayElemAt: ["$service.fullName", 0] },
-        userFullName: { $arrayElemAt: ["$user.fullName", 0] },
-        userPhone: { $arrayElemAt: ["$user.phone", 0] },
-        userEmail: { $arrayElemAt: ["$user.email", 0] },
-        totalPrice: "$totalPrice",
-        type: "$type",
-        bookingDate: "$bookingDate",
-        package: { $arrayElemAt: ["$service.packages", 0] },
-        bookingStatus: "$bookingStatus",
-        countryCode: "$countryCode",
-        bookingDate: "$bookingDate",
-        creationTimeStamp: "$creationTimeStamp",
+      {
+        $lookup: {
+          from: "users",
+          let: { userIdStr: "$userId" }, // define a variable to hold the string serviceId
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", { $toObjectId: "$$userIdStr" }] },
+              },
+            },
+          ],
+          as: "user",
+        },
       },
-    },
-    {
-      $match: lastMatchStage, // filters
-    },
-    {
-      $skip: (page - 1) * parseInt(limit),
-    },
-    {
-      $limit: parseInt(limit),
-    },
-  ];
-  const data = await db.collection("bookings").aggregate(pipeline).toArray();
-  const totalCountPipeline = [
-    ...pipeline.slice(0, -2), // Exclude $skip, $limit, and last $project
-    { $count: 'total' }
-  ];
-  console.log("pipeline",JSON.stringify(pipeline));
-  const totalCountResult = await db.collection('bookings').aggregate(totalCountPipeline).toArray();
-  const totalBookings = totalCountResult.length > 0 ? totalCountResult[0].total : 0;
-  const totalPages = Math.ceil(totalBookings / limit);
-  // return res.json({ status: true, data, page: parseInt(page), totalPages, totalRecords });
-  return res.json({
-    status: true,
-    data,
-    paginate: {
-      page,
-      limit,
-      totalPages,
-      totalResults: totalBookings,
-    },
-  });
+      {
+        $project: {
+          serviceId: { $arrayElemAt: ["$service._id", 0] },
+          service_id: { $arrayElemAt: ["$service.service_id", 0] },
+          planId: "$roomId",
+          serviceFullName: { $arrayElemAt: ["$service.fullName", 0] },
+          userFullName: { $arrayElemAt: ["$user.fullName", 0] },
+          userPhone: { $arrayElemAt: ["$user.phone", 0] },
+          userEmail: { $arrayElemAt: ["$user.email", 0] },
+          totalPrice: "$totalPrice",
+          type: "$type",
+          bookingDate: "$bookingDate",
+          package: { $arrayElemAt: ["$service.packages", 0] },
+          bookingStatus: "$bookingStatus",
+          countryCode: "$countryCode",
+          bookingDate: "$bookingDate",
+          creationTimeStamp: "$creationTimeStamp",
+        },
+      },
+      {
+        $match: lastMatchStage, // filters
+      },
+      {
+        $skip: (page - 1) * parseInt(limit),
+      },
+      {
+        $limit: parseInt(limit),
+      },
+    ];
+    const data = await db.collection("bookings").aggregate(pipeline).toArray();
+    const totalCountPipeline = [
+      ...pipeline.slice(0, -2), // Exclude $skip, $limit, and last $project
+      { $count: 'total' }
+    ];
+    console.log("pipeline",JSON.stringify(pipeline));
+    const totalCountResult = await db.collection('bookings').aggregate(totalCountPipeline).toArray();
+    const totalBookings = totalCountResult.length > 0 ? totalCountResult[0].total : 0;
+    const totalPages = Math.ceil(totalBookings / limit);
+    // return res.json({ status: true, data, page: parseInt(page), totalPages, totalRecords });
+    return res.json({
+      status: true,
+      data,
+      paginate: {
+        page,
+        limit,
+        totalPages,
+        totalResults: totalBookings,
+      },
+    });
+  } catch (error) {
+    logger.error(error,"Error Occured :")
+  }
 };
 
 // update booking status of any category
 exports.updateServiceBooking = async (req, res) => {
-  const { bookingId, bookingStatus } = req.body;
-  logger.info(req.body);
-  const bookingData = await getSingleBooking(bookingId);
-  if (!bookingData || !bookingId) {
-    return res
-      .status(404)
-      .json({ status: false, message: "No Booking with this ID exists" });
+  try {
+    const { bookingId, bookingStatus } = req.body;
+    logger.info({"req data of updateServiceBooking":req.body})
+    const bookingData = await getSingleBooking(bookingId);
+    if (!bookingData || !bookingId) {
+      return res
+        .status(404)
+        .json({ status: false, message: "No Booking with this ID exists" });
+    }
+  
+    logger.info(">>>>>>>>>bbbbb:", { bookingStatus });
+    if ([0, 1, 2].includes(+bookingStatus))
+      bookingData.bookingStatus = +bookingStatus;
+    const db = getDb();
+    var o_id = new ObjectId(bookingId);
+    logger.info(">>>>>>>>>>>>>.bookingData:", { bookingData });
+    db.collection("bookings")
+      .updateOne({ _id: o_id }, { $set: bookingData })
+      .then((resultData) => {
+        res.status(200).json({
+          status: true,
+          message: "Bookings Status updated successfully",
+        });
+      })
+      .catch((err) => logger.error(err));
+  } catch (error) {
+    logger.error(error,"Error Occured:")
   }
-
-  logger.info(">>>>>>>>>bbbbb:", { bookingStatus });
-  if ([0, 1, 2].includes(+bookingStatus))
-    bookingData.bookingStatus = +bookingStatus;
-  const db = getDb();
-  var o_id = new ObjectId(bookingId);
-  logger.info(">>>>>>>>>>>>>.bookingData:", { bookingData });
-  db.collection("bookings")
-    .updateOne({ _id: o_id }, { $set: bookingData })
-    .then((resultData) => {
-      res.status(200).json({
-        status: true,
-        message: "Bookings Status updated successfully",
-      });
-    })
-    .catch((err) => logger.error(err));
 };
 
 exports.deleteBooking = async (req, res) => {
   // // console.log("DEDDDDDDDD");
   const { bookingId } = req.body;
+  logger.info({"req data of deleteBooking":bookingId})
 
   if (!bookingId) {
     return res.status(200).json({
@@ -3460,6 +3509,7 @@ exports.deleteBooking = async (req, res) => {
       message: "Booking ID, package ID, and user ID are required",
     });
   }
+
 
   const bookingData = await getSingleBooking(bookingId);
   if (!bookingData) {
@@ -3545,7 +3595,7 @@ exports.getAllBookingsOptimized = async (req, res, next) => {
     let bookingTypeValue = parseInt(req.query.bookingType); // || -1;
     let bookingCategory = req.query.category;
     // logger.info("Parsed bookingType value:",{bookingTypeValue});
-
+    logger.info({"req data of getAllBookingsOptimized":req.query})
     const filters = buildFilters(req.query);
     const sort = buildSort(req.query);
 
@@ -3672,371 +3722,387 @@ exports.getAllBookingsOptimized = async (req, res, next) => {
 };
 
 exports.getAllBookingsForParticularStudio = (req, res, next) => {
-  const studioId = req.params.studioId;
-  let skip = +req.query.skip;
-  let limit = +req.query.limit;
-
-  if (isNaN(skip)) {
-    skip = 0;
-    limit = 0;
-  }
-
-  Booking.fetchAllBookingsByStudioId(studioId, skip, limit).then(
-    (bookingsData) => {
-      let mappedBookings = [];
-      let allBookings = bookingsData.map(async (i) => {
-        i.studioName = "";
-        let studioInfo = await Studio.findStudioById(i.studioId);
-        if (studioInfo != null) {
-          i.studioName = studioInfo.fullName;
-        }
-        i.userName = "";
-        i.userEmail = "NA";
-        i.userPhone = "NA";
-        i.userType = "";
-        let userData = await User.findUserByUserId(i.userId);
-        if (userData != null) {
-          i.userName = userData.fullName;
-          i.userEmail = userData.email;
-          i.userPhone = userData.phone;
-          i.userType = "USER";
-        } else {
-          let adminData = await Admin.findAdminById(i.userId);
-          if (adminData != null) {
-            i.userName = adminData.firstName + " " + adminData.lastName;
-            i.userEmail = adminData.email;
-            i.userType = "ADMIN";
+  try {
+    const studioId = req.params.studioId;
+    let skip = +req.query.skip;
+    let limit = +req.query.limit;
+    logger.info({"req data of getAllBookingsForParticularStudio studioId":studioId})
+    if (isNaN(skip)) {
+      skip = 0;
+      limit = 0;
+    }
+  
+    Booking.fetchAllBookingsByStudioId(studioId, skip, limit).then(
+      (bookingsData) => {
+        let mappedBookings = [];
+        let allBookings = bookingsData.map(async (i) => {
+          i.studioName = "";
+          let studioInfo = await Studio.findStudioById(i.studioId);
+          if (studioInfo != null) {
+            i.studioName = studioInfo.fullName;
+          }
+          i.userName = "";
+          i.userEmail = "NA";
+          i.userPhone = "NA";
+          i.userType = "";
+          let userData = await User.findUserByUserId(i.userId);
+          if (userData != null) {
+            i.userName = userData.fullName;
+            i.userEmail = userData.email;
+            i.userPhone = userData.phone;
+            i.userType = "USER";
           } else {
-            let subAdminData = await SubAdmin.findSubAdminById(i.userId);
-            if (subAdminData != null) {
-              i.userName = subAdminData.firstName + " " + subAdminData.lastName;
-              i.userEmail = subAdminData.email;
+            let adminData = await Admin.findAdminById(i.userId);
+            if (adminData != null) {
+              i.userName = adminData.firstName + " " + adminData.lastName;
+              i.userEmail = adminData.email;
               i.userType = "ADMIN";
             } else {
-              let ownerData = await Owner.findOwnerByOwnerId(i.userId);
-              if (ownerData != null) {
-                i.userName = ownerData.firstName + " " + ownerData.lastName;
-                i.userEmail = ownerData.email;
-                i.userType = "OWNER";
+              let subAdminData = await SubAdmin.findSubAdminById(i.userId);
+              if (subAdminData != null) {
+                i.userName = subAdminData.firstName + " " + subAdminData.lastName;
+                i.userEmail = subAdminData.email;
+                i.userType = "ADMIN";
+              } else {
+                let ownerData = await Owner.findOwnerByOwnerId(i.userId);
+                if (ownerData != null) {
+                  i.userName = ownerData.firstName + " " + ownerData.lastName;
+                  i.userEmail = ownerData.email;
+                  i.userType = "OWNER";
+                }
               }
             }
           }
-        }
-        mappedBookings.push(i);
-        if (mappedBookings.length == bookingsData.length) {
-          let cancelledBookings = mappedBookings.filter(
-            (i) => i.bookingStatus == 2
-          );
-          getCompletedBookings(mappedBookings, (resActive, resComplete) => {
-            return res.json({
-              status: true,
-              message: "All booking(s) for studio returned",
-              activeBookings: resActive,
-              completedBookings: resComplete,
-              cancelledBookings: cancelledBookings,
+          mappedBookings.push(i);
+          if (mappedBookings.length == bookingsData.length) {
+            let cancelledBookings = mappedBookings.filter(
+              (i) => i.bookingStatus == 2
+            );
+            getCompletedBookings(mappedBookings, (resActive, resComplete) => {
+              return res.json({
+                status: true,
+                message: "All booking(s) for studio returned",
+                activeBookings: resActive,
+                completedBookings: resComplete,
+                cancelledBookings: cancelledBookings,
+              });
             });
-          });
-        }
-      });
-    }
-  );
+          }
+        });
+      }
+    );
+  } catch (error) {
+    logger.error(error,"Error Occured :")
+  }
 };
 
 exports.getBookingsByDate = (req, res, next) => {
-  let startDate = req.body.startDate;
-  let endDate = req.body.endDate;
-
-  //get startDate from timestamp
-  startDate = new Date(startDate);
-  var yr = startDate.getUTCFullYear();
-  var mth = startDate.getUTCMonth() + 1;
-  if (mth.toString().length == 1) {
-    mth = "0" + mth.toString();
-  }
-  var dt = startDate.getUTCDate();
-  if (dt.toString().length == 1) {
-    dt = "0" + dt.toString();
-  }
-  startDate = yr + "-" + mth + "-" + dt;
-  var sTimeStamp = new Date(startDate).getTime();
-  logger.info("Start Date : ", { startDate });
-
-  //get endDate from timestamp
-  endDate = new Date(endDate);
-  var yr = endDate.getUTCFullYear();
-  var mth = endDate.getUTCMonth() + 1;
-  if (mth.toString().length == 1) {
-    mth = "0" + mth.toString();
-  }
-  var dt = endDate.getUTCDate();
-  if (dt.toString().length == 1) {
-    dt = "0" + dt.toString();
-  }
-  endDate = yr + "-" + mth + "-" + dt;
-  var eTimeStamp = new Date(endDate).getTime();
-  logger.info("End Date : ", { endDate });
-
-  Booking.fetchBookingsByBookingDateRange(startDate, endDate).then(
-    (bookingsData) => {
-      if (bookingsData.length == 0) {
-        return res.json({
-          status: true,
-          message: "No bookings exists for this range",
-          activeBookings: [],
-          completedBookings: [],
-          cancelledBookings: [],
-        });
-      }
-      let mappedBookings = [];
-      let allBookings = bookingsData.map(async (i) => {
-        i.studioName = "";
-        let studioInfo = await Studio.findStudioById(i.studioId);
-        if (studioInfo != null) {
-          i.studioName = studioInfo.fullName;
-        }
-        i.userName = "";
-        i.userEmail = "NA";
-        i.userPhone = "NA";
-        let userData = await User.findUserByUserId(i.userId);
-        if (userData != null) {
-          i.userName = userData.fullName;
-          i.userEmail = userData.email;
-          i.userPhone = userData.phone;
-        }
-        mappedBookings.push(i);
-        if (mappedBookings.length == bookingsData.length) {
-          let cancelledBookings = mappedBookings.filter(
-            (i) => i.bookingStatus == 2
-          );
-          getCompletedBookings(mappedBookings, (resActive, resComplete) => {
-            return res.json({
-              status: true,
-              message: "All booking(s) returned",
-              activeBookings: resActive,
-              completedBookings: resComplete,
-              cancelledBookings: cancelledBookings,
-            });
+try {
+    let startDate = req.body.startDate;
+    let endDate = req.body.endDate;
+    logger.info({"req data of getBookingsByDate":req.body})
+    //get startDate from timestamp
+    startDate = new Date(startDate);
+    var yr = startDate.getUTCFullYear();
+    var mth = startDate.getUTCMonth() + 1;
+    if (mth.toString().length == 1) {
+      mth = "0" + mth.toString();
+    }
+    var dt = startDate.getUTCDate();
+    if (dt.toString().length == 1) {
+      dt = "0" + dt.toString();
+    }
+    startDate = yr + "-" + mth + "-" + dt;
+    var sTimeStamp = new Date(startDate).getTime();
+    logger.info("Start Date : ", { startDate });
+  
+    //get endDate from timestamp
+    endDate = new Date(endDate);
+    var yr = endDate.getUTCFullYear();
+    var mth = endDate.getUTCMonth() + 1;
+    if (mth.toString().length == 1) {
+      mth = "0" + mth.toString();
+    }
+    var dt = endDate.getUTCDate();
+    if (dt.toString().length == 1) {
+      dt = "0" + dt.toString();
+    }
+    endDate = yr + "-" + mth + "-" + dt;
+    var eTimeStamp = new Date(endDate).getTime();
+    logger.info("End Date : ", { endDate });
+  
+    Booking.fetchBookingsByBookingDateRange(startDate, endDate).then(
+      (bookingsData) => {
+        if (bookingsData.length == 0) {
+          return res.json({
+            status: true,
+            message: "No bookings exists for this range",
+            activeBookings: [],
+            completedBookings: [],
+            cancelledBookings: [],
           });
         }
-      });
-    }
-  );
+        let mappedBookings = [];
+        let allBookings = bookingsData.map(async (i) => {
+          i.studioName = "";
+          let studioInfo = await Studio.findStudioById(i.studioId);
+          if (studioInfo != null) {
+            i.studioName = studioInfo.fullName;
+          }
+          i.userName = "";
+          i.userEmail = "NA";
+          i.userPhone = "NA";
+          let userData = await User.findUserByUserId(i.userId);
+          if (userData != null) {
+            i.userName = userData.fullName;
+            i.userEmail = userData.email;
+            i.userPhone = userData.phone;
+          }
+          mappedBookings.push(i);
+          if (mappedBookings.length == bookingsData.length) {
+            let cancelledBookings = mappedBookings.filter(
+              (i) => i.bookingStatus == 2
+            );
+            getCompletedBookings(mappedBookings, (resActive, resComplete) => {
+              return res.json({
+                status: true,
+                message: "All booking(s) returned",
+                activeBookings: resActive,
+                completedBookings: resComplete,
+                cancelledBookings: cancelledBookings,
+              });
+            });
+          }
+        });
+      }
+    );
+} catch (error) {
+  logger.error(error,"Error Occured :")
+}
 };
 
 exports.getAllBookingsGraphDetails = (req, res, next) => {
-  var today = new Date();
-  // var today = new Date();
-  var d;
-  var months = [];
-  var d = new Date();
-  var month;
-  var year = d.getFullYear();
-  // logger.info({year})
-
-  //for last 6 months(including current month)
-  // for(var i = 5; i > -1; i -= 1) {
-  var keyData = 1;
-  //for last 6 months(excluding current month)
-  for (var i = 6; i > 0; i -= 1) {
-    d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-    //   logger.info(d.getFullYear())
-
-    months.push({
-      month: d.getMonth(),
-      year: d.getFullYear(),
-      key: keyData,
-      bookingCount: 0,
-    });
-    keyData = keyData + 1;
-  }
-  logger.info({ months });
-
-  Booking.fetchAllBookings(0, 0).then((bookingsData) => {
-    // bookingsData = bookingsData.filter(i=>i.bookingStatus==1);
-    bookingsData.forEach((singleBooking) => {
-      var dt1 = new Date(singleBooking.creationTimeStamp);
-      var monthOnly = dt1.getMonth();
-      months.forEach((mth) => {
-        if (+mth.month == +monthOnly) {
-          mth.bookingCount = mth.bookingCount + 1;
-        }
-      });
-    });
-
-    setTimeout(() => {
-      months.forEach((mthData) => {
-        if (mthData.month == 0) {
-          mthData.month = "January";
-        }
-        if (mthData.month == 1) {
-          mthData.month = "Febuary";
-        }
-        if (mthData.month == 2) {
-          mthData.month = "March";
-        }
-        if (mthData.month == 3) {
-          mthData.month = "April";
-        }
-        if (mthData.month == 4) {
-          mthData.month = "May";
-        }
-        if (mthData.month == 5) {
-          mthData.month = "June";
-        }
-        if (mthData.month == 6) {
-          mthData.month = "July";
-        }
-        if (mthData.month == 7) {
-          mthData.month = "August";
-        }
-        if (mthData.month == 8) {
-          mthData.month = "September";
-        }
-        if (mthData.month == 9) {
-          mthData.month = "Ocober";
-        }
-        if (mthData.month == 10) {
-          mthData.month = "November";
-        }
-        if (mthData.month == 11) {
-          mthData.month = "December";
-        }
-      });
-
-      months.sort((a, b) => {
-        return a.key - b.key;
-      });
-
-      //retrieving only months
-      var allMonths = [];
-      months.forEach((m) => {
-        allMonths.push(m.month);
-      });
-
-      //retrieving only bookingCounts
-      var allBookingCounts = [];
-      months.forEach((m) => {
-        allBookingCounts.push(m.bookingCount);
-      });
-
-      res.json({
-        status: true,
-        message: "All data returned",
-        allMonths: allMonths,
-        allBookingCounts: allBookingCounts,
-        allData: months,
-      });
-    }, 1000);
-  });
+ try {
+   var today = new Date();
+   // var today = new Date();
+   var d;
+   var months = [];
+   var d = new Date();
+   var month;
+   var year = d.getFullYear();
+   // logger.info({year})
+ 
+   //for last 6 months(including current month)
+   // for(var i = 5; i > -1; i -= 1) {
+   var keyData = 1;
+   //for last 6 months(excluding current month)
+   for (var i = 6; i > 0; i -= 1) {
+     d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+     //   logger.info(d.getFullYear())
+ 
+     months.push({
+       month: d.getMonth(),
+       year: d.getFullYear(),
+       key: keyData,
+       bookingCount: 0,
+     });
+     keyData = keyData + 1;
+   }
+   logger.info({ months });
+ 
+   Booking.fetchAllBookings(0, 0).then((bookingsData) => {
+     // bookingsData = bookingsData.filter(i=>i.bookingStatus==1);
+     bookingsData.forEach((singleBooking) => {
+       var dt1 = new Date(singleBooking.creationTimeStamp);
+       var monthOnly = dt1.getMonth();
+       months.forEach((mth) => {
+         if (+mth.month == +monthOnly) {
+           mth.bookingCount = mth.bookingCount + 1;
+         }
+       });
+     });
+ 
+     setTimeout(() => {
+       months.forEach((mthData) => {
+         if (mthData.month == 0) {
+           mthData.month = "January";
+         }
+         if (mthData.month == 1) {
+           mthData.month = "Febuary";
+         }
+         if (mthData.month == 2) {
+           mthData.month = "March";
+         }
+         if (mthData.month == 3) {
+           mthData.month = "April";
+         }
+         if (mthData.month == 4) {
+           mthData.month = "May";
+         }
+         if (mthData.month == 5) {
+           mthData.month = "June";
+         }
+         if (mthData.month == 6) {
+           mthData.month = "July";
+         }
+         if (mthData.month == 7) {
+           mthData.month = "August";
+         }
+         if (mthData.month == 8) {
+           mthData.month = "September";
+         }
+         if (mthData.month == 9) {
+           mthData.month = "Ocober";
+         }
+         if (mthData.month == 10) {
+           mthData.month = "November";
+         }
+         if (mthData.month == 11) {
+           mthData.month = "December";
+         }
+       });
+ 
+       months.sort((a, b) => {
+         return a.key - b.key;
+       });
+ 
+       //retrieving only months
+       var allMonths = [];
+       months.forEach((m) => {
+         allMonths.push(m.month);
+       });
+ 
+       //retrieving only bookingCounts
+       var allBookingCounts = [];
+       months.forEach((m) => {
+         allBookingCounts.push(m.bookingCount);
+       });
+ 
+       res.json({
+         status: true,
+         message: "All data returned",
+         allMonths: allMonths,
+         allBookingCounts: allBookingCounts,
+         allData: months,
+       });
+     }, 1000);
+   });
+ } catch (error) {
+  logger.error(error,"Error Occured :")
+ }
 };
 
 exports.getAllBookingsGraphDetailsForParticularStudio = (req, res, next) => {
-  const studioId = req.params.studioId;
-
-  var today = new Date();
-  // var today = new Date();
-  var d;
-  var months = [];
-  var d = new Date();
-  var month;
-  var year = d.getFullYear();
-  // logger.info({year})
-
-  //for last 6 months(including current month)
-  // for(var i = 5; i > -1; i -= 1) {
-  var keyData = 1;
-  //for last 6 months(excluding current month)
-  for (var i = 6; i > 0; i -= 1) {
-    d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-    //   logger.info(d.getFullYear())
-
-    months.push({
-      month: d.getMonth(),
-      year: d.getFullYear(),
-      key: keyData,
-      bookingCount: 0,
+  try {
+    const studioId = req.params.studioId;
+    logger.info({"req data of getAllBookingsGraphDetailsForParticularStudio studioId":studioId})
+    var today = new Date();
+    // var today = new Date();
+    var d;
+    var months = [];
+    var d = new Date();
+    var month;
+    var year = d.getFullYear();
+    // logger.info({year})
+  
+    //for last 6 months(including current month)
+    // for(var i = 5; i > -1; i -= 1) {
+    var keyData = 1;
+    //for last 6 months(excluding current month)
+    for (var i = 6; i > 0; i -= 1) {
+      d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      //   logger.info(d.getFullYear())
+  
+      months.push({
+        month: d.getMonth(),
+        year: d.getFullYear(),
+        key: keyData,
+        bookingCount: 0,
+      });
+      keyData = keyData + 1;
+    }
+    logger.info({ months });
+  
+    Booking.fetchAllBookingsByStudioId(studioId, 0, 0).then((bookingsData) => {
+      // bookingsData = bookingsData.filter(i=>i.bookingStatus==1);
+      bookingsData.forEach((singleBooking) => {
+        var dt1 = new Date(singleBooking.creationTimeStamp);
+        var monthOnly = dt1.getMonth();
+        months.forEach((mth) => {
+          if (+mth.month == +monthOnly) {
+            mth.bookingCount = mth.bookingCount + 1;
+          }
+        });
+      });
+  
+      setTimeout(() => {
+        months.forEach((mthData) => {
+          if (mthData.month == 0) {
+            mthData.month = "January";
+          }
+          if (mthData.month == 1) {
+            mthData.month = "Febuary";
+          }
+          if (mthData.month == 2) {
+            mthData.month = "March";
+          }
+          if (mthData.month == 3) {
+            mthData.month = "April";
+          }
+          if (mthData.month == 4) {
+            mthData.month = "May";
+          }
+          if (mthData.month == 5) {
+            mthData.month = "June";
+          }
+          if (mthData.month == 6) {
+            mthData.month = "July";
+          }
+          if (mthData.month == 7) {
+            mthData.month = "August";
+          }
+          if (mthData.month == 8) {
+            mthData.month = "September";
+          }
+          if (mthData.month == 9) {
+            mthData.month = "Ocober";
+          }
+          if (mthData.month == 10) {
+            mthData.month = "November";
+          }
+          if (mthData.month == 11) {
+            mthData.month = "December";
+          }
+        });
+  
+        months.sort((a, b) => {
+          return a.key - b.key;
+        });
+  
+        //retrieving only months
+        var allMonths = [];
+        months.forEach((m) => {
+          allMonths.push(m.month);
+        });
+  
+        //retrieving only bookingCounts
+        var allBookingCounts = [];
+        months.forEach((m) => {
+          allBookingCounts.push(m.bookingCount);
+        });
+  
+        res.json({
+          status: true,
+          message: "All data returned",
+          allMonths: allMonths,
+          allBookingCounts: allBookingCounts,
+          allData: months,
+        });
+      }, 1000);
     });
-    keyData = keyData + 1;
+  } catch (error) {
+    logger.error(error,"Error Occured :")
   }
-  logger.info({ months });
-
-  Booking.fetchAllBookingsByStudioId(studioId, 0, 0).then((bookingsData) => {
-    // bookingsData = bookingsData.filter(i=>i.bookingStatus==1);
-    bookingsData.forEach((singleBooking) => {
-      var dt1 = new Date(singleBooking.creationTimeStamp);
-      var monthOnly = dt1.getMonth();
-      months.forEach((mth) => {
-        if (+mth.month == +monthOnly) {
-          mth.bookingCount = mth.bookingCount + 1;
-        }
-      });
-    });
-
-    setTimeout(() => {
-      months.forEach((mthData) => {
-        if (mthData.month == 0) {
-          mthData.month = "January";
-        }
-        if (mthData.month == 1) {
-          mthData.month = "Febuary";
-        }
-        if (mthData.month == 2) {
-          mthData.month = "March";
-        }
-        if (mthData.month == 3) {
-          mthData.month = "April";
-        }
-        if (mthData.month == 4) {
-          mthData.month = "May";
-        }
-        if (mthData.month == 5) {
-          mthData.month = "June";
-        }
-        if (mthData.month == 6) {
-          mthData.month = "July";
-        }
-        if (mthData.month == 7) {
-          mthData.month = "August";
-        }
-        if (mthData.month == 8) {
-          mthData.month = "September";
-        }
-        if (mthData.month == 9) {
-          mthData.month = "Ocober";
-        }
-        if (mthData.month == 10) {
-          mthData.month = "November";
-        }
-        if (mthData.month == 11) {
-          mthData.month = "December";
-        }
-      });
-
-      months.sort((a, b) => {
-        return a.key - b.key;
-      });
-
-      //retrieving only months
-      var allMonths = [];
-      months.forEach((m) => {
-        allMonths.push(m.month);
-      });
-
-      //retrieving only bookingCounts
-      var allBookingCounts = [];
-      months.forEach((m) => {
-        allBookingCounts.push(m.bookingCount);
-      });
-
-      res.json({
-        status: true,
-        message: "All data returned",
-        allMonths: allMonths,
-        allBookingCounts: allBookingCounts,
-        allData: months,
-      });
-    }, 1000);
-  });
 };
 
 exports.exportBookingData = async (req, res) => {
@@ -4044,6 +4110,7 @@ exports.exportBookingData = async (req, res) => {
     // const filter = pick(req.query, ['dateOfBirth', 'userType', 'role']); // {startDate: 2022-19-01}
     // const options = pick(req.query, ['sort', 'limit', 'gender', 'startDate','endDate','page','sortfield','sortvalue']); // {}
     const { type } = req.query;
+    logger.info({"req data of exportBookingData":req.query})
     let response;
     const pipelineForStudio = [
       {
@@ -4459,7 +4526,7 @@ exports.exportBookingData = async (req, res) => {
           });
       });
   } catch (error) {
-    logger.error(error);
+    logger.error(error,"Error Occured :")
     res.send({
       status: "error",
       message: "Something went wrong",
@@ -4529,6 +4596,7 @@ async function sendMailToUserAndAdmin(datas) {
 exports.adminBooking = async (req, res) => {
   try {
     let { bookingType, userId, fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role, studioId, roomId, bookingDate, bookingTime, totalPrice } = req.body
+    logger.info({"req data of adminBooking":req.body})
     if (bookingType === "offline") {
       let createdUser = await registerOfflineUser({ fullName, userType, dateOfBirth, email, phoneNumber, deviceId, role })
       if (!createdUser.status) {

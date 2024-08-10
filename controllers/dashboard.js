@@ -1,5 +1,6 @@
 const { getDB } = require("../util/database");
 const moment = require('moment-timezone');
+const { logger } = require("../util/logger");
 
 
 //--------------------------------Transaction--------------------------------
@@ -143,24 +144,19 @@ const performYearOperations = async (db) => {
   return Object.values(combinedResults);
 };
 
-
 const performWeekOperations = async (db) => {
   const getDayName = (day) => {
     const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
     return days[day];
   };
 
-  // Get the current time in the 'Asia/Kolkata' timezone
   const today = moment().tz("Asia/Kolkata");
+  const dayOfWeek = today.day();
+  const lastSunday = moment().tz("Asia/Kolkata").startOf('week'); // Sunday as the start of the week
 
-  // Calculate the start and end of the current week (Sunday to Saturday)
-  const lastSunday = today.clone().startOf('week'); // Start of the week (Sunday)
-  const nextSaturday = lastSunday.clone().endOf('week'); // End of the week (Saturday)
-
-  // Initialize the combinedResults object for each day of the week
   let combinedResults = {};
-  for (let i = 0; i <= 6; i++) {
-    const date = lastSunday.clone().add(i, 'days');
+  for (let i = 0; i <= dayOfWeek; i++) {
+    const date = moment(lastSunday).add(i, 'days');
     const day = date.day();
     const key = getDayName(day);
 
@@ -172,7 +168,6 @@ const performWeekOperations = async (db) => {
     };
   }
 
-  // Define the MongoDB aggregation pipeline
   const pipeline = (type) => [
     {
       $match: {
@@ -180,7 +175,7 @@ const performWeekOperations = async (db) => {
         type,
         creationTimeStamp: {
           $gte: lastSunday.toDate(),
-          $lte: nextSaturday.toDate()
+          $lt: today.toDate()
         }
       }
     },
@@ -193,7 +188,7 @@ const performWeekOperations = async (db) => {
     {
       $project: {
         _id: 0,
-        day: { $subtract: [{ $mod: [{ $add: ["$_id", 5] }, 7] }, 1] }, // Adjust $dayOfWeek to align with Sunday start
+        day: "$_id",
         total: "$totalPriceSum"
       }
     }
@@ -202,11 +197,10 @@ const performWeekOperations = async (db) => {
   const bookingsCollection = db.collection('bookings');
   const types = ["c1", "c2", "c3"];
   
-  // Aggregate data for each type and map the results to the correct day
   for (let type of types) {
     const results = await bookingsCollection.aggregate(pipeline(type)).toArray();
     results.forEach(item => {
-      const dayName = getDayName(item.day);
+      const dayName = getDayName(item.day - 1);
       if (combinedResults[dayName]) {
         combinedResults[dayName][type === "c1" ? 'studio' : type === "c2" ? 'production' : 'mixmaster'] = item.total;
       }
@@ -215,6 +209,7 @@ const performWeekOperations = async (db) => {
 
   return Object.values(combinedResults);
 };
+
 
 
 const performMonthOperations = async (db) => {
@@ -317,6 +312,7 @@ const transactionAnalytics = async (timeframe) => {
     return {status:true, message :"Transaction data", data} 
   } catch (err) {
     console.error('Error while fetching booking data:', err);
+    logger.error(err,"Error Occured :")
     return {status:false, message :"Error while fething Transaction data"}
   }
 };
@@ -554,6 +550,7 @@ const BookingHoursAndCount = async (timeframe) => {
     return { status: true, message: "Booking data", data };
   } catch (error) {
     console.error('Error while fetching booking data:', error);
+    logger.error(error,"Error Occured :")
     return { status: false, message: "Error while fetching booking data" };
   }
 };
@@ -623,6 +620,7 @@ const NoOfBookingsOfSudioCount = async(timeframe)=>{
     let data = await db.collection("bookings").aggregate(NoOfBookings_pipeline).toArray();
     return {status:true, message :"No Of Bookings", data} 
   } catch (error) {
+    logger.error(error,"Error Occured :")
     console.log(error);
   }
 }
@@ -772,6 +770,7 @@ const studioOnboard = async (timeframe) => {
 
     return { status: true, message: "Studio Onboard Data", data };
   } catch (error) {
+    logger.error(error,"Error Occured :")
     console.log(error);
   }
 }
@@ -836,6 +835,7 @@ const UserCard = async()=>{
     let UserData = await db.collection("users").aggregate(user_pipline).toArray()
     return {status:true,message:"No of Users",data:UserData,}
   } catch (error) {
+    logger.error(error,"Error Occured :")
     console.log(error);
   }
 }
@@ -866,6 +866,7 @@ const StudioCard = async()=>{
     let StudioData = await db.collection("studios").aggregate(user_pipline).toArray()
     return {status:true,message:"No of Studios",data:StudioData}
   } catch (error) {
+    logger.error(error,"Error Occured :")
     console.log(error);
   }
 }
@@ -895,6 +896,7 @@ const BookingCard = async()=>{
     let BookingData = await db.collection("bookings").aggregate(user_pipline).toArray()
     return {status:true,message:"No of Bookings",data:BookingData}
   } catch (error) {
+    logger.error(error,"Error Occured :")
     console.log(error);
   }
 }
@@ -914,6 +916,7 @@ exports.dashboardAnalytics= async(req,res)=>{
   try {
     const timeframe = req.query.timeframe || "year";
     const analytics = req.query.analytics;
+    logger.info({"req data of dashboardAnalytics":req.query})
     if(analytics==="transaction"){ //1-7
      var transactionData = await transactionAnalytics(timeframe)
     } else if(analytics==="revenue"){ //range not required, but from start of month to current time
@@ -943,6 +946,7 @@ exports.dashboardAnalytics= async(req,res)=>{
     })
   } catch (error) {
     console.log(error);
+    logger.error(error,"Error Occured :")
   }
 }
 //--------------------------------Main Controller--------------------------------
