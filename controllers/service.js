@@ -182,7 +182,7 @@ try {
   
   
     // const { serviceName, startingPrice, offerings, TotalServices, avgReview, serviceId } = req.query;
-    const filter = pick(req.query, ['serviceType', 'active', 'serviceName', 'startPrice', 'endPrice', 'planId', 'TotalServices'])
+    const filter = pick(req.query, ['serviceType', 'active', 'serviceName', 'startPrice', 'endPrice', 'planId', 'TotalServices','id'])
     const options = pick(req.query, ['sortBy', 'limit', 'page']);
     console.log("body---", req.query)
     let mappedFilter = {}
@@ -192,7 +192,8 @@ try {
     const collectionName = homeScreen.category?.[filter.serviceType]?.coll
   
   
-    if (filter.serviceType) mappedFilter.type = filter.serviceType //: filter.catId = 1;
+    if (filter.id) mappedFilter._id = new ObjectId(filter.id)
+  if (filter.serviceType) mappedFilter.type = filter.serviceType //: filter.catId = 1;
     if(filter.active) mappedFilter.isActive = parseInt(filter.active)// : mappedFilter.isActive = 1;
   
     if (filter.planId) {

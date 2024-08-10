@@ -1,11 +1,11 @@
 const express = require('express');
 const { logger, contextMiddleware } = require('./util/logger.js');
+const { readjsonfile } = require('./util/readfile.js');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 
 // require('dotenv').config({ path: __dirname + '/.env' })
 require('dotenv').config()
-
 
 const path = require('path');
 
@@ -108,6 +108,21 @@ app.use('/uploads',express.static('uploads'));
 app.use(bodyParser.json());  //for application/json data
 
 app.use(express.json());
+
+app.get('/.well-known/assetlinks.json', async (req, res, next) => {  
+  const dirpath =__dirname+"/app_share/.well-known/";
+  const filename = 'assetlinks.json';
+  const jsoncontent = await readjsonfile({dirpath,filename})  
+  return res.status(200).json(jsoncontent)
+
+});
+
+app.get("/apple-app-site-association",async (req, res, next) => {
+  const dirpath =__dirname+"/app_share/";
+  const filename = 'apple-app-site-association.json';
+  const jsoncontent = await readjsonfile({dirpath,filename})
+  return res.status(200).json(jsoncontent)
+})
 
 
 //enabling CORS package
@@ -245,7 +260,7 @@ app.use((error, req, res, next) => {
 });
 
 
-let port = process.env.PORT || 4000;
+let port = process.env.SERVER_PORT || 4000;
 
 console.log(port)
 //establishing DB connection

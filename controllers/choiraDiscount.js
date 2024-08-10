@@ -66,7 +66,7 @@ exports.getAllUserDiscounts = (req, res, next) => {
 
     User.findUserByUserId(userId)
         .then(userData => {
-            if (!userData) {
+            if (!userData) {                
                 return res.status(404).json({ status: false, message: "No user with this ID exists" });
             }
             ChoiraDiscount.fetchAllChoiraDiscounts(0, 0).then(discountsData => {
@@ -133,6 +133,9 @@ exports.getAllUserDiscounts = (req, res, next) => {
                     })
                 }
             })
+        }).catch(e=>{
+            console.log(e);
+            
         })
 
 }
