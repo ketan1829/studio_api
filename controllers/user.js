@@ -4,6 +4,8 @@ const TempUser = require("../models/tempUsers");
 const Studio = require("../models/studio");
 const excelJS = require("exceljs");
 const mongodb = require("mongodb");
+const { Analytics } = require('@customerio/cdp-analytics-node')
+
 const pick = require("../util/pick");
 const getDb = require("../util/database").getDB;
 const ObjectId = mongodb.ObjectId;
@@ -22,6 +24,7 @@ const { json } = require("express");
 const { logger } = require("../util/logger");
 
 const { send_mail } = require("../util/mail.js");
+const AS = require("../util/analytics/basic.js")
 const SubAdmin = require("../models/subAdmin.js");
 const Owner = require("../models/owner.js");
 
@@ -125,6 +128,14 @@ exports.signupUser = async (req, res, next) => {
         deviceId
       );
 
+      AS.User({fullName,
+        dateOfBirth,
+        email,
+        phone,
+        gender,
+        userType,
+        deviceId}, "user")
+
       //saving in database
       return userObj
         .save()
@@ -207,6 +218,16 @@ exports.signupUserV2 = async (req, res, next) => {
         role: role || "user",
         status: 1,
       };
+      AS.User({
+        fullName: fullName.trim(),
+        dateOfBirth,
+        email,
+        phone: phone,
+        userType: userType || "NUMBER",
+        deviceId,
+        role: role || "user",
+        status: 1,
+      }, "user")
       userObj._id = _userData._id;
       const udata = await User.update(phone, updated_user_data);
       let updatedData = udata
@@ -248,7 +269,7 @@ exports.signupUserV2 = async (req, res, next) => {
         // console.log(udata ? `update count:${udata?.matchedCount}` : "update failed");
       } else {
         // If user does not exist, create a new user
-        await userObj.save();
+        // await userObj.save();
         const { _id, creationTimeStamp } = await User.findUserByPhone(phone);
         userObj._id = _id;
         userObj.creationTimeStamp = creationTimeStamp;
@@ -286,9 +307,11 @@ exports.signupUserV2 = async (req, res, next) => {
 };
 
 exports.loginUserOTP = async (req, res, next) => {
+
+
   try {
     const { phoneNumber, deviceId, userType, role } = req.body;
-    logger.info(
+    console.log(
       { phoneNumber, deviceId, userType, role },
       "User data for login:"
     );
@@ -352,10 +375,14 @@ exports.loginUserOTP = async (req, res, next) => {
         statusInfo.message = "Welcome Tester, OTP has been send Succesfully.";
         return res.status(200).json(statusInfo);
       }
+      AS.User({
+        phoneNumber,
+        userType,
+        deviceId}, "user")
       // New User
       if (!userData || userData?.status == 0) {
         console.log("new user=======");
-        const status_otp = await sendMsg91OTP(`${phoneNumber}`);
+        const status_otp = true // await sendMsg91OTP(`${phoneNumber}`);
 
         statusInfo.user = {
           _id: "",
@@ -378,6 +405,7 @@ exports.loginUserOTP = async (req, res, next) => {
         statusInfo.role = "user";
         statusInfo.newUser = true;
 
+        
         if (status_otp.status) {
           statusInfo.status = true;
           statusInfo.message = "OTP has been send Succesfully";
@@ -391,7 +419,7 @@ exports.loginUserOTP = async (req, res, next) => {
       // Existing User Login
       else {
         console.log("ELESEEEE");
-        const status_otp = await sendMsg91OTP(`${phoneNumber}`);
+        const status_otp = true // await sendMsg91OTP(`${phoneNumber}`);
 
         if (deviceId) {
           userData.deviceId = deviceId;

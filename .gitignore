@@ -40,3 +40,4 @@ logs/info.log
 /launch.json
 /practice.js
 /app_share
+package-lock.json
