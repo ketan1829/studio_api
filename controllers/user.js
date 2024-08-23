@@ -24,7 +24,7 @@ const { json } = require("express");
 const { logger } = require("../util/logger");
 
 const { send_mail } = require("../util/mail.js");
-const AS = require("../util/analytics/basic.js")
+const Track = require("../util/analytics/basic.js")
 const SubAdmin = require("../models/subAdmin.js");
 const Owner = require("../models/owner.js");
 
@@ -128,7 +128,7 @@ exports.signupUser = async (req, res, next) => {
         deviceId
       );
 
-      AS.User({fullName,
+      Track.User({fullName,
         dateOfBirth,
         email,
         phone,
@@ -218,7 +218,7 @@ exports.signupUserV2 = async (req, res, next) => {
         role: role || "user",
         status: 1,
       };
-      AS.User({
+      Track.User({
         fullName: fullName.trim(),
         dateOfBirth,
         email,
@@ -372,13 +372,13 @@ exports.loginUserOTP = async (req, res, next) => {
         statusInfo.status = true;
         statusInfo.user = userData;
         statusInfo.role = "tester";
-        statusInfo.message = "Welcome Tester, OTP has been send Succesfully.";
+        statusInfo.message = "Welcome Tester, OTP has been send Successfully.";
         return res.status(200).json(statusInfo);
       }
-      AS.User({
+      Track.User({
         phoneNumber,
         userType,
-        deviceId}, "user")
+        deviceId}, "user", "login")
       // New User
       if (!userData || userData?.status == 0) {
         console.log("new user=======");

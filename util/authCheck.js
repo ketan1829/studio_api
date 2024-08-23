@@ -51,7 +51,7 @@ const isUser = async (req, res, next) => {
     if (!decoded.user || !decoded.user._id) {
       throw new ErrorHandler(401, "unauthorized");
     }
-
+    req.user = decoded
     next();
   } catch (error) {
     console.log("user error:=", error)
@@ -220,7 +220,8 @@ const isAdminOrOwnerOrUser = async (req, res, next) => {
     }
 
     const decoded = await verifyToken(token);
-
+    req.user = decoded
+    console.log("req.user==>", req.user);
     if (!decoded.admin && !decoded.owner && !decoded.user) {
       throw new ErrorHandler(401, "unauthorized");
     }

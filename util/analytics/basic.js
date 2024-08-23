@@ -1,5 +1,6 @@
 // const analytics = require('./init')
 const { Analytics } = require('@customerio/cdp-analytics-node')
+const axios = require('axios')
 
 // instantiation
 const analytics = new Analytics({ 
@@ -9,11 +10,14 @@ const analytics = new Analytics({
   // host: 'https://cdp-eu.customer.io',
 })
 
-class AS {
+const CUSTOMER_IO_API = process.env.CUSTOMER_IO_API
+
+class Track {
   constructor(parameters) {
 
   }
-    static async User(userData, role) {
+
+    static async User(userData, role='', event='') {
       try {
         console.log({
           fullName: userData.fullName || '',
@@ -41,8 +45,11 @@ class AS {
               userType: userData.userType || '',
               deviceId: userData.deviceId || '',
               role: userData.role || '' || role,
+              event: userData.event || '' || event,
             }
           }))
+
+          // console.log("getUserAttributes-->", getUserAttributes("917021908949"))
 
 
 
@@ -53,28 +60,32 @@ class AS {
       }
   }
 
-    static async Track(phone, event, props) {
+  static async Event(phone, event, props) {
     try {
-      analytics.track({
+      await analytics.track({
         userId: phone,
         event: event,
         properties: props
-        // {
-        //   product: "shoes",
-        //   revenue: 39.95,
-        //   qty: 1,
-        //   size: 9
-        // }
       });
-
+      console.log(`Event ${event} tracked for user ${phone}`);
     } catch (error) {
-        // Handle errors appropriately
-        throw new Error('Error: ' + error.message);
+      throw new Error('Error: ' + error.message);
     }
   }
 
+  static async BookingAttempt(phone, studioId) {
+    await this.Event(phone, 'studio_booking_attempt', { studioId });
+  }
+
+  static async BookingCreated(phone, studioId, roomId, discountId, discountCode, bookingDate, bookingTime, totalPrice) {
+    await this.Event(phone, 'studio_booking_created', { phone, studioId, roomId, discountId, discountCode, bookingDate, bookingTime, totalPrice });
+  }
+  
+  static async SlotsViewed(phone, studioId) {
+    await this.Event(phone, 'studio_slots_viewed', { studioId });
+  }
 
 }
 
 
-module.exports = AS;
+module.exports = Track;

@@ -20,6 +20,8 @@ const ObjectId = mongodb.ObjectId;
 const jwt = require("jsonwebtoken");
 
 const { send_mail } = require("../util/mail.js");
+const Track = require("../util/analytics/basic.js")
+
 const pick = require("../util/pick");
 const { getLogger } = require("nodemailer/lib/shared");
 const { logger } = require("../util/logger");
@@ -473,15 +475,16 @@ exports.createNewBooking = async (req, res, next) => {
 
 
     const { userId, studioId, roomId, bookingDate, bookingTime, totalPrice } = req.body;
-
+    const { phone } = req.user.user
     const discountId = req.body?.discountId || "0"
     const discountCode = req.body?.discountCode || "#000"
 
     console.log({discountId,discountCode});
-
-    let response = await createBooking({ userId, studioId, roomId, discountId, discountCode, bookingDate, bookingTime, totalPrice })
-    if(response.status){
+    Track.BookingCreated(phone, studioId, roomId, discountId, discountCode, bookingDate, bookingTime, totalPrice)
+    let response = true //await createBooking({ userId, studioId, roomId, discountId, discountCode, bookingDate, bookingTime, totalPrice })
+    if(!response){
       const bookingData = response.resultData.ops[0];
+      Track.BookingCompleted(phone, studioId, roomId, discountId, discountCode, bookingDate, bookingTime, totalPrice)
       await sendMailAndAppNotification({userId,
         studioId,
         roomId,
@@ -751,15 +754,32 @@ exports.createServiceBooking = async (req, res, next) => {
 
 exports.getStudioAvailabilities = async (req, res, next) => {
  try {
+  console.log("slot req data:", req.body);
    const studioId = req.body.studioId;
    const roomId = req.body.roomId;
    let bookingDate = req.body.bookingDate;
    const bookingHours = +req.body.bookingHours; //Slots will be created based on this
    const bufferTime = 15;
    const interval = bookingHours * 60;
+   const userData = req.user;
+   console.log("userData-->", userData);
+   const {phone} = userData.user;
 
    logger.info({"req data of getStudioAvailabilities":req.body})
-   console.log("slot req data:", req.body);
+   
+
+   const attributeClickCount = `studio_click_count_${studioId}`;
+   const attributeBookingCompleted = `studio_booking_completed_${studioId}`;
+
+  //  const clickCount = user[attributeClickCount] ? user[attributeClickCount] + 1 : 1;
+  //  const bookingCompleted = user[attributeBookingCompleted] || false;
+
+  //  Track.User({
+  //   phone,
+  //   userType,
+  //   deviceId})
+
+  Track.BookingAttempt(phone, studioId)
  
    //get bookingDate from timestamp
    bookingDate = new Date(bookingDate);
@@ -1037,6 +1057,7 @@ exports.getStudioAvailabilities = async (req, res, next) => {
      );
    });
  } catch (error) {
+  console.log("error:", error);
   logger.error(error,"Error Occured :")
  }
 };
